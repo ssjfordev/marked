@@ -136,10 +136,10 @@ async function processJobWithThrottling(
   supabase: SupabaseClient,
   job: EnrichmentJob
 ): Promise<void> {
-  // Get the domain from the canonical URL
+  // Get the URL from the canonical
   const { data: canonical } = await supabase
     .from('link_canonicals')
-    .select('url_key, domain')
+    .select('original_url, domain')
     .eq('id', job.link_canonical_id)
     .single();
 
@@ -154,7 +154,7 @@ async function processJobWithThrottling(
   await acquireDomainSlot(domain);
 
   try {
-    await processJob(supabase, job, canonical.url_key);
+    await processJob(supabase, job, canonical.original_url);
   } finally {
     releaseDomainSlot(domain);
   }
@@ -193,11 +193,11 @@ function releaseDomainSlot(domain: string): void {
 async function processJob(
   supabase: SupabaseClient,
   job: EnrichmentJob,
-  urlKey: string
+  url: string
 ): Promise<void> {
   try {
-    // Fetch metadata
-    const metadata = await fetchMetadata(urlKey);
+    // Fetch metadata from the actual URL
+    const metadata = await fetchMetadata(url);
 
     // Compute description with fallback
     const description = getDescriptionFallback({
