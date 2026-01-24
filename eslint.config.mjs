@@ -7,6 +7,15 @@ const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
   prettierConfig,
+  {
+    rules: {
+      // Allow unused vars with underscore prefix (common convention)
+      '@typescript-eslint/no-unused-vars': [
+        'warn',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
+      ],
+    },
+  },
   // Override default ignores of eslint-config-next.
   globalIgnores([
     // Default ignores of eslint-config-next:
