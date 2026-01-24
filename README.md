@@ -1,36 +1,52 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Marked — Product Specification (Final)
 
-## Getting Started
+## Product Identity
+- One-liner: **링크를 저장하는 게 아니라, 지식으로 정리합니다.**
+- Sub: 웹에서 찾은 정보를 **‘내 자산 페이지’**로 전환하는 링크 워크스페이스
+- Terminology:
+  - Highlight → **Mark**
+  - Detail page → **Asset Page**
 
-First, run the development server:
+## Target User (Locked)
+- 직군 기준 분류 ❌
+- Primary:
+  - 링크를 많이 저장하고
+  - 나중에 다시 찾고, 설명하고, 재사용해야 하는 사람
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+\1
+## Tech Stack (Locked)
+- Next.js (Fullstack)
+- Supabase Postgres (DB)
+- Supabase Auth + Google OAuth (Auth)
+- Stripe Subscription (Billing)
+- GA4 (Analytics)
+- MVP: Web + Chrome Extension only
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Pricing Summary (Locked)
+- Free:
+  - 링크 / 폴더 / Mark / Import 무제한
+  - Exact Search
+  - Asset Page ❌
+  - Memo ❌
+  - NL Search ❌
+- Pro ($4 target):
+  - Asset Page
+  - Memo
+  - Natural Language Search (Korean)
+- AI Pro:
+  - AI 분석 + 크레딧
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+\1- [Task Breakdown](./docs/task_breakdown.md)
+- [Claude Dev Agent Prompt](./docs/agent_prompt_claude.md)
+- [Clean Code Standards](./docs/clean_code_guidelines.md)
+- [Tech Stack](./docs/tech_stack.md)
+- [Search Conversion UX](./docs/search_conversion_ux.md)
+- [Asset Page UX](./docs/asset_page_conversion_ux.md)
+- [Tag Policy](./docs/tag_policy.md)
+- [Migration UX](./docs/migration_ux.md)
+- [Backend Resilience](./docs/backend_resilience.md)
+- [Analytics](./docs/analytics.md)
+- [Import & Enrichment](./docs/import_enrichment.md)
+- [Chrome Extension](./docs/chrome_extension.md)
+- [Worker Job Processing](./docs/worker_job_processing.md)
+- [Data Model](./docs/data_model.md)

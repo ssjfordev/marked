@@ -1,0 +1,21 @@
+# Dependencies
+node_modules/
+pnpm-lock.yaml
+
+# Build outputs
+.next/
+out/
+build/
+dist/
+
+# Generated
+next-env.d.ts
+*.generated.*
+
+# IDE
+.idea/
+.vscode/
+
+# Docs (preserve formatting)
+docs/
+*.md
