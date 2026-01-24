@@ -2,7 +2,7 @@ import { type NextRequest, NextResponse } from 'next/server';
 import { updateSession } from '@/lib/supabase/middleware';
 
 // Routes that don't require authentication
-const PUBLIC_ROUTES = ['/', '/login', '/auth/callback', '/auth/error'];
+const PUBLIC_ROUTES = ['/', '/login', '/auth/callback', '/auth/error', '/sample'];
 
 // Routes that are only accessible when NOT authenticated
 const AUTH_ROUTES = ['/login'];
@@ -19,7 +19,12 @@ export async function middleware(request: NextRequest) {
   }
 
   // Allow public routes
-  if (PUBLIC_ROUTES.some((route) => pathname === route || pathname.startsWith('/api'))) {
+  if (
+    PUBLIC_ROUTES.some(
+      (route) =>
+        pathname === route || pathname.startsWith(route + '/') || pathname.startsWith('/api')
+    )
+  ) {
     // Redirect authenticated users away from auth routes
     if (user && AUTH_ROUTES.includes(pathname)) {
       return NextResponse.redirect(new URL('/dashboard', request.url));

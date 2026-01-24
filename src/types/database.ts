@@ -31,6 +31,7 @@ export type Database = {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: [];
       };
       link_canonicals: {
         Row: {
@@ -69,6 +70,7 @@ export type Database = {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: [];
       };
       link_instances: {
         Row: {
@@ -104,6 +106,7 @@ export type Database = {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: [];
       };
       tags: {
         Row: {
@@ -124,6 +127,7 @@ export type Database = {
           name?: string;
           created_at?: string;
         };
+        Relationships: [];
       };
       link_tags: {
         Row: {
@@ -141,6 +145,7 @@ export type Database = {
           tag_id?: string;
           created_at?: string;
         };
+        Relationships: [];
       };
       marks: {
         Row: {
@@ -176,6 +181,7 @@ export type Database = {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: [];
       };
       memos: {
         Row: {
@@ -202,6 +208,7 @@ export type Database = {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: [];
       };
       subscriptions: {
         Row: {
@@ -237,6 +244,7 @@ export type Database = {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: [];
       };
       import_jobs: {
         Row: {
@@ -278,6 +286,7 @@ export type Database = {
           started_at?: string | null;
           finished_at?: string | null;
         };
+        Relationships: [];
       };
       enrichment_jobs: {
         Row: {
@@ -319,6 +328,7 @@ export type Database = {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: [];
       };
     };
     Views: {
@@ -333,5 +343,16 @@ export type Database = {
       import_job_status: 'queued' | 'running' | 'succeeded' | 'failed' | 'canceled';
       enrichment_job_status: 'queued' | 'running' | 'succeeded' | 'failed' | 'dead';
     };
+    CompositeTypes: {
+      [_ in never]: never;
+    };
   };
 };
+
+// Helper types for table access
+export type Tables<T extends keyof Database['public']['Tables']> =
+  Database['public']['Tables'][T]['Row'];
+export type TablesInsert<T extends keyof Database['public']['Tables']> =
+  Database['public']['Tables'][T]['Insert'];
+export type TablesUpdate<T extends keyof Database['public']['Tables']> =
+  Database['public']['Tables'][T]['Update'];

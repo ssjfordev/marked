@@ -1,11 +1,11 @@
-import { createServerClient } from '@supabase/ssr';
+import { createServerClient as createSSRClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import type { Database } from '@/types/database';
 
-export async function createClient() {
+export async function createServerClient() {
   const cookieStore = await cookies();
 
-  return createServerClient<Database>(
+  return createSSRClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
     {
@@ -28,12 +28,15 @@ export async function createClient() {
   );
 }
 
+// Alias for backwards compatibility
+export const createClient = createServerClient;
+
 /**
  * Create a Supabase client with service role (admin) privileges.
  * Use only in trusted server-side contexts.
  */
 export function createServiceClient() {
-  return createServerClient<Database>(
+  return createSSRClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SECRET_KEY!,
     {
