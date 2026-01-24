@@ -1,6 +1,18 @@
 import { createServerClient as createSSRClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import type { Database } from '@/types/database';
+import type { User } from '@supabase/supabase-js';
+
+// Dev mode mock user for testing - uses a real user ID from auth.users
+// to satisfy foreign key constraints
+const DEV_MOCK_USER: User = {
+  id: 'c7e18ec7-c994-4ae0-b3b4-7bb5a6318685',
+  email: 'dev@localhost',
+  app_metadata: {},
+  user_metadata: { full_name: 'Dev User' },
+  aud: 'authenticated',
+  created_at: new Date().toISOString(),
+};
 
 export async function createServerClient() {
   const cookieStore = await cookies();
@@ -48,4 +60,32 @@ export function createServiceClient() {
       },
     }
   );
+}
+
+/**
+ * Get the current authenticated user.
+ * In dev mode with DEV_AUTH_BYPASS=true, returns a mock user.
+ */
+export async function getCurrentUser(): Promise<User | null> {
+  // Dev mode bypass
+  if (process.env.DEV_AUTH_BYPASS === 'true' && process.env.NODE_ENV === 'development') {
+    return DEV_MOCK_USER;
+  }
+
+  const supabase = await createServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  return user;
+}
+
+/**
+ * Get current user ID, throws if not authenticated.
+ */
+export async function requireUserId(): Promise<string> {
+  const user = await getCurrentUser();
+  if (!user) {
+    throw new Error('Unauthorized');
+  }
+  return user.id;
 }

@@ -4,7 +4,7 @@
  * Authentication helpers for API routes.
  */
 
-import { createServerClient } from '@/lib/supabase/server';
+import { getCurrentUser } from '@/lib/supabase/server';
 import { UnauthorizedError } from './errors';
 import type { User } from '@supabase/supabase-js';
 
@@ -13,10 +13,7 @@ import type { User } from '@supabase/supabase-js';
  * Throws UnauthorizedError if not authenticated.
  */
 export async function requireAuth(): Promise<User> {
-  const supabase = await createServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
 
   if (!user) {
     throw new UnauthorizedError();
@@ -29,10 +26,5 @@ export async function requireAuth(): Promise<User> {
  * Get the current user if authenticated, or null.
  */
 export async function getOptionalAuth(): Promise<User | null> {
-  const supabase = await createServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  return user;
+  return getCurrentUser();
 }

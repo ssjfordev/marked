@@ -1,6 +1,6 @@
 'use server';
 
-import { createClient } from '@/lib/supabase/server';
+import { createClient, getCurrentUser } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 
 export async function signInWithGoogle(redirectTo?: string) {
@@ -29,11 +29,8 @@ export async function signOut() {
 }
 
 export async function getUser() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  return user;
+  // Uses getCurrentUser which respects DEV_AUTH_BYPASS
+  return getCurrentUser();
 }
 
 export async function requireUser() {

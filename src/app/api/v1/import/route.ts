@@ -5,7 +5,7 @@
  * GET /api/v1/import - List user's import jobs
  */
 
-import { createServerClient, createServiceClient } from '@/lib/supabase/server';
+import { createServiceClient } from '@/lib/supabase/server';
 import { requireAuth, success, handleError, ValidationError } from '@/lib/api';
 import { processImportJob } from '@/lib/import/import-processor';
 
@@ -73,7 +73,8 @@ export async function POST(request: Request) {
 export async function GET() {
   try {
     const user = await requireAuth();
-    const supabase = await createServerClient();
+    // Use service client to bypass RLS (we check user_id manually)
+    const supabase = createServiceClient();
 
     const { data: jobs, error } = await supabase
       .from('import_jobs')

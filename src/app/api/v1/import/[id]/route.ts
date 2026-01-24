@@ -4,7 +4,7 @@
  * GET /api/v1/import/[id] - Get import job status and progress
  */
 
-import { createServerClient } from '@/lib/supabase/server';
+import { createServiceClient } from '@/lib/supabase/server';
 import { requireAuth, success, handleError, validateUuid, NotFoundError } from '@/lib/api';
 
 interface RouteParams {
@@ -17,7 +17,8 @@ export async function GET(_request: Request, { params }: RouteParams) {
     const { id } = await params;
     validateUuid(id, 'job id');
 
-    const supabase = await createServerClient();
+    // Use service client to bypass RLS (we check user_id manually)
+    const supabase = createServiceClient();
 
     const { data: job, error } = await supabase
       .from('import_jobs')
