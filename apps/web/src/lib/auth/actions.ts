@@ -44,7 +44,7 @@ export async function signOut(fromExtension?: boolean) {
 }
 
 export async function getUser() {
-  // Uses getCurrentUser which respects DEV_AUTH_BYPASS
+  // Uses getCurrentUser which respects ENV=local for mock auth
   return getCurrentUser();
 }
 

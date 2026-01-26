@@ -1,5 +1,8 @@
 declare namespace NodeJS {
   interface ProcessEnv {
+    // Environment
+    ENV?: 'local' | 'development' | 'production';
+
     // Supabase
     NEXT_PUBLIC_SUPABASE_URL: string;
     NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: string;

@@ -3,13 +3,25 @@ import { cookies } from 'next/headers';
 import type { Database } from '@/types/database';
 import type { User } from '@supabase/supabase-js';
 
-// Dev mode mock user for testing - uses a real user ID from auth.users
-// to satisfy foreign key constraints
-const DEV_MOCK_USER: User = {
+/**
+ * Check if running in local development mode.
+ * Local dev mode uses mock user (dev@localhost) for authentication.
+ * ENV values:
+ * - 'local': Local development with mock auth (dev@localhost)
+ * - 'development': Dev server deployment with real auth
+ * - 'production': Production with real auth
+ */
+export function isLocalDev(): boolean {
+  return process.env.ENV === 'local';
+}
+
+// Local dev mock user - uses a real user ID from auth.users
+// to satisfy foreign key constraints. Only used when ENV=local.
+const LOCAL_DEV_MOCK_USER: User = {
   id: 'c7e18ec7-c994-4ae0-b3b4-7bb5a6318685',
   email: 'dev@localhost',
   app_metadata: {},
-  user_metadata: { full_name: 'Dev User' },
+  user_metadata: { full_name: 'Local Dev User' },
   aud: 'authenticated',
   created_at: new Date().toISOString(),
 };
@@ -64,12 +76,13 @@ export function createServiceClient() {
 
 /**
  * Get the current authenticated user.
- * In dev mode with DEV_AUTH_BYPASS=true, returns a mock user.
+ * In local dev mode (ENV=local), returns a mock user (dev@localhost).
+ * In other environments, uses real Supabase authentication.
  */
 export async function getCurrentUser(): Promise<User | null> {
-  // Dev mode bypass
-  if (process.env.DEV_AUTH_BYPASS === 'true' && process.env.NODE_ENV === 'development') {
-    return DEV_MOCK_USER;
+  // Local dev mode - use mock user
+  if (isLocalDev()) {
+    return LOCAL_DEV_MOCK_USER;
   }
 
   const supabase = await createServerClient();
