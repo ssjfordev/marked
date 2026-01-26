@@ -1,0 +1,36 @@
+/* Marked Extension Content Styles */
+
+.marked-selection-button {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.marked-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 6px;
+  background: #f5f5f5;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.marked-btn:hover {
+  background: #e5e5e5;
+}
+
+.marked-btn-mark {
+  color: #f59e0b;
+}
+
+.marked-btn-mark:hover {
+  background: #fef3c7;
+}
+
+.marked-highlight {
+  background-color: #FFEB3B;
+  padding: 2px 0;
+  border-radius: 2px;
+}

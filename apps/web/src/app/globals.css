@@ -1,0 +1,288 @@
+@import 'tailwindcss';
+
+:root {
+  /* Primary colors - shared */
+  --primary: #059669;
+  --primary-light: #10B981;
+  --primary-dark: #047857;
+  --primary-muted: rgba(5, 150, 105, 0.15);
+  --primary-glow: rgba(5, 150, 105, 0.25);
+  --danger: #ef4444;
+  --danger-muted: rgba(239, 68, 68, 0.15);
+  --warning: #f59e0b;
+  --warning-muted: rgba(245, 158, 11, 0.15);
+  --success: #22c55e;
+  --success-muted: rgba(34, 197, 94, 0.15);
+  --info: #3b82f6;
+  --info-muted: rgba(59, 130, 246, 0.15);
+
+  /* Radius */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+}
+
+/* Dark theme (default) */
+:root, .dark {
+  --bg: #0a0f0d;
+  --bg-elevated: #0d1210;
+  --bg-subtle: #111815;
+  --surface: #111815;
+  --surface-hover: #161d1a;
+  --surface-active: #1c2420;
+  --hover: rgba(255, 255, 255, 0.05);
+
+  --foreground: #f8faf9;
+  --foreground-secondary: #c4ccc8;
+  --foreground-muted: #8a9590;
+  --foreground-faint: #5c6662;
+
+  --border: rgba(255, 255, 255, 0.08);
+  --border-hover: rgba(255, 255, 255, 0.15);
+  --border-focus: rgba(16, 185, 129, 0.5);
+  --border-strong: rgba(255, 255, 255, 0.2);
+
+  --shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.4);
+
+  --scrollbar-thumb: rgba(255, 255, 255, 0.15);
+  --scrollbar-thumb-hover: rgba(255, 255, 255, 0.25);
+
+  /* Status colors for dark mode */
+  --status-success-bg: rgba(34, 197, 94, 0.15);
+  --status-success-text: #4ade80;
+  --status-success-border: rgba(34, 197, 94, 0.3);
+  --status-warning-bg: rgba(245, 158, 11, 0.15);
+  --status-warning-text: #fbbf24;
+  --status-warning-border: rgba(245, 158, 11, 0.3);
+  --status-error-bg: rgba(239, 68, 68, 0.15);
+  --status-error-text: #f87171;
+  --status-error-border: rgba(239, 68, 68, 0.3);
+  --status-info-bg: rgba(59, 130, 246, 0.15);
+  --status-info-text: #60a5fa;
+  --status-info-border: rgba(59, 130, 246, 0.3);
+}
+
+/* Light theme */
+.light {
+  --bg: #f8faf9;
+  --bg-elevated: #ffffff;
+  --bg-subtle: #f0f4f2;
+  --surface: #ffffff;
+  --surface-hover: #f0f4f2;
+  --surface-active: #e8eeeb;
+  --hover: rgba(0, 0, 0, 0.04);
+
+  --foreground: #0f1512;
+  --foreground-secondary: #374743;
+  --foreground-muted: #5c6a66;
+  --foreground-faint: #8a9a95;
+
+  --border: rgba(0, 0, 0, 0.08);
+  --border-hover: rgba(0, 0, 0, 0.15);
+  --border-focus: rgba(5, 150, 105, 0.5);
+  --border-strong: rgba(0, 0, 0, 0.2);
+
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 4px 12px rgba(0, 0, 0, 0.05);
+  --shadow-lg: 0 4px 6px rgba(0, 0, 0, 0.05), 0 10px 24px rgba(0, 0, 0, 0.1);
+
+  --scrollbar-thumb: rgba(0, 0, 0, 0.15);
+  --scrollbar-thumb-hover: rgba(0, 0, 0, 0.25);
+
+  /* Status colors for light mode */
+  --status-success-bg: rgba(34, 197, 94, 0.1);
+  --status-success-text: #15803d;
+  --status-success-border: rgba(34, 197, 94, 0.3);
+  --status-warning-bg: rgba(245, 158, 11, 0.1);
+  --status-warning-text: #b45309;
+  --status-warning-border: rgba(245, 158, 11, 0.3);
+  --status-error-bg: rgba(239, 68, 68, 0.1);
+  --status-error-text: #dc2626;
+  --status-error-border: rgba(239, 68, 68, 0.3);
+  --status-info-bg: rgba(59, 130, 246, 0.1);
+  --status-info-text: #2563eb;
+  --status-info-border: rgba(59, 130, 246, 0.3);
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-bg-elevated: var(--bg-elevated);
+  --color-bg-subtle: var(--bg-subtle);
+  --color-surface: var(--surface);
+  --color-surface-hover: var(--surface-hover);
+  --color-surface-active: var(--surface-active);
+  --color-hover: var(--hover);
+  --color-foreground: var(--foreground);
+  --color-foreground-secondary: var(--foreground-secondary);
+  --color-foreground-muted: var(--foreground-muted);
+  --color-foreground-faint: var(--foreground-faint);
+  --color-border: var(--border);
+  --color-border-hover: var(--border-hover);
+  --color-border-strong: var(--border-strong);
+  --color-primary: var(--primary);
+  --color-primary-light: var(--primary-light);
+  --color-primary-dark: var(--primary-dark);
+  --color-danger: var(--danger);
+  --color-warning: var(--warning);
+  --color-success: var(--success);
+  --color-info: var(--info);
+  --font-sans: var(--font-dm-sans), system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  background: var(--bg);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+}
+
+/* Focus visible outline */
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+/* Remove default input styles */
+input, textarea, select, button {
+  font-family: inherit;
+  font-size: inherit;
+}
+
+/* Interactive elements cursor */
+button,
+a,
+[role="button"],
+[type="button"],
+[type="submit"],
+[type="reset"],
+label[for],
+select,
+summary,
+[onclick],
+.cursor-pointer {
+  cursor: pointer;
+}
+
+button:disabled,
+[disabled] {
+  cursor: not-allowed;
+}
+
+input::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+}
+
+/* Animation utilities */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.15s ease-out;
+}
+
+.animate-slideDown {
+  animation: slideDown 0.15s ease-out;
+}
+
+.animate-slideUp {
+  animation: slideUp 0.15s ease-out;
+}
+
+.animate-scaleIn {
+  animation: scaleIn 0.15s ease-out;
+}
+
+/* Selection toolbar entrance animation */
+@keyframes slideUpBounce {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 100%);
+  }
+  60% {
+    opacity: 1;
+    transform: translate(-50%, -8px);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+@keyframes glowPulse {
+  0%, 100% {
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4), 0 0 24px rgba(5,150,105,0.15);
+  }
+  50% {
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4), 0 0 40px rgba(5,150,105,0.3);
+  }
+}
+
+.animate-slideUpBounce {
+  animation: slideUpBounce 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.animate-glowPulse {
+  animation: glowPulse 2s ease-in-out infinite;
+}

@@ -1,0 +1,5 @@
+url,title,description,folder,tags
+https://github.com,GitHub,Code hosting platform,Development/Tools,dev|git
+https://notion.so,Notion,All-in-one workspace,Productivity,notes|wiki
+https://figma.com,Figma,Design tool,Design/Tools,design|ui
+https://vercel.com,Vercel,Deployment platform,Development/Hosting,deploy|frontend

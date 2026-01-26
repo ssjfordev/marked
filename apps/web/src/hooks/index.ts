@@ -1,0 +1,1 @@
+export { useRecentSearches } from './useRecentSearches';
