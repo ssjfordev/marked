@@ -15,7 +15,7 @@
   },
   "devDependencies": {
     "@types/chrome": "^0.0.287",
-    "@types/node": "^20",
+    "@types/node": "^25",
     "eslint": "^9",
     "typescript": "^5",
     "vite": "^6.0.0"
