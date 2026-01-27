@@ -5,6 +5,7 @@
  * GET /api/v1/import - List user's import jobs
  */
 
+import { after } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
 import { requireAuth, success, handleError, ValidationError } from '@/lib/api';
 import { processImportJob } from '@/lib/import/import-processor';
@@ -73,9 +74,7 @@ export async function POST(request: Request) {
     } else if (ext === 'csv') {
       const firstLine = fileContent.split('\n')[0]?.toLowerCase() || '';
       if (!firstLine.includes('url')) {
-        throw new ValidationError(
-          'Invalid CSV format. The file must have a "url" column.'
-        );
+        throw new ValidationError('Invalid CSV format. The file must have a "url" column.');
       }
     }
 
@@ -97,10 +96,14 @@ export async function POST(request: Request) {
 
     if (jobError) throw jobError;
 
-    // Start processing in the background
-    // The client will poll for status updates
-    processImportJob(job.id, user.id, fileContent, format, { wrapInFolder, wrapFolderName })
-      .then((result) => {
+    // Schedule background processing using next/server after()
+    // This keeps the serverless function alive after the response is sent
+    after(async () => {
+      try {
+        const result = await processImportJob(job.id, user.id, fileContent, format, {
+          wrapInFolder,
+          wrapFolderName,
+        });
         console.log('[Import] Job completed:', {
           jobId: job.id,
           format,
@@ -109,10 +112,10 @@ export async function POST(request: Request) {
           linksSkipped: result.linksSkipped,
           failedCount: result.failedBookmarks.length,
         });
-      })
-      .catch((err) => {
+      } catch (err) {
         console.error('[Import] Job failed:', err);
-      });
+      }
+    });
 
     return success({ job, detectedFormat: format }, 201);
   } catch (err) {
