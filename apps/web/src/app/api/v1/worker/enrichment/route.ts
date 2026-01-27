@@ -21,7 +21,7 @@ const MAX_ITERATIONS = 5;
 
 export async function POST(request: NextRequest) {
   // Verify cron secret in production
-  if (process.env.NODE_ENV === 'production') {
+  if (process.env.ENV === 'production') {
     const cronSecret = request.headers.get('x-cron-secret');
     if (cronSecret !== process.env.CRON_SECRET) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
