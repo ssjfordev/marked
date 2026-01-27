@@ -5,7 +5,6 @@
  * GET /api/v1/import - List user's import jobs
  */
 
-import { after } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
 import { requireAuth, success, handleError, ValidationError } from '@/lib/api';
 import { processImportJob } from '@/lib/import/import-processor';
@@ -96,28 +95,29 @@ export async function POST(request: Request) {
 
     if (jobError) throw jobError;
 
-    // Schedule background processing using next/server after()
-    // This keeps the serverless function alive after the response is sent
-    after(async () => {
-      try {
-        const result = await processImportJob(job.id, user.id, fileContent, format, {
-          wrapInFolder,
-          wrapFolderName,
-        });
-        console.log('[Import] Job completed:', {
-          jobId: job.id,
-          format,
-          confidence,
-          linksCreated: result.linksCreated,
-          linksSkipped: result.linksSkipped,
-          failedCount: result.failedBookmarks.length,
-        });
-      } catch (err) {
-        console.error('[Import] Job failed:', err);
-      }
+    // Run import synchronously — DB-only ops complete in seconds
+    const result = await processImportJob(job.id, user.id, fileContent, format, {
+      wrapInFolder,
+      wrapFolderName,
     });
 
-    return success({ job, detectedFormat: format }, 201);
+    console.log('[Import] Job completed:', {
+      jobId: job.id,
+      format,
+      confidence,
+      linksCreated: result.linksCreated,
+      linksSkipped: result.linksSkipped,
+      failedCount: result.failedBookmarks.length,
+    });
+
+    // Re-fetch the completed job to return final state
+    const { data: completedJob } = await supabase
+      .from('import_jobs')
+      .select('*')
+      .eq('id', job.id)
+      .single();
+
+    return success({ job: completedJob ?? job, detectedFormat: format, result }, 201);
   } catch (err) {
     return handleError(err);
   }

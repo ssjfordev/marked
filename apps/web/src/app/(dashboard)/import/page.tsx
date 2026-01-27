@@ -136,9 +136,19 @@ export default function ImportPage() {
         throw new Error(result.error?.message || 'Upload failed');
       }
 
-      setCurrentJob(result.data.job);
+      const jobData = result.data.job;
+      // Calculate progress for the returned job
+      if (jobData.total_items > 0) {
+        jobData.progress = Math.round((jobData.processed_items / jobData.total_items) * 100);
+      }
+      setCurrentJob(jobData);
       if (result.data.detectedFormat) {
         setDetectedFormat(result.data.detectedFormat);
+      }
+      // If job already completed (sync mode), refresh sidebar
+      if (jobData.status === 'succeeded' || jobData.status === 'failed') {
+        fetchRecentJobs();
+        router.refresh();
       }
       setFile(null);
 
@@ -216,9 +226,24 @@ export default function ImportPage() {
             {currentJob.status === 'running' || currentJob.status === 'queued' ? (
               <>
                 <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-5">
-                  <svg className="animate-spin h-7 w-7 text-primary-light" viewBox="0 0 24 24" fill="none">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  <svg
+                    className="animate-spin h-7 w-7 text-primary-light"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="3"
+                    />
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    />
                   </svg>
                 </div>
                 <h2 className="text-lg font-medium text-foreground mb-2">Importing...</h2>
@@ -240,16 +265,30 @@ export default function ImportPage() {
               </>
             ) : currentJob.status === 'succeeded' ? (
               <>
-                <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-5" style={{ backgroundColor: 'var(--status-success-bg)' }}>
-                  <svg className="w-7 h-7" style={{ color: 'var(--status-success-text)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <div
+                  className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-5"
+                  style={{ backgroundColor: 'var(--status-success-bg)' }}
+                >
+                  <svg
+                    className="w-7 h-7"
+                    style={{ color: 'var(--status-success-text)' }}
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
                     <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                   </svg>
                 </div>
                 <h2 className="text-lg font-medium text-foreground mb-2">Import Complete</h2>
                 <p className="text-sm mb-6" style={{ color: 'var(--status-success-text)' }}>
-                  Successfully imported {currentJob.processed_items - currentJob.failed_items} bookmarks
+                  Successfully imported {currentJob.processed_items - currentJob.failed_items}{' '}
+                  bookmarks
                   {currentJob.failed_items > 0 && (
-                    <span className="text-foreground-muted"> ({currentJob.failed_items} failed)</span>
+                    <span className="text-foreground-muted">
+                      {' '}
+                      ({currentJob.failed_items} failed)
+                    </span>
                   )}
                 </p>
                 <div className="flex items-center justify-center gap-3">
@@ -258,7 +297,13 @@ export default function ImportPage() {
                     className="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-primary-dark"
                   >
                     View Dashboard
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                    >
                       <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                     </svg>
                   </button>
@@ -272,8 +317,18 @@ export default function ImportPage() {
               </>
             ) : (
               <>
-                <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-5" style={{ backgroundColor: 'var(--status-error-bg)' }}>
-                  <svg className="w-7 h-7" style={{ color: 'var(--status-error-text)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <div
+                  className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-5"
+                  style={{ backgroundColor: 'var(--status-error-bg)' }}
+                >
+                  <svg
+                    className="w-7 h-7"
+                    style={{ color: 'var(--status-error-text)' }}
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
                     <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </div>
@@ -305,24 +360,48 @@ export default function ImportPage() {
           >
             <div className="text-center">
               <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-5">
-                <svg className="h-7 w-7 text-primary-light" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                <svg
+                  className="h-7 w-7 text-primary-light"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={1.5}
+                    d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                  />
                 </svg>
               </div>
 
               <p className="text-foreground mb-1">
-                <label htmlFor="file-input" className="cursor-pointer font-medium text-primary-light hover:text-primary-dark transition-colors">
+                <label
+                  htmlFor="file-input"
+                  className="cursor-pointer font-medium text-primary-light hover:text-primary-dark transition-colors"
+                >
                   Click to upload
                 </label>{' '}
                 or drag and drop
               </p>
               <p className="text-sm text-foreground-muted">HTML 또는 CSV 파일 (최대 10MB)</p>
 
-              <input id="file-input" type="file" accept=".html,.htm,.csv" onChange={handleFileChange} className="hidden" />
+              <input
+                id="file-input"
+                type="file"
+                accept=".html,.htm,.csv"
+                onChange={handleFileChange}
+                className="hidden"
+              />
 
               {error && (
-                <div className="mt-5 rounded-lg p-3" style={{ backgroundColor: 'var(--status-error-bg)' }}>
-                  <p className="text-sm" style={{ color: 'var(--status-error-text)' }}>{error}</p>
+                <div
+                  className="mt-5 rounded-lg p-3"
+                  style={{ backgroundColor: 'var(--status-error-bg)' }}
+                >
+                  <p className="text-sm" style={{ color: 'var(--status-error-text)' }}>
+                    {error}
+                  </p>
                 </div>
               )}
 
@@ -330,20 +409,42 @@ export default function ImportPage() {
                 <div className="mt-6 flex flex-col items-center gap-4">
                   <div className="flex items-center gap-3 rounded-lg border border-border bg-surface-hover px-4 py-3">
                     <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                      <svg className="w-5 h-5 text-primary-light" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      <svg
+                        className="w-5 h-5 text-primary-light"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth={2}
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                        />
                       </svg>
                     </div>
                     <div className="text-left">
                       <p className="text-sm font-medium text-foreground">{file.name}</p>
-                      <p className="text-xs text-foreground-muted">{(file.size / 1024).toFixed(1)} KB</p>
+                      <p className="text-xs text-foreground-muted">
+                        {(file.size / 1024).toFixed(1)} KB
+                      </p>
                     </div>
                     <button
                       onClick={() => setFile(null)}
                       className="ml-4 p-1.5 rounded-lg hover:bg-hover text-foreground-muted hover:text-foreground transition-colors"
                     >
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth={2}
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M6 18L18 6M6 6l12 12"
+                        />
                       </svg>
                     </button>
                   </div>
@@ -356,15 +457,36 @@ export default function ImportPage() {
                     {uploading ? (
                       <>
                         <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="3"
+                          />
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                          />
                         </svg>
                         Starting...
                       </>
                     ) : (
                       <>
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          strokeWidth={2}
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
+                          />
                         </svg>
                         Start Import
                       </>
@@ -377,8 +499,18 @@ export default function ImportPage() {
                     onClick={() => document.getElementById('file-input')?.click()}
                     className="inline-flex items-center gap-2 rounded-lg bg-primary px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-primary-dark"
                   >
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                      />
                     </svg>
                     Select File
                   </button>
@@ -386,8 +518,18 @@ export default function ImportPage() {
                     onClick={() => setShowGuideModal(true)}
                     className="inline-flex items-center gap-2 rounded-lg border border-border px-4 py-2.5 text-sm font-medium text-foreground-secondary transition-colors hover:bg-hover"
                   >
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
                     </svg>
                     도움말
                   </button>
@@ -406,7 +548,9 @@ export default function ImportPage() {
                   <span className="text-xs text-foreground-secondary">상위 폴더로 묶기</span>
                 </label>
                 <div className="flex items-center gap-2">
-                  <span className="text-[11px] text-foreground-muted whitespace-nowrap">상위폴더명:</span>
+                  <span className="text-[11px] text-foreground-muted whitespace-nowrap">
+                    상위폴더명:
+                  </span>
                   <input
                     type="text"
                     value={wrapFolderName}
@@ -487,10 +631,7 @@ export default function ImportPage() {
       )}
 
       {/* Export Guide Modal */}
-      <ExportGuideModal
-        isOpen={showGuideModal}
-        onClose={() => setShowGuideModal(false)}
-      />
+      <ExportGuideModal isOpen={showGuideModal} onClose={() => setShowGuideModal(false)} />
     </div>
   );
 }
