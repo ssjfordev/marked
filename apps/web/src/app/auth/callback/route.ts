@@ -16,6 +16,7 @@ export async function GET(request: Request) {
       if (extension) {
         const tokenParams = new URLSearchParams({
           token: data.session.access_token,
+          refresh_token: data.session.refresh_token,
           expires: data.session.expires_at?.toString() ?? '',
         });
         return NextResponse.redirect(`${origin}/auth/extension-callback?${tokenParams}`);

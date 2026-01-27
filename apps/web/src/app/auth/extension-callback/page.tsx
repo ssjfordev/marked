@@ -1,59 +1,140 @@
 'use client';
 
-import { Suspense, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { Suspense } from 'react';
+
+// Extension ID - set via environment variable for development
+// In production, this will be the fixed Chrome Web Store extension ID
+const EXTENSION_ID = process.env.NEXT_PUBLIC_EXTENSION_ID;
+
+// Declare chrome types for TypeScript
+declare global {
+  interface Window {
+    chrome?: {
+      runtime?: {
+        sendMessage: (
+          extensionId: string,
+          message: unknown,
+          callback?: (response: unknown) => void
+        ) => void;
+      };
+    };
+  }
+}
 
 function ExtensionCallbackContent() {
   const searchParams = useSearchParams();
   const [status, setStatus] = useState<'sending' | 'success' | 'error'>('sending');
+  const [errorMessage, setErrorMessage] = useState<string>('');
+  const token = searchParams.get('token');
+  const refreshToken = searchParams.get('refresh_token');
 
   useEffect(() => {
-    const token = searchParams.get('token');
-    const expires = searchParams.get('expires');
-
     if (!token) {
       setStatus('error');
+      setErrorMessage('No authentication token received.');
       return;
     }
 
-    // Send token to extension via postMessage
-    // The content script will receive this and store it
-    window.postMessage(
-      {
-        type: 'MARKED_AUTH_TOKEN',
-        token,
-        expiresAt: expires ? parseInt(expires, 10) : null,
-      },
-      window.location.origin
-    );
+    // Get current theme from localStorage or system preference
+    const getTheme = (): string => {
+      if (typeof window !== 'undefined') {
+        const stored = localStorage.getItem('theme');
+        if (stored) return stored;
+        if (window.matchMedia('(prefers-color-scheme: light)').matches) return 'light';
+      }
+      return 'dark';
+    };
 
-    // Give the extension time to receive the message
-    setTimeout(() => {
+    // Try externally_connectable first (direct extension communication)
+    const sendViaExternallyConnectable = (extensionId: string): Promise<boolean> => {
+      return new Promise((resolve) => {
+        if (!window.chrome?.runtime?.sendMessage) {
+          resolve(false);
+          return;
+        }
+
+        try {
+          const theme = getTheme();
+          window.chrome.runtime.sendMessage(
+            extensionId,
+            { type: 'MARKED_AUTH_TOKEN', token, refreshToken, theme },
+            (response: unknown) => {
+              const res = response as { success?: boolean } | undefined;
+              if (res?.success) {
+                resolve(true);
+              } else {
+                resolve(false);
+              }
+            }
+          );
+
+          // Timeout fallback
+          setTimeout(() => resolve(false), 2000);
+        } catch {
+          resolve(false);
+        }
+      });
+    };
+
+    // Fallback: Send via postMessage for content script
+    const sendViaPostMessage = () => {
+      const theme = getTheme();
+      window.postMessage(
+        { type: 'MARKED_AUTH_TOKEN', token, refreshToken, theme },
+        window.location.origin
+      );
+    };
+
+    const attemptTokenTransfer = async () => {
+      let success = false;
+
+      // Try externally_connectable if extension ID is known
+      if (EXTENSION_ID) {
+        success = await sendViaExternallyConnectable(EXTENSION_ID);
+      }
+
+      // Fallback to postMessage (content script)
+      if (!success) {
+        sendViaPostMessage();
+        // Give content script time to process
+        await new Promise((resolve) => setTimeout(resolve, 500));
+      }
+
+      // We can't know for sure if postMessage worked, so assume success
       setStatus('success');
-    }, 500);
-  }, [searchParams]);
+    };
+
+    attemptTokenTransfer();
+  }, [token, refreshToken]);
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center p-4 bg-bg">
-      <div className="w-full max-w-md space-y-6 text-center">
+      <div className="w-full max-w-md text-center space-y-6">
         <div className="w-14 h-14 rounded-2xl bg-primary flex items-center justify-center mx-auto">
           {status === 'sending' && (
-            <svg className="w-7 h-7 text-white animate-spin" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-              <path
-                className="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-              />
-            </svg>
+            <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
           )}
           {status === 'success' && (
-            <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <svg
+              className="w-7 h-7 text-white"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2.5}
+            >
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
             </svg>
           )}
           {status === 'error' && (
-            <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <svg
+              className="w-7 h-7 text-white"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2.5}
+            >
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
           )}
@@ -61,54 +142,36 @@ function ExtensionCallbackContent() {
 
         <div>
           <h1 className="text-2xl font-bold text-foreground">
-            {status === 'sending' && 'Signing in to Extension...'}
-            {status === 'success' && 'Signed in!'}
-            {status === 'error' && 'Sign in failed'}
+            {status === 'sending' && 'Connecting to extension...'}
+            {status === 'success' && 'Successfully signed in!'}
+            {status === 'error' && 'Authentication failed'}
           </h1>
           <p className="mt-2 text-foreground-muted">
-            {status === 'sending' && 'Transferring your session to the Marked extension.'}
-            {status === 'success' && 'You can now close this tab and use the extension.'}
-            {status === 'error' && 'Something went wrong. Please try signing in again.'}
+            {status === 'sending' && 'Please wait while we connect your account.'}
+            {status === 'success' && 'You can now close this window and use the extension.'}
+            {status === 'error' && (errorMessage || 'Authentication failed. Please try again.')}
           </p>
         </div>
 
         {status === 'success' && (
-          <button
-            onClick={() => window.close()}
-            className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-6 py-3 text-white font-medium hover:bg-primary-dark transition-colors"
-          >
-            Close this tab
+          <button onClick={() => window.close()} className="text-primary-light hover:underline">
+            Close this window
           </button>
         )}
 
         {status === 'error' && (
           <a
             href="/login?extension=true"
-            className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-6 py-3 text-white font-medium hover:bg-primary-dark transition-colors"
+            className="inline-block px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors"
           >
             Try again
           </a>
         )}
-      </div>
-    </div>
-  );
-}
 
-function LoadingFallback() {
-  return (
-    <div className="flex min-h-screen flex-col items-center justify-center p-4 bg-bg">
-      <div className="w-full max-w-md space-y-6 text-center">
-        <div className="w-14 h-14 rounded-2xl bg-primary flex items-center justify-center mx-auto">
-          <svg className="w-7 h-7 text-white animate-spin" fill="none" viewBox="0 0 24 24">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-            <path
-              className="opacity-75"
-              fill="currentColor"
-              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-            />
-          </svg>
-        </div>
-        <h1 className="text-2xl font-bold text-foreground">Loading...</h1>
+        {/* Hidden element for content script to detect token */}
+        {token && (
+          <div id="marked-extension-token" data-token={token} style={{ display: 'none' }} />
+        )}
       </div>
     </div>
   );
@@ -116,7 +179,13 @@ function LoadingFallback() {
 
 export default function ExtensionCallbackPage() {
   return (
-    <Suspense fallback={<LoadingFallback />}>
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen flex-col items-center justify-center p-4 bg-bg">
+          <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+        </div>
+      }
+    >
       <ExtensionCallbackContent />
     </Suspense>
   );

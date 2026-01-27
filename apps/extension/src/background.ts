@@ -13,6 +13,8 @@ import type {
   CheckLinkPayload,
   UpdateLinkPayload,
   DeleteLinkPayload,
+  UpdateMarkPayload,
+  DeleteMarkPayload,
   ExistingLinkInfo,
 } from '@marked/shared';
 
@@ -60,13 +62,9 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   }
 
   if (info.menuItemId === 'create-mark' && info.selectionText) {
-    const url = info.pageUrl;
-    if (url && tab?.id) {
-      await createMark({
-        url,
-        text: info.selectionText,
-      });
-      showNotification('Mark created');
+    if (tab?.id) {
+      // Send message to content script to show mark popup
+      chrome.tabs.sendMessage(tab.id, { type: 'SHOW_MARK_POPUP' });
     }
   }
 });
@@ -75,6 +73,69 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
 chrome.runtime.onMessage.addListener((message: ExtensionMessage, _sender, sendResponse) => {
   handleMessage(message).then(sendResponse);
   return true; // Keep channel open for async response
+});
+
+// Handle external messages from web app (externally_connectable)
+chrome.runtime.onMessageExternal.addListener((message, sender, sendResponse) => {
+  // Verify sender origin
+  const allowedOrigins = ['http://localhost', 'https://localhost', 'https://marked.app'];
+
+  const senderOrigin = sender.origin || '';
+  const isAllowed = allowedOrigins.some((origin) => senderOrigin.startsWith(origin));
+
+  if (!isAllowed) {
+    sendResponse({ success: false, error: 'Unauthorized origin' });
+    return true;
+  }
+
+  // Handle auth token from web app
+  if (message.type === 'MARKED_AUTH_TOKEN') {
+    const { token, refreshToken, theme } = message;
+    if (token) {
+      chrome.storage.local
+        .set({
+          authToken: token,
+          refreshToken: refreshToken || null,
+          theme: theme || 'dark',
+        })
+        .then(() => {
+          sendResponse({ success: true });
+        });
+    } else {
+      sendResponse({ success: false, error: 'No token provided' });
+    }
+    return true;
+  }
+
+  // Handle theme sync from web app
+  if (message.type === 'MARKED_THEME') {
+    const { theme } = message;
+    if (theme) {
+      chrome.storage.local.set({ theme }).then(() => {
+        sendResponse({ success: true });
+      });
+    } else {
+      sendResponse({ success: false, error: 'No theme provided' });
+    }
+    return true;
+  }
+
+  // Handle logout from web app
+  if (message.type === 'MARKED_AUTH_LOGOUT') {
+    chrome.storage.local.remove(['authToken', 'refreshToken']).then(() => {
+      sendResponse({ success: true });
+    });
+    return true;
+  }
+
+  // Handle extension ID request (for web app to know which extension to talk to)
+  if (message.type === 'MARKED_PING') {
+    sendResponse({ success: true, extensionId: chrome.runtime.id });
+    return true;
+  }
+
+  sendResponse({ success: false, error: 'Unknown message type' });
+  return true;
 });
 
 async function handleMessage(message: ExtensionMessage): Promise<unknown> {
@@ -93,6 +154,12 @@ async function handleMessage(message: ExtensionMessage): Promise<unknown> {
 
     case 'CREATE_MARK':
       return createMark(message.payload as CreateMarkPayload);
+
+    case 'UPDATE_MARK':
+      return updateMark(message.payload as UpdateMarkPayload);
+
+    case 'DELETE_MARK':
+      return deleteMark(message.payload as DeleteMarkPayload);
 
     case 'GET_CURRENT_TAB':
       return getCurrentTab();
@@ -115,17 +182,22 @@ async function saveLink(payload: SaveLinkPayload): Promise<{ success: boolean; e
       return { success: false, error: 'Not authenticated' };
     }
 
+    const body: Record<string, unknown> = {
+      url: payload.url,
+      folderId: payload.folderId,
+    };
+    if (payload.title) body.title = payload.title;
+    if (payload.description) body.description = payload.description;
+    if (payload.tags) body.tags = payload.tags;
+    if (payload.memo) body.memo = payload.memo;
+
     const response = await fetch(`${API_BASE_URL}/api/v1/links`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify({
-        url: payload.url,
-        title: payload.title,
-        folderId: payload.folderId,
-      }),
+      body: JSON.stringify(body),
     });
 
     if (!response.ok) {
@@ -139,7 +211,9 @@ async function saveLink(payload: SaveLinkPayload): Promise<{ success: boolean; e
   }
 }
 
-async function createMark(payload: CreateMarkPayload): Promise<{ success: boolean; error?: string }> {
+async function createMark(
+  payload: CreateMarkPayload
+): Promise<{ success: boolean; markId?: string; error?: string }> {
   try {
     const token = await getAuthToken();
     if (!token) {
@@ -147,16 +221,20 @@ async function createMark(payload: CreateMarkPayload): Promise<{ success: boolea
     }
 
     // First, find or create the canonical for this URL
-    const linkResponse = await fetch(`${API_BASE_URL}/api/v1/links/by-url?url=${encodeURIComponent(payload.url)}`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+    const linkResponse = await fetch(
+      `${API_BASE_URL}/api/v1/links/by-url?url=${encodeURIComponent(payload.url)}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
 
     let canonicalId: string;
     if (linkResponse.ok) {
       const data = await linkResponse.json();
-      canonicalId = data.canonical_id;
+      const linkData = 'data' in data ? data.data : data;
+      canonicalId = linkData.link_canonical_id || linkData.canonical_id;
     } else {
       // Create the link first
       const createResponse = await fetch(`${API_BASE_URL}/api/v1/links`, {
@@ -173,7 +251,8 @@ async function createMark(payload: CreateMarkPayload): Promise<{ success: boolea
       }
 
       const createData = await createResponse.json();
-      canonicalId = createData.canonical_id;
+      const created = 'data' in createData ? createData.data : createData;
+      canonicalId = created.link_canonical_id || created.canonical_id;
     }
 
     // Create the mark
@@ -194,29 +273,98 @@ async function createMark(payload: CreateMarkPayload): Promise<{ success: boolea
       return { success: false, error: 'Failed to create mark' };
     }
 
+    const markData = await markResponse.json();
+    const mark = markData.mark || markData.data || markData;
+    return { success: true, markId: mark.id };
+  } catch (error) {
+    return { success: false, error: String(error) };
+  }
+}
+
+async function updateMark(
+  payload: UpdateMarkPayload
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const token = await getAuthToken();
+    if (!token) {
+      return { success: false, error: 'Not authenticated' };
+    }
+
+    const body: Record<string, unknown> = {};
+    if (payload.color !== undefined) body.color = payload.color;
+    if (payload.note !== undefined) body.note = payload.note;
+
+    const response = await fetch(`${API_BASE_URL}/api/v1/marks/${payload.markId}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(body),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      return { success: false, error: error.message || 'Failed to update mark' };
+    }
+
     return { success: true };
   } catch (error) {
     return { success: false, error: String(error) };
   }
 }
 
-async function checkLink(payload: CheckLinkPayload): Promise<{ exists: boolean; link?: ExistingLinkInfo }> {
+async function deleteMark(
+  payload: DeleteMarkPayload
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const token = await getAuthToken();
+    if (!token) {
+      return { success: false, error: 'Not authenticated' };
+    }
+
+    const response = await fetch(`${API_BASE_URL}/api/v1/marks/${payload.markId}`, {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      return { success: false, error: error.message || 'Failed to delete mark' };
+    }
+
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: String(error) };
+  }
+}
+
+async function checkLink(
+  payload: CheckLinkPayload
+): Promise<{ exists: boolean; link?: ExistingLinkInfo }> {
   try {
     const token = await getAuthToken();
     if (!token) {
       return { exists: false };
     }
 
-    const response = await fetch(`${API_BASE_URL}/api/v1/links/by-url?url=${encodeURIComponent(payload.url)}`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+    const response = await fetch(
+      `${API_BASE_URL}/api/v1/links/by-url?url=${encodeURIComponent(payload.url)}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
 
     if (response.ok) {
       const data = await response.json();
-      const linkData = data.data || data;
-      if (linkData) {
+      // Handle both { data: {...} } and direct object responses
+      const linkData = 'data' in data ? data.data : data;
+      // Only return exists: true if we actually have link data with an id
+      if (linkData && linkData.id) {
         return {
           exists: true,
           link: {
@@ -224,6 +372,8 @@ async function checkLink(payload: CheckLinkPayload): Promise<{ exists: boolean; 
             folderId: linkData.folder_id,
             userTitle: linkData.user_title,
             userDescription: linkData.user_description,
+            tags: linkData.tags || [],
+            memo: linkData.memo || '',
             canonical: {
               title: linkData.canonical?.title || null,
               description: linkData.canonical?.description || null,
@@ -234,12 +384,14 @@ async function checkLink(payload: CheckLinkPayload): Promise<{ exists: boolean; 
     }
 
     return { exists: false };
-  } catch (error) {
+  } catch {
     return { exists: false };
   }
 }
 
-async function updateLink(payload: UpdateLinkPayload): Promise<{ success: boolean; error?: string }> {
+async function updateLink(
+  payload: UpdateLinkPayload
+): Promise<{ success: boolean; error?: string }> {
   try {
     const token = await getAuthToken();
     if (!token) {
@@ -250,6 +402,8 @@ async function updateLink(payload: UpdateLinkPayload): Promise<{ success: boolea
     if (payload.folderId !== undefined) body.folderId = payload.folderId;
     if (payload.userTitle !== undefined) body.userTitle = payload.userTitle;
     if (payload.userDescription !== undefined) body.userDescription = payload.userDescription;
+    if (payload.tags !== undefined) body.tags = payload.tags;
+    if (payload.memo !== undefined) body.memo = payload.memo;
 
     const response = await fetch(`${API_BASE_URL}/api/v1/links/${payload.linkId}`, {
       method: 'PATCH',
@@ -271,7 +425,9 @@ async function updateLink(payload: UpdateLinkPayload): Promise<{ success: boolea
   }
 }
 
-async function deleteLink(payload: DeleteLinkPayload): Promise<{ success: boolean; error?: string }> {
+async function deleteLink(
+  payload: DeleteLinkPayload
+): Promise<{ success: boolean; error?: string }> {
   try {
     const token = await getAuthToken();
     if (!token) {
@@ -296,7 +452,15 @@ async function deleteLink(payload: DeleteLinkPayload): Promise<{ success: boolea
   }
 }
 
-async function getFolders(): Promise<{ success: boolean; folders?: Array<{ id: string; name: string }>; error?: string }> {
+interface FolderNode {
+  id: string;
+  name: string;
+  icon?: string;
+  children: FolderNode[];
+  depth: number;
+}
+
+async function getFolders(): Promise<{ success: boolean; folders?: FolderNode[]; error?: string }> {
   try {
     const token = await getAuthToken();
     if (!token) {
@@ -311,7 +475,8 @@ async function getFolders(): Promise<{ success: boolean; folders?: Array<{ id: s
 
     if (response.ok) {
       const data = await response.json();
-      const folders = flattenFolders(data.data || data);
+      const rawFolders = 'data' in data ? data.data : data;
+      const folders = buildFolderTree(rawFolders || [], 0);
       return { success: true, folders };
     }
 
@@ -321,27 +486,80 @@ async function getFolders(): Promise<{ success: boolean; folders?: Array<{ id: s
   }
 }
 
-function flattenFolders(folders: Array<{ id: string; name: string; children?: unknown[] }>, prefix = ''): Array<{ id: string; name: string }> {
-  const result: Array<{ id: string; name: string }> = [];
-
-  for (const folder of folders) {
-    const name = prefix ? `${prefix} / ${folder.name}` : folder.name;
-    result.push({ id: folder.id, name });
-
-    if (folder.children && Array.isArray(folder.children)) {
-      result.push(...flattenFolders(folder.children as Array<{ id: string; name: string; children?: unknown[] }>, name));
-    }
-  }
-
-  return result;
+function buildFolderTree(
+  folders: Array<{ id: string; name: string; icon?: string; children?: unknown[] }>,
+  depth: number
+): FolderNode[] {
+  return folders.map((folder) => ({
+    id: folder.id,
+    name: folder.name,
+    icon: folder.icon,
+    depth,
+    children:
+      folder.children && Array.isArray(folder.children)
+        ? buildFolderTree(
+            folder.children as Array<{
+              id: string;
+              name: string;
+              icon?: string;
+              children?: unknown[];
+            }>,
+            depth + 1
+          )
+        : [],
+  }));
 }
 
-async function getCurrentTab(): Promise<{ url?: string; title?: string }> {
+async function getCurrentTab(): Promise<{
+  url?: string;
+  title?: string;
+  description?: string;
+  ogImage?: string;
+  favicon?: string;
+}> {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  return {
-    url: tab?.url,
-    title: tab?.title,
-  };
+
+  if (!tab?.id || !tab.url) {
+    return { url: tab?.url, title: tab?.title };
+  }
+
+  // Skip chrome:// and other restricted URLs
+  if (tab.url.startsWith('chrome://') || tab.url.startsWith('chrome-extension://')) {
+    return { url: tab.url, title: tab.title };
+  }
+
+  try {
+    // Execute script to get page metadata
+    const results = await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      func: () => {
+        const getMeta = (name: string): string | null => {
+          const el = document.querySelector(`meta[name="${name}"], meta[property="${name}"]`);
+          return el?.getAttribute('content') || null;
+        };
+
+        return {
+          description: getMeta('description') || getMeta('og:description') || '',
+          ogImage: getMeta('og:image') || '',
+          favicon:
+            document.querySelector<HTMLLinkElement>('link[rel="icon"], link[rel="shortcut icon"]')
+              ?.href || '',
+        };
+      },
+    });
+
+    const metadata = results?.[0]?.result || {};
+    return {
+      url: tab.url,
+      title: tab.title,
+      description: metadata.description,
+      ogImage: metadata.ogImage,
+      favicon: metadata.favicon,
+    };
+  } catch {
+    // If script injection fails, return basic info
+    return { url: tab.url, title: tab.title };
+  }
 }
 
 async function getAuthStatus(): Promise<{ authenticated: boolean; user?: { email: string } }> {

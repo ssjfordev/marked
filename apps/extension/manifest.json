@@ -8,11 +8,10 @@
     "storage",
     "contextMenus",
     "sidePanel",
-    "notifications"
+    "notifications",
+    "scripting"
   ],
-  "host_permissions": [
-    "<all_urls>"
-  ],
+  "host_permissions": ["<all_urls>"],
   "action": {
     "default_popup": "popup.html",
     "default_icon": {
@@ -50,5 +49,8 @@
       },
       "description": "Toggle Marked sidebar"
     }
+  },
+  "externally_connectable": {
+    "matches": ["http://localhost:*/*", "https://localhost:*/*", "https://*.marked.app/*"]
   }
 }

@@ -1,79 +1,471 @@
 /**
- * Popup Script for Marked Extension
+ * Marked Extension Popup
+ *
+ * A polished bookmark saving experience with:
+ * - Instant URL display with loading state
+ * - Tree-based folder selection
+ * - Tag input with autocomplete
+ * - Memo/notes support
+ * - Editable title & description
  */
 
 import type { SaveLinkPayload, ExistingLinkInfo } from '@marked/shared';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
-interface Folder {
+// Folder with hierarchy support
+interface FolderNode {
   id: string;
   name: string;
+  icon?: string;
+  children: FolderNode[];
+  depth: number;
+}
+
+interface PageInfo {
+  url: string;
+  title: string;
+  description: string;
+  favicon: string;
+  ogImage: string;
 }
 
 interface State {
-  url: string;
+  // Auth
+  authenticated: boolean;
+
+  // Page info
+  page: PageInfo;
+
+  // Form state
   title: string;
+  description: string;
+  selectedFolderId: string;
+  tags: string[];
+  tagInput: string;
+  memo: string;
+
+  // Existing link (if saved before)
   existingLink: ExistingLinkInfo | null;
-  folders: Folder[];
-  loading: boolean;
+
+  // Data
+  folders: FolderNode[];
+  allTags: string[];
+
+  // UI state
+  phase: 'init' | 'loading' | 'ready' | 'saving' | 'saved' | 'error';
+  errorMessage: string;
+  folderTreeOpen: boolean;
 }
 
 const state: State = {
-  url: '',
+  authenticated: false,
+  page: { url: '', title: '', description: '', favicon: '', ogImage: '' },
   title: '',
+  description: '',
+  selectedFolderId: '',
+  tags: [],
+  tagInput: '',
+  memo: '',
   existingLink: null,
   folders: [],
-  loading: true,
+  allTags: [],
+  phase: 'init',
+  errorMessage: '',
+  folderTreeOpen: false,
 };
 
+// ============================================================================
+// INITIALIZATION
+// ============================================================================
+
 document.addEventListener('DOMContentLoaded', async () => {
-  await initPopup();
+  await applyTheme();
+  await init();
 });
 
-async function initPopup() {
-  // Check auth status
-  const authStatus = await chrome.runtime.sendMessage({ type: 'AUTH_STATUS' });
+async function applyTheme() {
+  const result = await chrome.storage.local.get('theme');
+  const theme = result.theme || 'dark';
+  if (theme === 'light') {
+    document.body.classList.add('light');
+  } else {
+    document.body.classList.remove('light');
+  }
+}
+
+async function init() {
+  const app = document.getElementById('app');
+  if (!app) return;
+
+  // Step 1: Get current tab info immediately (this is fast)
+  const tabInfo = await chrome.runtime.sendMessage({ type: 'GET_CURRENT_TAB' });
+  state.page.url = tabInfo.url || '';
+  state.page.title = tabInfo.title || '';
+  state.page.description = tabInfo.description || '';
+  state.page.ogImage = tabInfo.ogImage || '';
+  state.page.favicon = tabInfo.favicon || '';
+  state.title = tabInfo.title || '';
+  state.description = tabInfo.description || '';
+
+  // Render immediately with URL visible
+  state.phase = 'loading';
+  render();
+
+  // Step 2: Check auth (parallel with other requests)
+  const [authStatus, foldersResult] = await Promise.all([
+    chrome.runtime.sendMessage({ type: 'AUTH_STATUS' }),
+    chrome.runtime.sendMessage({ type: 'GET_FOLDERS' }),
+  ]);
 
   if (!authStatus.authenticated) {
-    showLoginView();
+    state.authenticated = false;
+    state.phase = 'ready';
+    renderLoginView();
     return;
   }
 
-  // Get current tab info
-  const tabInfo = await chrome.runtime.sendMessage({ type: 'GET_CURRENT_TAB' });
-  state.url = tabInfo.url || '';
-  state.title = tabInfo.title || '';
+  state.authenticated = true;
 
-  // Check if link already exists
-  const checkResult = await chrome.runtime.sendMessage({
-    type: 'CHECK_LINK',
-    payload: { url: state.url },
-  });
-
-  if (checkResult.exists && checkResult.link) {
-    state.existingLink = checkResult.link;
-  }
-
-  // Load folders
-  const foldersResult = await chrome.runtime.sendMessage({ type: 'GET_FOLDERS' });
+  // Process folders into tree structure
   if (foldersResult.success && foldersResult.folders) {
     state.folders = foldersResult.folders;
   }
 
-  state.loading = false;
+  // Step 3: Check if link exists & get page metadata
+  const checkResult = await chrome.runtime.sendMessage({
+    type: 'CHECK_LINK',
+    payload: { url: state.page.url },
+  });
+
+  if (checkResult.exists && checkResult.link) {
+    state.existingLink = checkResult.link;
+    // Pre-fill from existing data
+    state.title =
+      checkResult.link.userTitle || checkResult.link.canonical?.title || state.page.title;
+    state.description =
+      checkResult.link.userDescription || checkResult.link.canonical?.description || '';
+    state.selectedFolderId = checkResult.link.folderId || '';
+    state.tags = checkResult.link.tags || [];
+    state.memo = checkResult.link.memo || '';
+  }
+
+  state.phase = 'ready';
   render();
 }
 
-function showLoginView() {
+// ============================================================================
+// RENDER FUNCTIONS
+// ============================================================================
+
+function render() {
+  const app = document.getElementById('app');
+  if (!app) return;
+
+  if (!state.authenticated && state.phase !== 'loading') {
+    renderLoginView();
+    return;
+  }
+
+  app.innerHTML = `
+    <div class="popup">
+      ${renderHeader()}
+      ${renderPagePreview()}
+      ${state.phase === 'loading' ? renderLoadingState() : renderForm()}
+      ${renderFooter()}
+    </div>
+  `;
+
+  attachEventListeners();
+}
+
+function renderHeader(): string {
+  const isEdit = !!state.existingLink;
+  return `
+    <header class="header">
+      <div class="header-left">
+        <div class="logo">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
+          </svg>
+        </div>
+        <span class="header-title">Marked</span>
+        ${isEdit ? '<span class="badge badge-saved">Saved</span>' : ''}
+      </div>
+      <a href="${API_BASE_URL}/dashboard" target="_blank" class="header-action" title="Open Marked">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+          <polyline points="15 3 21 3 21 9"></polyline>
+          <line x1="10" y1="14" x2="21" y2="3"></line>
+        </svg>
+      </a>
+    </header>
+  `;
+}
+
+function renderPagePreview(): string {
+  const favicon =
+    state.page.favicon ||
+    `https://www.google.com/s2/favicons?domain=${new URL(state.page.url || 'https://example.com').hostname}&sz=32`;
+  const displayUrl = truncateUrl(state.page.url, 50);
+  const hasOgImage = state.page.ogImage && state.page.ogImage.length > 0;
+
+  if (hasOgImage) {
+    return `
+      <div class="page-card">
+        <div class="page-card-image">
+          <img src="${state.page.ogImage}" alt="" onerror="this.parentElement.style.display='none'">
+        </div>
+        <div class="page-card-content">
+          <div class="page-card-site">
+            <img src="${favicon}" class="page-favicon" alt="" onerror="this.style.display='none'">
+            <span class="page-url">${escapeHtml(displayUrl)}</span>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  return `
+    <div class="page-preview">
+      <img src="${favicon}" class="page-favicon" alt="" onerror="this.style.display='none'">
+      <div class="page-info">
+        <div class="page-url" title="${escapeHtml(state.page.url)}">${escapeHtml(displayUrl)}</div>
+      </div>
+    </div>
+  `;
+}
+
+function renderLoadingState(): string {
+  return `
+    <div class="loading-state">
+      <div class="loading-spinner"></div>
+      <span class="loading-text">Loading page info...</span>
+    </div>
+  `;
+}
+
+function renderForm(): string {
+  const errorHtml =
+    state.phase === 'error' && state.errorMessage
+      ? `<div class="error-message">${escapeHtml(state.errorMessage)}</div>`
+      : '';
+
+  return `
+    ${errorHtml}
+    <div class="form">
+      ${renderTitleInput()}
+      ${renderDescriptionInput()}
+      ${renderFolderSelect()}
+      ${renderTagsInput()}
+      ${renderMemoInput()}
+      ${renderActions()}
+    </div>
+  `;
+}
+
+function renderTitleInput(): string {
+  return `
+    <div class="form-field">
+      <label class="form-label">Title</label>
+      <input
+        type="text"
+        id="title-input"
+        class="form-input"
+        value="${escapeHtml(state.title)}"
+        placeholder="Enter title..."
+      >
+    </div>
+  `;
+}
+
+function renderDescriptionInput(): string {
+  return `
+    <div class="form-field">
+      <label class="form-label">Description</label>
+      <textarea
+        id="description-input"
+        class="form-textarea"
+        placeholder="Add a description..."
+        rows="2"
+      >${escapeHtml(state.description)}</textarea>
+    </div>
+  `;
+}
+
+function renderFolderSelect(): string {
+  const selectedFolder = findFolderById(state.folders, state.selectedFolderId);
+  const displayName = selectedFolder ? selectedFolder.name : 'Select folder...';
+
+  return `
+    <div class="form-field">
+      <label class="form-label">Folder</label>
+      <div class="folder-select" id="folder-select">
+        <button class="folder-trigger" id="folder-trigger" type="button">
+          <span class="folder-trigger-text">${escapeHtml(displayName)}</span>
+          <svg class="folder-trigger-icon ${state.folderTreeOpen ? 'open' : ''}" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </button>
+        ${state.folderTreeOpen ? renderFolderTree() : ''}
+      </div>
+    </div>
+  `;
+}
+
+function renderFolderTree(): string {
+  const renderNode = (folder: FolderNode): string => {
+    const isSelected = folder.id === state.selectedFolderId;
+    const indent = folder.depth * 16;
+    const icon = folder.icon || '📁';
+
+    return `
+      <div
+        class="folder-item ${isSelected ? 'selected' : ''}"
+        data-folder-id="${folder.id}"
+        style="padding-left: ${12 + indent}px"
+      >
+        <span class="folder-icon">${icon}</span>
+        <span class="folder-name">${escapeHtml(folder.name)}</span>
+        ${isSelected ? '<svg class="folder-check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>' : ''}
+      </div>
+      ${folder.children.map((child) => renderNode(child)).join('')}
+    `;
+  };
+
+  return `
+    <div class="folder-dropdown">
+      <div class="folder-item ${!state.selectedFolderId ? 'selected' : ''}" data-folder-id="">
+        <span class="folder-icon">📂</span>
+        <span class="folder-name">No folder</span>
+        ${!state.selectedFolderId ? '<svg class="folder-check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>' : ''}
+      </div>
+      ${state.folders.map((folder) => renderNode(folder)).join('')}
+    </div>
+  `;
+}
+
+function renderTagsInput(): string {
+  const tagsHtml = state.tags
+    .map(
+      (tag) => `
+    <span class="tag">
+      ${escapeHtml(tag)}
+      <button class="tag-remove" data-tag="${escapeHtml(tag)}" type="button">&times;</button>
+    </span>
+  `
+    )
+    .join('');
+
+  return `
+    <div class="form-field">
+      <label class="form-label">Tags</label>
+      <div class="tags-container">
+        ${tagsHtml}
+        <input
+          type="text"
+          id="tag-input"
+          class="tag-input"
+          value="${escapeHtml(state.tagInput)}"
+          placeholder="${state.tags.length ? '' : 'Add tags...'}"
+        >
+      </div>
+    </div>
+  `;
+}
+
+function renderMemoInput(): string {
+  return `
+    <div class="form-field">
+      <label class="form-label">Memo</label>
+      <textarea
+        id="memo-input"
+        class="form-textarea"
+        placeholder="Add a personal note..."
+        rows="2"
+      >${escapeHtml(state.memo)}</textarea>
+    </div>
+  `;
+}
+
+function renderActions(): string {
+  const isEdit = !!state.existingLink;
+  const isSaving = state.phase === 'saving';
+  const isSaved = state.phase === 'saved';
+
+  if (isSaved) {
+    return `
+      <div class="actions">
+        <button class="btn btn-success btn-full" disabled>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+          Saved!
+        </button>
+      </div>
+    `;
+  }
+
+  if (isEdit) {
+    return `
+      <div class="actions actions-split">
+        <button id="delete-btn" class="btn btn-danger" ${isSaving ? 'disabled' : ''}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="3 6 5 6 21 6"></polyline>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+          </svg>
+        </button>
+        <button id="save-btn" class="btn btn-primary btn-flex" ${isSaving ? 'disabled' : ''}>
+          ${isSaving ? '<span class="btn-spinner"></span>' : ''}
+          ${isSaving ? 'Updating...' : 'Update'}
+        </button>
+      </div>
+    `;
+  }
+
+  return `
+    <div class="actions">
+      <button id="save-btn" class="btn btn-primary btn-full" ${isSaving || !state.selectedFolderId ? 'disabled' : ''}>
+        ${isSaving ? '<span class="btn-spinner"></span>' : ''}
+        ${isSaving ? 'Saving...' : 'Save to Marked'}
+      </button>
+    </div>
+  `;
+}
+
+function renderFooter(): string {
+  return `
+    <footer class="footer">
+      <span class="footer-hint">⌘+Enter to save</span>
+    </footer>
+  `;
+}
+
+function renderLoginView() {
   const app = document.getElementById('app');
   if (!app) return;
 
   app.innerHTML = `
-    <div class="login-view">
-      <h1>Marked</h1>
-      <p>Sign in to save and organize your bookmarks</p>
-      <button id="login-btn" class="btn btn-primary">Sign in</button>
+    <div class="popup login-popup">
+      <div class="login-content">
+        <div class="login-logo">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="1.5">
+            <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
+          </svg>
+        </div>
+        <h1 class="login-title">Marked</h1>
+        <p class="login-subtitle">Smart Bookmark Manager</p>
+        <button id="login-btn" class="btn btn-primary btn-full">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+            <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+            <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+            <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+          </svg>
+          Sign in with Google
+        </button>
+        <p class="login-hint">Sign in on the web, then come back here</p>
+      </div>
     </div>
   `;
 
@@ -82,221 +474,212 @@ function showLoginView() {
   });
 }
 
-function render() {
-  const app = document.getElementById('app');
-  if (!app) return;
+// ============================================================================
+// EVENT HANDLERS
+// ============================================================================
 
-  if (state.loading) {
-    app.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
-    return;
-  }
+function attachEventListeners() {
+  // Title input
+  document.getElementById('title-input')?.addEventListener('input', (e) => {
+    state.title = (e.target as HTMLInputElement).value;
+  });
 
-  if (state.existingLink) {
-    renderEditView(app);
-  } else {
-    renderAddView(app);
-  }
+  // Description input
+  document.getElementById('description-input')?.addEventListener('input', (e) => {
+    state.description = (e.target as HTMLTextAreaElement).value;
+  });
+
+  // Folder trigger
+  document.getElementById('folder-trigger')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    state.folderTreeOpen = !state.folderTreeOpen;
+    render();
+  });
+
+  // Folder items
+  document.querySelectorAll('.folder-item').forEach((item) => {
+    item.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const folderId = (e.currentTarget as HTMLElement).dataset.folderId || '';
+      state.selectedFolderId = folderId;
+      state.folderTreeOpen = false;
+      render();
+    });
+  });
+
+  // Close folder dropdown when clicking outside
+  document.addEventListener('click', (e) => {
+    const folderSelect = document.getElementById('folder-select');
+    if (folderSelect && !folderSelect.contains(e.target as Node) && state.folderTreeOpen) {
+      state.folderTreeOpen = false;
+      render();
+    }
+  });
+
+  // Tag container click to focus input
+  const tagsContainer = document.querySelector('.tags-container');
+  tagsContainer?.addEventListener('click', () => {
+    const input = document.getElementById('tag-input') as HTMLInputElement;
+    input?.focus();
+  });
+
+  // Tag input
+  const tagInput = document.getElementById('tag-input') as HTMLInputElement;
+  tagInput?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault();
+      const tag = tagInput.value.trim().replace(/,/g, '');
+      if (tag && !state.tags.includes(tag)) {
+        state.tags.push(tag);
+        state.tagInput = '';
+        render();
+      }
+    } else if (e.key === 'Backspace' && !tagInput.value && state.tags.length) {
+      state.tags.pop();
+      render();
+    }
+  });
+
+  tagInput?.addEventListener('input', (e) => {
+    state.tagInput = (e.target as HTMLInputElement).value;
+  });
+
+  // Tag remove buttons
+  document.querySelectorAll('.tag-remove').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const tag = (e.currentTarget as HTMLElement).dataset.tag;
+      state.tags = state.tags.filter((t) => t !== tag);
+      render();
+    });
+  });
+
+  // Memo input
+  document.getElementById('memo-input')?.addEventListener('input', (e) => {
+    state.memo = (e.target as HTMLTextAreaElement).value;
+  });
+
+  // Save button
+  document.getElementById('save-btn')?.addEventListener('click', handleSave);
+
+  // Delete button
+  document.getElementById('delete-btn')?.addEventListener('click', handleDelete);
+
+  // Keyboard shortcut
+  document.addEventListener('keydown', (e) => {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+      handleSave();
+    }
+  });
 }
 
-function renderAddView(app: HTMLElement) {
-  const folderOptions = state.folders.map((f) =>
-    '<option value="' + f.id + '">' + escapeHtml(f.name) + '</option>'
-  ).join('');
+async function handleSave() {
+  if (state.phase === 'saving') return;
+  if (!state.existingLink && !state.selectedFolderId) return;
 
-  app.innerHTML = `
-    <div class="main-view">
-      <div class="view-header">
-        <span class="view-badge add">New</span>
-        <span class="view-title">Add Bookmark</span>
-      </div>
-
-      <div class="current-page">
-        <div class="page-title">${escapeHtml(state.title || 'Untitled')}</div>
-        <div class="page-url">${escapeHtml(state.url)}</div>
-      </div>
-
-      <div class="form-group">
-        <label for="folder-select">Save to folder</label>
-        <select id="folder-select">
-          <option value="">Select folder...</option>
-          ${folderOptions}
-        </select>
-      </div>
-
-      <button id="save-btn" class="btn btn-primary btn-full">Save</button>
-
-      <div class="actions">
-        <a href="${API_BASE_URL}" target="_blank" class="link">Open Marked</a>
-      </div>
-    </div>
-  `;
-
-  document.getElementById('save-btn')?.addEventListener('click', handleSaveLink);
-}
-
-function renderEditView(app: HTMLElement) {
-  const link = state.existingLink!;
-  const currentFolderId = link.folderId || '';
-
-  const folderOptions = state.folders.map((f) => {
-    const selected = f.id === currentFolderId ? ' selected' : '';
-    return '<option value="' + f.id + '"' + selected + '>' + escapeHtml(f.name) + '</option>';
-  }).join('');
-
-  app.innerHTML = `
-    <div class="main-view">
-      <div class="view-header">
-        <span class="view-badge edit">Saved</span>
-        <span class="view-title">Edit Bookmark</span>
-      </div>
-
-      <div class="current-page">
-        <div class="page-title">${escapeHtml(state.title || 'Untitled')}</div>
-        <div class="page-url">${escapeHtml(state.url)}</div>
-      </div>
-
-      <div class="form-group">
-        <label for="folder-select">Folder</label>
-        <select id="folder-select">
-          <option value="">No folder</option>
-          ${folderOptions}
-        </select>
-      </div>
-
-      <div class="button-group">
-        <button id="update-btn" class="btn btn-primary btn-flex">Update</button>
-        <button id="delete-btn" class="btn btn-danger">Delete</button>
-      </div>
-
-      <div class="actions">
-        <a href="${API_BASE_URL}/links/${link.id}" target="_blank" class="link">View in Marked</a>
-      </div>
-    </div>
-  `;
-
-  document.getElementById('update-btn')?.addEventListener('click', handleUpdateLink);
-  document.getElementById('delete-btn')?.addEventListener('click', handleDeleteLink);
-}
-
-async function handleSaveLink() {
-  const select = document.getElementById('folder-select') as HTMLSelectElement;
-  const button = document.getElementById('save-btn') as HTMLButtonElement;
-
-  if (!select.value) {
-    showError('Please select a folder');
-    return;
-  }
-
-  button.disabled = true;
-  button.textContent = 'Saving...';
-
-  const payload: SaveLinkPayload = {
-    url: state.url,
-    title: state.title,
-    folderId: select.value,
-  };
+  state.phase = 'saving';
+  render();
 
   try {
-    const response = await chrome.runtime.sendMessage({
-      type: 'SAVE_LINK',
-      payload,
-    });
+    let response;
+
+    if (state.existingLink) {
+      // Update existing link
+      response = await chrome.runtime.sendMessage({
+        type: 'UPDATE_LINK',
+        payload: {
+          linkId: state.existingLink.id,
+          folderId: state.selectedFolderId,
+          userTitle: state.title,
+          userDescription: state.description,
+          tags: state.tags,
+          memo: state.memo,
+        },
+      });
+    } else {
+      // Create new link
+      response = await chrome.runtime.sendMessage({
+        type: 'SAVE_LINK',
+        payload: {
+          url: state.page.url,
+          title: state.title,
+          description: state.description,
+          folderId: state.selectedFolderId,
+          tags: state.tags,
+          memo: state.memo,
+        } as SaveLinkPayload,
+      });
+    }
 
     if (response.success) {
-      button.textContent = 'Saved!';
-      button.classList.add('btn-success');
-      setTimeout(() => window.close(), 800);
+      state.phase = 'saved';
+      render();
+      setTimeout(() => window.close(), 1000);
     } else {
-      showError(response.error || 'Failed to save');
-      button.textContent = 'Save';
-      button.disabled = false;
+      state.phase = 'error';
+      state.errorMessage = response.error || 'Failed to save';
+      render();
     }
-  } catch (error) {
-    showError('Failed to save');
-    button.textContent = 'Save';
-    button.disabled = false;
+  } catch {
+    state.phase = 'error';
+    state.errorMessage = 'Something went wrong';
+    render();
   }
 }
 
-async function handleUpdateLink() {
-  const select = document.getElementById('folder-select') as HTMLSelectElement;
-  const button = document.getElementById('update-btn') as HTMLButtonElement;
+async function handleDelete() {
+  if (!state.existingLink) return;
+  if (!confirm('Remove this bookmark?')) return;
 
-  button.disabled = true;
-  button.textContent = 'Updating...';
-
-  try {
-    const response = await chrome.runtime.sendMessage({
-      type: 'UPDATE_LINK',
-      payload: {
-        linkId: state.existingLink!.id,
-        folderId: select.value || undefined,
-      },
-    });
-
-    if (response.success) {
-      button.textContent = 'Updated!';
-      button.classList.add('btn-success');
-      setTimeout(() => window.close(), 800);
-    } else {
-      showError(response.error || 'Failed to update');
-      button.textContent = 'Update';
-      button.disabled = false;
-    }
-  } catch (error) {
-    showError('Failed to update');
-    button.textContent = 'Update';
-    button.disabled = false;
-  }
-}
-
-async function handleDeleteLink() {
-  const button = document.getElementById('delete-btn') as HTMLButtonElement;
-
-  if (!confirm('Delete this bookmark?')) {
-    return;
-  }
-
-  button.disabled = true;
-  button.textContent = 'Deleting...';
+  state.phase = 'saving';
+  render();
 
   try {
     const response = await chrome.runtime.sendMessage({
       type: 'DELETE_LINK',
-      payload: {
-        linkId: state.existingLink!.id,
-      },
+      payload: { linkId: state.existingLink.id },
     });
 
     if (response.success) {
-      // Reset to add view
       state.existingLink = null;
+      state.phase = 'ready';
       render();
     } else {
-      showError(response.error || 'Failed to delete');
-      button.textContent = 'Delete';
-      button.disabled = false;
+      state.phase = 'error';
+      state.errorMessage = response.error || 'Failed to delete';
+      render();
     }
-  } catch (error) {
-    showError('Failed to delete');
-    button.textContent = 'Delete';
-    button.disabled = false;
+  } catch {
+    state.phase = 'error';
+    state.errorMessage = 'Something went wrong';
+    render();
   }
 }
 
-function showError(message: string) {
-  // Remove existing error
-  const existing = document.querySelector('.error-message');
-  if (existing) existing.remove();
+// ============================================================================
+// UTILITIES
+// ============================================================================
 
-  const error = document.createElement('div');
-  error.className = 'error-message';
-  error.textContent = message;
+function findFolderById(folders: FolderNode[], id: string): FolderNode | null {
+  for (const folder of folders) {
+    if (folder.id === id) return folder;
+    const found = findFolderById(folder.children, id);
+    if (found) return found;
+  }
+  return null;
+}
 
-  const app = document.getElementById('app');
-  app?.insertBefore(error, app.firstChild);
-
-  setTimeout(() => error.remove(), 3000);
+function truncateUrl(url: string, maxLength: number): string {
+  try {
+    const parsed = new URL(url);
+    let display = parsed.hostname + parsed.pathname;
+    if (display.length > maxLength) {
+      display = display.slice(0, maxLength - 3) + '...';
+    }
+    return display;
+  } catch {
+    return url.slice(0, maxLength);
+  }
 }
 
 function escapeHtml(text: string): string {

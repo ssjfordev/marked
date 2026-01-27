@@ -95,6 +95,8 @@ export type ExtensionMessageType =
   | 'DELETE_LINK'
   | 'CHECK_LINK'
   | 'CREATE_MARK'
+  | 'UPDATE_MARK'
+  | 'DELETE_MARK'
   | 'GET_CURRENT_TAB'
   | 'GET_FOLDERS'
   | 'AUTH_STATUS'
@@ -110,6 +112,8 @@ export interface SaveLinkPayload {
   title?: string;
   description?: string;
   folderId?: string;
+  tags?: string[];
+  memo?: string;
 }
 
 export interface CreateMarkPayload {
@@ -128,6 +132,8 @@ export interface UpdateLinkPayload {
   folderId?: string;
   userTitle?: string;
   userDescription?: string;
+  tags?: string[];
+  memo?: string;
 }
 
 export interface DeleteLinkPayload {
@@ -139,8 +145,20 @@ export interface ExistingLinkInfo {
   folderId: string | null;
   userTitle: string | null;
   userDescription: string | null;
+  tags: string[];
+  memo: string;
   canonical: {
     title: string | null;
     description: string | null;
   };
+}
+
+export interface UpdateMarkPayload {
+  markId: string;
+  color?: string;
+  note?: string;
+}
+
+export interface DeleteMarkPayload {
+  markId: string;
 }
