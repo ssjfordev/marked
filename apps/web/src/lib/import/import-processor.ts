@@ -24,8 +24,6 @@ import {
   type ImportFormat,
 } from '@/domain/import';
 import { canonicalizeUrl } from '@/domain/url';
-import { fetchMetadata } from '@/lib/enrichment/metadata-fetcher';
-import { getDescriptionFallback } from '@/domain/description';
 import type { Database } from '@/types/database';
 
 type SupabaseClient = ReturnType<typeof createServiceClient>;
@@ -159,12 +157,25 @@ export async function processImportJob(
     }
 
     // Step 3: Bulk upsert canonicals
-    console.log('[Import] Bookmarks parsed:', bookmarksWithKeys.length, 'Failed so far:', failedBookmarks.length);
+    console.log(
+      '[Import] Bookmarks parsed:',
+      bookmarksWithKeys.length,
+      'Failed so far:',
+      failedBookmarks.length
+    );
 
-    const uniqueUrls = new Map<string, { urlKey: string; url: string; domain: string; title: string }>();
+    const uniqueUrls = new Map<
+      string,
+      { urlKey: string; url: string; domain: string; title: string }
+    >();
     for (const b of bookmarksWithKeys) {
       if (!uniqueUrls.has(b.urlKey)) {
-        uniqueUrls.set(b.urlKey, { urlKey: b.urlKey, url: b.url, domain: b.domain, title: b.title });
+        uniqueUrls.set(b.urlKey, {
+          urlKey: b.urlKey,
+          url: b.url,
+          domain: b.domain,
+          title: b.title,
+        });
       }
     }
 
@@ -173,7 +184,7 @@ export async function processImportJob(
     // Batch sizes for operations
     // Insert can handle larger batches, but .in() queries have URL length limits (~8KB)
     const INSERT_BATCH = 500; // For upsert operations (larger is faster)
-    const FETCH_BATCH = 100;  // For .in() queries (smaller to avoid URL length issues)
+    const FETCH_BATCH = 100; // For .in() queries (smaller to avoid URL length issues)
     const urlKeyToId = new Map<string, string>();
     const uniqueUrlsArray = Array.from(uniqueUrls.values());
     const allUrlKeys = uniqueUrlsArray.map((u) => u.urlKey);
@@ -189,17 +200,15 @@ export async function processImportJob(
       const phase2Progress = 10 + (batchIndex / Math.max(insertBatchCount, 1)) * 30;
       await updateProgress(phase2Progress);
 
-      const { error: insertError } = await supabase
-        .from('link_canonicals')
-        .upsert(
-          batch.map((b) => ({
-            url_key: b.urlKey,
-            original_url: b.url,
-            domain: b.domain,
-            title: b.title,
-          })),
-          { onConflict: 'url_key', ignoreDuplicates: true }
-        );
+      const { error: insertError } = await supabase.from('link_canonicals').upsert(
+        batch.map((b) => ({
+          url_key: b.urlKey,
+          original_url: b.url,
+          domain: b.domain,
+          title: b.title,
+        })),
+        { onConflict: 'url_key', ignoreDuplicates: true }
+      );
 
       if (insertError) {
         console.error('[Import] Canonical insert error:', insertError);
@@ -255,7 +264,7 @@ export async function processImportJob(
     console.log('[Import] First allUrlKeys to search:', allUrlKeys.slice(0, 3));
 
     // Step 4: Get default folder for orphans (wrapper folder if wrapping, or "미분류")
-    const defaultFolderId = wrapperFolderId ?? await getOrCreateImportedFolder(supabase, userId);
+    const defaultFolderId = wrapperFolderId ?? (await getOrCreateImportedFolder(supabase, userId));
 
     // Step 5: Check existing instances to avoid duplicates
 
@@ -325,7 +334,14 @@ export async function processImportJob(
       });
     }
 
-    console.log('[Import] Instances to insert:', instancesToInsert.length, 'Skipped:', skipped, 'Failed so far:', failedBookmarks.length);
+    console.log(
+      '[Import] Instances to insert:',
+      instancesToInsert.length,
+      'Skipped:',
+      skipped,
+      'Failed so far:',
+      failedBookmarks.length
+    );
 
     // Debug: Log failure reasons
     if (failedBookmarks.length > 0) {
@@ -398,83 +414,22 @@ export async function processImportJob(
       });
     }
 
-    // Step 8: Enrich metadata in parallel
-    // Fetch metadata for all URLs concurrently (with reasonable concurrency limit)
-    console.log('[Import] Starting enrichment for', bookmarksWithKeys.length, 'links...');
+    // Step 8: Queue enrichment jobs for background processing
+    // Metadata fetching is done asynchronously — not during import
+    const allCanonicalIdsForEnrich = Array.from(new Set(urlKeyToId.values()));
+    console.log('[Import] Queueing', allCanonicalIdsForEnrich.length, 'enrichment jobs...');
 
-    const ENRICH_CONCURRENCY = 10; // Process 10 URLs at a time
-    const enrichResults: { canonicalId: string; success: boolean; error?: string }[] = [];
-
-    // Create list of unique canonicals to enrich
-    const canonicalsToEnrich = Array.from(urlKeyToId.entries()).map(([urlKey, canonicalId]) => {
-      const bookmark = bookmarksWithKeys.find((b) => b.urlKey === urlKey);
-      return {
-        canonicalId,
-        url: bookmark?.url || '',
-      };
-    });
-
-    // Process in batches for controlled concurrency
-    for (let i = 0; i < canonicalsToEnrich.length; i += ENRICH_CONCURRENCY) {
-      const batch = canonicalsToEnrich.slice(i, i + ENRICH_CONCURRENCY);
-
-      const batchResults = await Promise.allSettled(
-        batch.map(async ({ canonicalId, url }) => {
-          try {
-            const metadata = await fetchMetadata(url);
-            const description = getDescriptionFallback({
-              metaDescription: metadata.description,
-              pageText: metadata.pageText,
-              maxLength: 300,
-            });
-
-            // Update canonical with enriched data
-            await supabase
-              .from('link_canonicals')
-              .update({
-                title: metadata.title,
-                description: description || null,
-                og_image: metadata.ogImage,
-                favicon: metadata.favicon,
-                updated_at: new Date().toISOString(),
-              })
-              .eq('id', canonicalId);
-
-            return { canonicalId, success: true };
-          } catch (err) {
-            const errorMsg = err instanceof Error ? err.message : 'Unknown error';
-            return { canonicalId, success: false, error: errorMsg };
-          }
-        })
+    for (let i = 0; i < allCanonicalIdsForEnrich.length; i += INSERT_BATCH) {
+      const batch = allCanonicalIdsForEnrich.slice(i, i + INSERT_BATCH);
+      await supabase.from('enrichment_jobs').upsert(
+        batch.map((id) => ({
+          link_canonical_id: id,
+          status: 'queued' as const,
+        })),
+        { onConflict: 'link_canonical_id', ignoreDuplicates: true }
       );
-
-      // Collect results
-      for (const result of batchResults) {
-        if (result.status === 'fulfilled') {
-          enrichResults.push(result.value);
-        }
-      }
     }
-
-    const enrichSucceeded = enrichResults.filter((r) => r.success).length;
-    const enrichFailed = enrichResults.filter((r) => !r.success).length;
-    console.log('[Import] Enrichment complete:', enrichSucceeded, 'succeeded,', enrichFailed, 'failed');
-
-    // Queue failed enrichments for later retry via worker
-    const failedCanonicalIds = enrichResults.filter((r) => !r.success).map((r) => r.canonicalId);
-    if (failedCanonicalIds.length > 0) {
-      for (let i = 0; i < failedCanonicalIds.length; i += INSERT_BATCH) {
-        const batch = failedCanonicalIds.slice(i, i + INSERT_BATCH);
-        await supabase.from('enrichment_jobs').upsert(
-          batch.map((id) => ({
-            link_canonical_id: id,
-            status: 'queued' as const,
-          })),
-          { onConflict: 'link_canonical_id', ignoreDuplicates: true }
-        );
-      }
-      console.log('[Import] Queued', failedCanonicalIds.length, 'failed enrichments for retry');
-    }
+    console.log('[Import] Queued enrichment jobs for background processing');
 
     // Mark job as succeeded
     await updateJobStatus(supabase, jobId, {
