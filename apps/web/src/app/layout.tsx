@@ -20,17 +20,22 @@ export const metadata: Metadata = {
   description: 'Save, organize, and find your bookmarks with ease',
 };
 
-// Script to prevent flash of wrong theme
+// Script to prevent flash of wrong theme + dev build info
 const themeScript = `
   (function() {
-    const theme = localStorage.getItem('theme') || 'system';
-    let resolved = theme;
+    var theme = localStorage.getItem('theme') || 'system';
+    var resolved = theme;
     if (theme === 'system') {
       resolved = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
     }
     document.documentElement.classList.add(resolved);
   })();
 `;
+
+const buildInfoScript =
+  process.env.ENV === 'development'
+    ? `console.log('%c[Marked] commit: ${process.env.NEXT_PUBLIC_COMMIT_HASH} | built: ${process.env.NEXT_PUBLIC_BUILD_TIME}', 'color: #059669; font-weight: bold;');`
+    : '';
 
 export default function RootLayout({
   children,
@@ -41,11 +46,10 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+        {buildInfoScript && <script dangerouslySetInnerHTML={{ __html: buildInfoScript }} />}
       </head>
       <body className={`${dmSans.variable} ${geistMono.variable} antialiased`}>
-        <ThemeProvider>
-          {children}
-        </ThemeProvider>
+        <ThemeProvider>{children}</ThemeProvider>
         <GoogleAnalytics />
       </body>
     </html>
