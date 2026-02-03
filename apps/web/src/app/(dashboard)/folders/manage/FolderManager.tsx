@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/Input';
 import { IconButton } from '@/components/ui/IconButton';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { IconPicker, FolderIcon } from '@/components/ui/IconPicker';
+import { Toast } from '@/components/ui/Toast';
 
 interface Folder {
   id: string;
@@ -34,11 +35,175 @@ export function FolderManager({ initialFolders }: FolderManagerProps) {
   const [editingFolderId, setEditingFolderId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState('');
   const [iconPickerFolderId, setIconPickerFolderId] = useState<string | null>(null);
-  const [creatingInFolderId, setCreatingInFolderId] = useState<string | null | undefined>(undefined);
+  const [creatingInFolderId, setCreatingInFolderId] = useState<string | null | undefined>(
+    undefined
+  );
   const [newFolderName, setNewFolderName] = useState('');
   const [draggedFolder, setDraggedFolder] = useState<Folder | null>(null);
-  const [dropTarget, setDropTarget] = useState<{ id: string; position: 'above' | 'below' | 'inside' } | null>(null);
+  const [dropTarget, setDropTarget] = useState<{
+    id: string;
+    position: 'above' | 'below' | 'inside';
+  } | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [selectedFolders, setSelectedFolders] = useState<Set<string>>(new Set());
+  const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
+  const [reordering, setReordering] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<{
+    folderIds: string[];
+    timeoutId: ReturnType<typeof setTimeout>;
+    removedFolders: Folder[];
+  } | null>(null);
+  const pendingDeleteRef = useRef(pendingDelete);
+  pendingDeleteRef.current = pendingDelete;
+
+  // Flush pending delete: execute the actual API calls
+  const flushPendingDelete = useCallback(
+    async (pending: NonNullable<typeof pendingDelete>) => {
+      clearTimeout(pending.timeoutId);
+      setPendingDelete(null);
+      try {
+        for (const folderId of pending.folderIds) {
+          await fetch(`/api/v1/folders/${folderId}`, { method: 'DELETE' });
+        }
+        router.refresh();
+      } catch (error) {
+        console.error('Failed to delete folders:', error);
+      }
+    },
+    [router]
+  );
+
+  // Flush on page unload
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      const pending = pendingDeleteRef.current;
+      if (!pending) return;
+      clearTimeout(pending.timeoutId);
+      for (const folderId of pending.folderIds) {
+        navigator.sendBeacon(`/api/v1/folders/${folderId}?_method=DELETE`, '');
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, []);
+
+  // Collect all folder ids from a tree (folder + descendants)
+  const collectFolderIds = useCallback((folder: Folder): string[] => {
+    const ids = [folder.id];
+    if (folder.children) {
+      for (const child of folder.children) {
+        ids.push(...collectFolderIds(child));
+      }
+    }
+    return ids;
+  }, []);
+
+  // Find and remove folders by ids from a tree, returning removed folders
+  const removeFoldersFromTree = useCallback(
+    (tree: Folder[], idsToRemove: Set<string>): { remaining: Folder[]; removed: Folder[] } => {
+      const remaining: Folder[] = [];
+      const removed: Folder[] = [];
+      for (const folder of tree) {
+        if (idsToRemove.has(folder.id)) {
+          removed.push(folder);
+        } else {
+          const childResult = folder.children
+            ? removeFoldersFromTree(folder.children, idsToRemove)
+            : { remaining: [], removed: [] };
+          remaining.push({
+            ...folder,
+            children:
+              childResult.remaining.length > 0
+                ? childResult.remaining
+                : folder.children &&
+                    childResult.remaining.length === 0 &&
+                    childResult.removed.length > 0
+                  ? []
+                  : folder.children,
+          });
+          removed.push(...childResult.removed);
+        }
+      }
+      return { remaining, removed };
+    },
+    []
+  );
+
+  // Restore folders back into tree
+  const restoreFoldersToTree = useCallback(
+    (tree: Folder[], foldersToRestore: Folder[]): Folder[] => {
+      // Separate root-level and child folders
+      const rootFolders = foldersToRestore.filter((f) => f.parent_id === null);
+      const childFolders = foldersToRestore.filter((f) => f.parent_id !== null);
+
+      // First restore root folders
+      let result = [...tree, ...rootFolders];
+
+      // Then restore child folders into their parents
+      if (childFolders.length > 0) {
+        const childByParent = new Map<string, Folder[]>();
+        for (const f of childFolders) {
+          const list = childByParent.get(f.parent_id!) ?? [];
+          list.push(f);
+          childByParent.set(f.parent_id!, list);
+        }
+
+        const insertChildren = (folders: Folder[]): Folder[] =>
+          folders.map((folder) => {
+            const toInsert = childByParent.get(folder.id);
+            const updatedChildren = folder.children ? insertChildren(folder.children) : [];
+            if (toInsert) {
+              return { ...folder, children: [...updatedChildren, ...toInsert] };
+            }
+            return folder.children ? { ...folder, children: updatedChildren } : folder;
+          });
+
+        result = insertChildren(result);
+      }
+
+      // Sort by position
+      const sortByPosition = (folders: Folder[]): Folder[] =>
+        folders
+          .map((f) => (f.children ? { ...f, children: sortByPosition(f.children) } : f))
+          .sort((a, b) => a.position - b.position);
+
+      return sortByPosition(result);
+    },
+    []
+  );
+
+  // Schedule delete with undo toast
+  const scheduleDelete = useCallback(
+    async (folderIds: string[]) => {
+      // If there's already a pending delete, flush it immediately
+      if (pendingDeleteRef.current) {
+        await flushPendingDelete(pendingDeleteRef.current);
+      }
+
+      const idsToRemove = new Set(folderIds);
+      const { remaining, removed } = removeFoldersFromTree(folders, idsToRemove);
+
+      setFolders(remaining);
+      setSelectedFolders(new Set());
+
+      const timeoutId = setTimeout(() => {
+        const pending = pendingDeleteRef.current;
+        if (pending) {
+          flushPendingDelete(pending);
+        }
+      }, 5000);
+
+      setPendingDelete({ folderIds, timeoutId, removedFolders: removed });
+    },
+    [folders, flushPendingDelete, removeFoldersFromTree]
+  );
+
+  const handleUndoDelete = useCallback(() => {
+    if (!pendingDelete) return;
+    clearTimeout(pendingDelete.timeoutId);
+    setFolders((prev) => restoreFoldersToTree(prev, pendingDelete.removedFolders));
+    setPendingDelete(null);
+  }, [pendingDelete, restoreFoldersToTree]);
 
   const toggleExpand = useCallback((folderId: string) => {
     setExpandedFolders((prev) => {
@@ -82,21 +247,24 @@ export function FolderManager({ initialFolders }: FolderManagerProps) {
     setEditingName('');
   }, [editingFolderId, editingName, router]);
 
-  const handleUpdateIcon = useCallback(async (folderId: string, icon: string | null) => {
-    try {
-      const response = await fetch(`/api/v1/folders/${folderId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ icon }),
-      });
+  const handleUpdateIcon = useCallback(
+    async (folderId: string, icon: string | null) => {
+      try {
+        const response = await fetch(`/api/v1/folders/${folderId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ icon }),
+        });
 
-      if (response.ok) {
-        router.refresh();
+        if (response.ok) {
+          router.refresh();
+        }
+      } catch (error) {
+        console.error('Failed to update folder icon:', error);
       }
-    } catch (error) {
-      console.error('Failed to update folder icon:', error);
-    }
-  }, [router]);
+    },
+    [router]
+  );
 
   const handleStartCreate = useCallback((parentId: string | null) => {
     setCreatingInFolderId(parentId);
@@ -134,19 +302,31 @@ export function FolderManager({ initialFolders }: FolderManagerProps) {
     setNewFolderName('');
   }, [newFolderName, creatingInFolderId, router]);
 
-  const handleDelete = useCallback(async (folderId: string) => {
-    try {
-      const response = await fetch(`/api/v1/folders/${folderId}`, {
-        method: 'DELETE',
-      });
+  const handleDelete = useCallback(
+    (folderId: string) => {
+      scheduleDelete([folderId]);
+    },
+    [scheduleDelete]
+  );
 
-      if (response.ok) {
-        router.refresh();
+  const toggleSelect = useCallback((folderId: string) => {
+    setSelectedFolders((prev) => {
+      const next = new Set(prev);
+      if (next.has(folderId)) {
+        next.delete(folderId);
+      } else {
+        next.add(folderId);
       }
-    } catch (error) {
-      console.error('Failed to delete folder:', error);
-    }
-  }, [router]);
+      return next;
+    });
+  }, []);
+
+  const handleBulkDelete = useCallback(() => {
+    setBulkDeleteConfirm(false);
+    scheduleDelete([...selectedFolders]);
+  }, [selectedFolders, scheduleDelete]);
+
+  const selectMode = selectedFolders.size > 0;
 
   const handleDragStart = (e: React.DragEvent, folder: Folder) => {
     setDraggedFolder(folder);
@@ -206,6 +386,10 @@ export function FolderManager({ initialFolders }: FolderManagerProps) {
       return;
     }
 
+    setReordering(true);
+    setDraggedFolder(null);
+    setDropTarget(null);
+
     try {
       if (dropTarget.position === 'inside') {
         // Move into folder as child
@@ -230,9 +414,8 @@ export function FolderManager({ initialFolders }: FolderManagerProps) {
         const targetFolder = findFolder(folders, dropTarget.id);
         if (targetFolder) {
           const newParentId = targetFolder.parent_id;
-          const newPosition = dropTarget.position === 'above'
-            ? targetFolder.position
-            : targetFolder.position + 1;
+          const newPosition =
+            dropTarget.position === 'above' ? targetFolder.position : targetFolder.position + 1;
 
           await fetch(`/api/v1/folders/${draggedFolder.id}`, {
             method: 'PATCH',
@@ -245,10 +428,9 @@ export function FolderManager({ initialFolders }: FolderManagerProps) {
       router.refresh();
     } catch (error) {
       console.error('Failed to move folder:', error);
+    } finally {
+      setReordering(false);
     }
-
-    setDraggedFolder(null);
-    setDropTarget(null);
   };
 
   const handleDragEnd = () => {
@@ -280,21 +462,48 @@ export function FolderManager({ initialFolders }: FolderManagerProps) {
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
           onDragEnd={handleDragEnd}
+          onClick={(e) => {
+            // Only toggle if the click target is the row itself, not interactive children
+            const target = e.target as HTMLElement;
+            if (!target.closest('button, input, a')) {
+              toggleSelect(folder.id);
+            }
+          }}
           className={`
-            group flex items-center gap-2
+            group flex items-center gap-2 cursor-pointer
             rounded-lg px-3 py-2.5
             text-sm transition-colors duration-150
             ${isDragging ? 'opacity-50' : ''}
-            ${isDropTarget && dropTarget.position === 'inside'
-              ? 'bg-primary/10 ring-2 ring-primary/30'
-              : 'hover:bg-hover'
+            ${
+              selectedFolders.has(folder.id)
+                ? 'bg-primary/5'
+                : isDropTarget && dropTarget.position === 'inside'
+                  ? 'bg-primary/10 ring-2 ring-primary/30'
+                  : 'hover:bg-hover'
             }
-          `.trim().replace(/\s+/g, ' ')}
+          `
+            .trim()
+            .replace(/\s+/g, ' ')}
           style={{ paddingLeft: `${depth * 24 + 12}px` }}
         >
+          {/* Checkbox */}
+          <input
+            type="checkbox"
+            checked={selectedFolders.has(folder.id)}
+            onChange={() => toggleSelect(folder.id)}
+            onClick={(e) => e.stopPropagation()}
+            className="w-3.5 h-3.5 rounded border-border accent-primary cursor-pointer flex-shrink-0"
+          />
+
           {/* Drag handle */}
           <div className="cursor-grab text-foreground-muted/50 hover:text-foreground-muted">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              strokeWidth={2}
+            >
               <path strokeLinecap="round" strokeLinejoin="round" d="M4 8h16M4 16h16" />
             </svg>
           </div>
@@ -306,11 +515,14 @@ export function FolderManager({ initialFolders }: FolderManagerProps) {
               flex items-center justify-center
               w-6 h-6 rounded
               transition-colors duration-150
-              ${hasChildren
-                ? 'text-foreground-muted hover:text-foreground hover:bg-hover'
-                : 'invisible'
+              ${
+                hasChildren
+                  ? 'text-foreground-muted hover:text-foreground hover:bg-hover'
+                  : 'invisible'
               }
-            `.trim().replace(/\s+/g, ' ')}
+            `
+              .trim()
+              .replace(/\s+/g, ' ')}
           >
             <svg
               className={`w-4 h-4 transition-transform duration-150 ${isExpanded ? 'rotate-90' : ''}`}
@@ -326,7 +538,9 @@ export function FolderManager({ initialFolders }: FolderManagerProps) {
           {/* Folder icon - clickable to change */}
           <div className="relative">
             <button
-              onClick={() => setIconPickerFolderId(iconPickerFolderId === folder.id ? null : folder.id)}
+              onClick={() =>
+                setIconPickerFolderId(iconPickerFolderId === folder.id ? null : folder.id)
+              }
               className="flex items-center justify-center w-6 h-6 rounded hover:bg-hover transition-colors"
               title="아이콘 변경"
             >
@@ -360,10 +574,7 @@ export function FolderManager({ initialFolders }: FolderManagerProps) {
               autoFocus
             />
           ) : (
-            <span
-              className="flex-1 text-foreground"
-              onDoubleClick={() => handleStartEdit(folder)}
-            >
+            <span className="flex-1 text-foreground" onDoubleClick={() => handleStartEdit(folder)}>
               {folder.name}
             </span>
           )}
@@ -387,7 +598,11 @@ export function FolderManager({ initialFolders }: FolderManagerProps) {
               label="Rename"
               icon={
                 <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+                  />
                 </svg>
               }
               onClick={() => handleStartEdit(folder)}
@@ -398,7 +613,11 @@ export function FolderManager({ initialFolders }: FolderManagerProps) {
               label="Delete folder"
               icon={
                 <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                  />
                 </svg>
               }
               onClick={() => setDeleteConfirmId(folder.id)}
@@ -416,9 +635,7 @@ export function FolderManager({ initialFolders }: FolderManagerProps) {
 
         {/* Children */}
         {hasChildren && isExpanded && (
-          <div>
-            {folder.children!.map((child) => renderFolder(child, depth + 1))}
-          </div>
+          <div>{folder.children!.map((child) => renderFolder(child, depth + 1))}</div>
         )}
 
         {/* New folder input (when creating inside this folder) */}
@@ -467,24 +684,63 @@ export function FolderManager({ initialFolders }: FolderManagerProps) {
     <div>
       {/* Header actions */}
       <div className="flex items-center justify-between mb-6">
-        <Button
-          variant="primary"
-          size="sm"
-          onClick={() => handleStartCreate(null)}
-          icon={
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-            </svg>
-          }
-        >
-          New Folder
-        </Button>
-
-        <Link href="/dashboard">
-          <Button variant="secondary" size="sm">
-            Done
+        <div className="flex items-center gap-2">
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={() => handleStartCreate(null)}
+            icon={
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+              </svg>
+            }
+          >
+            New Folder
           </Button>
-        </Link>
+          {selectMode && (
+            <Button
+              variant="danger"
+              size="sm"
+              onClick={() => setBulkDeleteConfirm(true)}
+              icon={
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                  />
+                </svg>
+              }
+            >
+              Delete {selectedFolders.size} folder{selectedFolders.size > 1 ? 's' : ''}
+            </Button>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2">
+          {selectMode && (
+            <Button variant="secondary" size="sm" onClick={() => setSelectedFolders(new Set())}>
+              Cancel
+            </Button>
+          )}
+          <Link href="/dashboard">
+            <Button variant="secondary" size="sm">
+              Done
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {/* Root level new folder input */}
@@ -524,14 +780,46 @@ export function FolderManager({ initialFolders }: FolderManagerProps) {
       )}
 
       {/* Folder tree */}
-      <div className="rounded-xl border border-border bg-surface divide-y divide-border">
+      <div className="relative rounded-xl border border-border bg-surface divide-y divide-border">
+        {reordering && (
+          <div className="absolute inset-0 z-20 flex items-center justify-center bg-surface/70 rounded-xl">
+            <div className="flex items-center gap-2 text-sm text-foreground-muted">
+              <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="3"
+                />
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                />
+              </svg>
+              Saving...
+            </div>
+          </div>
+        )}
         {folders.length > 0 ? (
           folders.map((folder) => renderFolder(folder, 0))
         ) : (
           <div className="px-6 py-12 text-center">
             <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
-              <svg className="w-6 h-6 text-primary-light" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+              <svg
+                className="w-6 h-6 text-primary-light"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={1.5}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
+                />
               </svg>
             </div>
             <p className="text-foreground-muted mb-1">No folders yet</p>
@@ -562,6 +850,30 @@ export function FolderManager({ initialFolders }: FolderManagerProps) {
         confirmVariant="danger"
       />
 
+      {/* Bulk delete confirmation modal */}
+      <ConfirmModal
+        isOpen={bulkDeleteConfirm}
+        onClose={() => setBulkDeleteConfirm(false)}
+        onConfirm={handleBulkDelete}
+        title={`Delete ${selectedFolders.size} folder${selectedFolders.size > 1 ? 's' : ''}`}
+        message={`Delete ${selectedFolders.size} selected folder${selectedFolders.size > 1 ? 's' : ''} and all their contents?`}
+        confirmText="Delete All"
+        cancelText="Cancel"
+        confirmVariant="danger"
+      />
+
+      {/* Undo delete toast */}
+      {pendingDelete && (
+        <Toast
+          message={
+            pendingDelete.folderIds.length === 1
+              ? 'Folder deleted.'
+              : `${pendingDelete.folderIds.length} folders deleted.`
+          }
+          action={{ label: 'Undo', onClick: handleUndoDelete }}
+          onDismiss={() => setPendingDelete(null)}
+        />
+      )}
     </div>
   );
 }
