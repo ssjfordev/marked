@@ -22,7 +22,328 @@ interface LogoConcept {
 }
 
 // ============================================
-// LOGO 1: Checkmark Bookmark (현재 테마)
+// 2026 트렌드 기반 새로운 로고들
+// ============================================
+
+// 1. 소프트 리본 - 부드럽고 따뜻한 느낌
+const SoftRibbonIcon: React.FC<{ size?: number; color?: string }> = ({ size = 40 }) => (
+  <svg width={size} height={size} viewBox="0 0 48 48" fill="none">
+    <defs>
+      <linearGradient id="softRibbon" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#34D399" />
+        <stop offset="100%" stopColor="#059669" />
+      </linearGradient>
+    </defs>
+    <rect width="48" height="48" rx="14" fill="url(#softRibbon)" />
+    {/* 부드러운 곡선의 리본 북마크 */}
+    <path
+      d="M15 11C15 9.89543 15.8954 9 17 9H31C32.1046 9 33 9.89543 33 11V37C33 37.8284 32.0284 38.2842 31.4 37.7L24 32L16.6 37.7C15.9716 38.2842 15 37.8284 15 37V11Z"
+      fill="white"
+    />
+  </svg>
+);
+
+const SoftRibbonWordmark: React.FC<{ size?: number; color?: string; textColor?: string }> = ({
+  size = 40,
+  textColor = 'currentColor',
+}) => (
+  <div style={{ display: 'flex', alignItems: 'center', gap: size * 0.3 }}>
+    <SoftRibbonIcon size={size} />
+    <span
+      style={{
+        fontSize: size * 0.55,
+        fontWeight: 600,
+        fontFamily: 'system-ui',
+        color: textColor,
+        letterSpacing: '-0.01em',
+      }}
+    >
+      Marked
+    </span>
+  </div>
+);
+
+// 2. 플래그 탭 - 탭/태그 느낌
+const FlagTabIcon: React.FC<{ size?: number; color?: string }> = ({ size = 40 }) => (
+  <svg width={size} height={size} viewBox="0 0 48 48" fill="none">
+    <defs>
+      <linearGradient id="flagTab" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stopColor="#6EE7B7" />
+        <stop offset="100%" stopColor="#047857" />
+      </linearGradient>
+    </defs>
+    <rect width="48" height="48" rx="14" fill="url(#flagTab)" />
+    {/* 깃발/탭 형태 - 오른쪽으로 뻗은 */}
+    <path d="M12 12H32L28 24L32 36H12V12Z" fill="white" />
+  </svg>
+);
+
+const FlagTabWordmark: React.FC<{ size?: number; color?: string; textColor?: string }> = ({
+  size = 40,
+  textColor = 'currentColor',
+}) => (
+  <div style={{ display: 'flex', alignItems: 'center', gap: size * 0.3 }}>
+    <FlagTabIcon size={size} />
+    <span
+      style={{
+        fontSize: size * 0.55,
+        fontWeight: 700,
+        fontFamily: 'system-ui',
+        color: textColor,
+        letterSpacing: '-0.02em',
+      }}
+    >
+      Marked
+    </span>
+  </div>
+);
+
+// 3. 코너마크 - 페이지 접힌 모서리
+const CornerMarkIcon: React.FC<{ size?: number; color?: string }> = ({ size = 40 }) => (
+  <svg width={size} height={size} viewBox="0 0 48 48" fill="none">
+    <defs>
+      <linearGradient id="cornerMark" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#10B981" />
+        <stop offset="100%" stopColor="#065F46" />
+      </linearGradient>
+    </defs>
+    <rect width="48" height="48" rx="14" fill="url(#cornerMark)" />
+    {/* 접힌 모서리 */}
+    <path
+      d="M10 14C10 11.7909 11.7909 10 14 10H26L38 22V34C38 36.2091 36.2091 38 34 38H14C11.7909 38 10 36.2091 10 34V14Z"
+      fill="white"
+    />
+    <path d="M26 10V18C26 20.2091 27.7909 22 30 22H38" fill="white" fillOpacity="0.5" />
+  </svg>
+);
+
+const CornerMarkWordmark: React.FC<{ size?: number; color?: string; textColor?: string }> = ({
+  size = 40,
+  textColor = 'currentColor',
+}) => (
+  <div style={{ display: 'flex', alignItems: 'center', gap: size * 0.3 }}>
+    <CornerMarkIcon size={size} />
+    <span
+      style={{
+        fontSize: size * 0.55,
+        fontWeight: 600,
+        fontFamily: 'system-ui',
+        color: textColor,
+        letterSpacing: '-0.01em',
+      }}
+    >
+      Marked
+    </span>
+  </div>
+);
+
+// 4. 드롭 핀 - Raindrop 스타일 영감
+const DropPinIcon: React.FC<{ size?: number; color?: string }> = ({ size = 40 }) => (
+  <svg width={size} height={size} viewBox="0 0 48 48" fill="none">
+    <defs>
+      <linearGradient id="dropPin" x1="50%" y1="0%" x2="50%" y2="100%">
+        <stop offset="0%" stopColor="#34D399" />
+        <stop offset="100%" stopColor="#047857" />
+      </linearGradient>
+    </defs>
+    <rect width="48" height="48" rx="14" fill="url(#dropPin)" />
+    {/* 물방울/핀 형태 */}
+    <path
+      d="M24 8C24 8 12 20 12 28C12 34.6274 17.3726 40 24 40C30.6274 40 36 34.6274 36 28C36 20 24 8 24 8Z"
+      fill="white"
+    />
+  </svg>
+);
+
+const DropPinWordmark: React.FC<{ size?: number; color?: string; textColor?: string }> = ({
+  size = 40,
+  textColor = 'currentColor',
+}) => (
+  <div style={{ display: 'flex', alignItems: 'center', gap: size * 0.3 }}>
+    <DropPinIcon size={size} />
+    <span
+      style={{
+        fontSize: size * 0.55,
+        fontWeight: 600,
+        fontFamily: 'system-ui',
+        color: textColor,
+        letterSpacing: '-0.01em',
+      }}
+    >
+      Marked
+    </span>
+  </div>
+);
+
+// 5. 라운드 태그 - 원형에 가까운 태그
+const RoundTagIcon: React.FC<{ size?: number; color?: string }> = ({ size = 40 }) => (
+  <svg width={size} height={size} viewBox="0 0 48 48" fill="none">
+    <defs>
+      <linearGradient id="roundTag" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#6EE7B7" />
+        <stop offset="100%" stopColor="#059669" />
+      </linearGradient>
+    </defs>
+    <rect width="48" height="48" rx="14" fill="url(#roundTag)" />
+    {/* 라운드 태그/라벨 */}
+    <circle cx="24" cy="24" r="14" fill="white" />
+    <circle cx="24" cy="24" r="5" fill="url(#roundTag)" />
+  </svg>
+);
+
+const RoundTagWordmark: React.FC<{ size?: number; color?: string; textColor?: string }> = ({
+  size = 40,
+  textColor = 'currentColor',
+}) => (
+  <div style={{ display: 'flex', alignItems: 'center', gap: size * 0.3 }}>
+    <RoundTagIcon size={size} />
+    <span
+      style={{
+        fontSize: size * 0.55,
+        fontWeight: 600,
+        fontFamily: 'system-ui',
+        color: textColor,
+        letterSpacing: '-0.01em',
+      }}
+    >
+      Marked
+    </span>
+  </div>
+);
+
+// 6. 스퀘어 북마크 - 정사각형 + V컷
+const SquareBookmarkIcon: React.FC<{ size?: number; color?: string }> = ({ size = 40 }) => (
+  <svg width={size} height={size} viewBox="0 0 48 48" fill="none">
+    <defs>
+      <linearGradient id="squareBm" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#10B981" />
+        <stop offset="100%" stopColor="#047857" />
+      </linearGradient>
+    </defs>
+    <rect width="48" height="48" rx="14" fill="url(#squareBm)" />
+    {/* 정사각형에 V컷 */}
+    <path d="M12 12H36V32L24 26L12 32V12Z" fill="white" />
+  </svg>
+);
+
+const SquareBookmarkWordmark: React.FC<{ size?: number; color?: string; textColor?: string }> = ({
+  size = 40,
+  textColor = 'currentColor',
+}) => (
+  <div style={{ display: 'flex', alignItems: 'center', gap: size * 0.3 }}>
+    <SquareBookmarkIcon size={size} />
+    <span
+      style={{
+        fontSize: size * 0.55,
+        fontWeight: 700,
+        fontFamily: 'system-ui',
+        color: textColor,
+        letterSpacing: '-0.02em',
+      }}
+    >
+      Marked
+    </span>
+  </div>
+);
+
+// 7. 네거티브 리본 - 반전된 형태
+const NegativeRibbonIcon: React.FC<{ size?: number; color?: string }> = ({ size = 40 }) => (
+  <svg width={size} height={size} viewBox="0 0 48 48" fill="none">
+    <defs>
+      <linearGradient id="negRibbon" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#34D399" />
+        <stop offset="100%" stopColor="#065F46" />
+      </linearGradient>
+    </defs>
+    <rect width="48" height="48" rx="14" fill="white" />
+    {/* 네거티브 스페이스 북마크 */}
+    <path d="M14 8V40L24 32L34 40V8H14Z" fill="url(#negRibbon)" />
+  </svg>
+);
+
+const NegativeRibbonWordmark: React.FC<{ size?: number; color?: string; textColor?: string }> = ({
+  size = 40,
+  textColor = 'currentColor',
+}) => (
+  <div style={{ display: 'flex', alignItems: 'center', gap: size * 0.3 }}>
+    <NegativeRibbonIcon size={size} />
+    <span
+      style={{
+        fontSize: size * 0.55,
+        fontWeight: 700,
+        fontFamily: 'system-ui',
+        color: textColor,
+        letterSpacing: '-0.02em',
+      }}
+    >
+      Marked
+    </span>
+  </div>
+);
+
+// 8. 글로우 도트 - Spotify 스타일 영감
+const GlowDotIcon: React.FC<{ size?: number; color?: string }> = ({ size = 40 }) => (
+  <svg width={size} height={size} viewBox="0 0 48 48" fill="none">
+    <defs>
+      <linearGradient id="glowDot" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#10B981" />
+        <stop offset="100%" stopColor="#047857" />
+      </linearGradient>
+      <radialGradient id="innerGlow" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stopColor="white" />
+        <stop offset="100%" stopColor="white" stopOpacity="0.8" />
+      </radialGradient>
+    </defs>
+    <rect width="48" height="48" rx="14" fill="url(#glowDot)" />
+    {/* 심플한 원 - 포인트/마크 */}
+    <circle cx="24" cy="24" r="12" fill="url(#innerGlow)" />
+  </svg>
+);
+
+const GlowDotWordmark: React.FC<{ size?: number; color?: string; textColor?: string }> = ({
+  size = 40,
+  textColor = 'currentColor',
+}) => (
+  <div style={{ display: 'flex', alignItems: 'center', gap: size * 0.3 }}>
+    <GlowDotIcon size={size} />
+    <span
+      style={{
+        fontSize: size * 0.55,
+        fontWeight: 600,
+        fontFamily: 'system-ui',
+        color: textColor,
+        letterSpacing: '-0.01em',
+      }}
+    >
+      Marked
+    </span>
+  </div>
+);
+
+// ============================================
+// LOGO 1: Marked Pin (핀 + 체크 합성)
+// ============================================
+const MarkedPinIcon: React.FC<{ size?: number; color?: string }> = ({
+  size = 40,
+  color = BRAND.primary,
+}) => (
+  <svg width={size} height={size} viewBox="0 0 48 48" fill="none">
+    <rect width="48" height="48" rx="12" fill={color} />
+    {/* 핀 형태 + 체크가 합쳐진 심볼 */}
+    <path d="M24 8L24 28" stroke="white" strokeWidth="3" strokeLinecap="round" />
+    <path
+      d="M16 20L24 28L36 16"
+      stroke="white"
+      strokeWidth="3.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <circle cx="24" cy="38" r="3" fill="white" />
+  </svg>
+);
+
+// ============================================
+// LOGO 1-B: Original Checkmark (기존)
 // ============================================
 const CheckmarkBookmarkIcon: React.FC<{ size?: number; color?: string }> = ({
   size = 40,
@@ -38,6 +359,27 @@ const CheckmarkBookmarkIcon: React.FC<{ size?: number; color?: string }> = ({
       strokeLinejoin="round"
     />
   </svg>
+);
+
+const MarkedPinWordmark: React.FC<{
+  size?: number;
+  color?: string;
+  textColor?: string;
+}> = ({ size = 40, color = BRAND.primary, textColor = 'currentColor' }) => (
+  <div style={{ display: 'flex', alignItems: 'center', gap: size * 0.3 }}>
+    <MarkedPinIcon size={size} color={color} />
+    <span
+      style={{
+        fontSize: size * 0.6,
+        fontWeight: 700,
+        fontFamily: 'system-ui, -apple-system, sans-serif',
+        color: textColor,
+        letterSpacing: '-0.02em',
+      }}
+    >
+      Marked
+    </span>
+  </div>
 );
 
 const CheckmarkBookmarkWordmark: React.FC<{
@@ -71,12 +413,7 @@ const KnowledgeBookIcon: React.FC<{ size?: number; color?: string }> = ({
   <svg width={size} height={size} viewBox="0 0 48 48" fill="none">
     <rect width="48" height="48" rx="12" fill={color} />
     {/* Open book with pages */}
-    <path
-      d="M24 14V36"
-      stroke="white"
-      strokeWidth="2"
-      strokeLinecap="round"
-    />
+    <path d="M24 14V36" stroke="white" strokeWidth="2" strokeLinecap="round" />
     <path
       d="M24 14C20 14 13 15 11 17V35C13 33 20 32 24 32"
       stroke="white"
@@ -94,11 +431,7 @@ const KnowledgeBookIcon: React.FC<{ size?: number; color?: string }> = ({
       fill="none"
     />
     {/* Bookmark ribbon */}
-    <path
-      d="M30 17V26L32.5 24L35 26V17"
-      fill="white"
-      opacity="0.6"
-    />
+    <path d="M30 17V26L32.5 24L35 26V17" fill="white" opacity="0.6" />
   </svg>
 );
 
@@ -242,12 +575,7 @@ const LinkChainIcon: React.FC<{ size?: number; color?: string }> = ({
   <svg width={size} height={size} viewBox="0 0 48 48" fill="none">
     <rect width="48" height="48" rx="12" fill={color} />
     {/* Chain links */}
-    <path
-      d="M20 28L28 20"
-      stroke="white"
-      strokeWidth="2.5"
-      strokeLinecap="round"
-    />
+    <path d="M20 28L28 20" stroke="white" strokeWidth="2.5" strokeLinecap="round" />
     <rect
       x="11"
       y="23"
@@ -362,12 +690,7 @@ const NatureLeafIcon: React.FC<{ size?: number; color?: string }> = ({
       opacity="0.9"
     />
     {/* Center vein */}
-    <path
-      d="M24 14V30"
-      stroke={color}
-      strokeWidth="2"
-      strokeLinecap="round"
-    />
+    <path d="M24 14V30" stroke={color} strokeWidth="2" strokeLinecap="round" />
     {/* Side veins */}
     <path
       d="M24 18L18 22M24 22L19 27M24 26L20 30"
@@ -406,7 +729,381 @@ const NatureLeafWordmark: React.FC<{
 );
 
 // ============================================
-// LOGO 8: Brain / Mind Map
+// LOGO 8: Ribbon Mark (리본 + 각진 체크)
+// ============================================
+const RibbonMarkIcon: React.FC<{ size?: number; color?: string }> = ({
+  size = 40,
+  color = BRAND.primary,
+}) => (
+  <svg width={size} height={size} viewBox="0 0 48 48" fill="none">
+    <rect width="48" height="48" rx="12" fill={color} />
+    {/* 리본 형태의 북마크 + 비대칭 체크 */}
+    <path d="M14 10V38L24 30L34 38V10" fill="white" opacity="0.3" />
+    <path
+      d="M14 10V38L24 30L34 38V10H14Z"
+      stroke="white"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      fill="none"
+    />
+    <path
+      d="M18 22L23 27L32 16"
+      stroke="white"
+      strokeWidth="3"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
+const RibbonMarkWordmark: React.FC<{
+  size?: number;
+  color?: string;
+  textColor?: string;
+}> = ({ size = 40, color = BRAND.primary, textColor = 'currentColor' }) => (
+  <div style={{ display: 'flex', alignItems: 'center', gap: size * 0.3 }}>
+    <RibbonMarkIcon size={size} color={color} />
+    <span
+      style={{
+        fontSize: size * 0.55,
+        fontWeight: 600,
+        fontFamily: 'system-ui, -apple-system, sans-serif',
+        color: textColor,
+        letterSpacing: '-0.01em',
+      }}
+    >
+      Marked
+    </span>
+  </div>
+);
+
+// ============================================
+// LOGO 9: Corner Fold (접힌 페이지)
+// ============================================
+const CornerFoldIcon: React.FC<{ size?: number; color?: string }> = ({
+  size = 40,
+  color = BRAND.primary,
+}) => (
+  <svg width={size} height={size} viewBox="0 0 48 48" fill="none">
+    <rect width="48" height="48" rx="12" fill={color} />
+    {/* 접힌 종이 코너 */}
+    <path d="M12 12H28L36 20V36H12V12Z" fill="white" opacity="0.9" />
+    <path d="M28 12V20H36" fill="white" opacity="0.5" />
+    <path d="M28 12L36 20" stroke={color} strokeWidth="1" opacity="0.3" />
+    {/* 비대칭 체크마크 */}
+    <path
+      d="M17 25L22 30L31 19"
+      stroke={color}
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
+const CornerFoldWordmark: React.FC<{
+  size?: number;
+  color?: string;
+  textColor?: string;
+}> = ({ size = 40, color = BRAND.primary, textColor = 'currentColor' }) => (
+  <div style={{ display: 'flex', alignItems: 'center', gap: size * 0.3 }}>
+    <CornerFoldIcon size={size} color={color} />
+    <span
+      style={{
+        fontSize: size * 0.55,
+        fontWeight: 600,
+        fontFamily: 'system-ui, -apple-system, sans-serif',
+        color: textColor,
+        letterSpacing: '-0.02em',
+      }}
+    >
+      Marked
+    </span>
+  </div>
+);
+
+// ============================================
+// LOGO 10: Spark Check (스파크 + 체크)
+// ============================================
+const SparkCheckIcon: React.FC<{ size?: number; color?: string }> = ({
+  size = 40,
+  color = BRAND.primary,
+}) => (
+  <svg width={size} height={size} viewBox="0 0 48 48" fill="none">
+    <rect width="48" height="48" rx="12" fill={color} />
+    {/* 스파크/별 형태의 악센트 */}
+    <path
+      d="M34 8L35.5 14L42 12L36 16L40 22L34 18L32 24L32 17L26 18L32 14L34 8Z"
+      fill="white"
+      opacity="0.6"
+    />
+    {/* 둥근 체크 (V가 아닌 곡선) */}
+    <path
+      d="M10 26C14 30 18 34 22 34C28 34 34 22 38 16"
+      stroke="white"
+      strokeWidth="4"
+      strokeLinecap="round"
+    />
+  </svg>
+);
+
+const SparkCheckWordmark: React.FC<{
+  size?: number;
+  color?: string;
+  textColor?: string;
+}> = ({ size = 40, color = BRAND.primary, textColor = 'currentColor' }) => (
+  <div style={{ display: 'flex', alignItems: 'center', gap: size * 0.3 }}>
+    <SparkCheckIcon size={size} color={color} />
+    <span
+      style={{
+        fontSize: size * 0.55,
+        fontWeight: 700,
+        fontFamily: 'system-ui, -apple-system, sans-serif',
+        color: textColor,
+        letterSpacing: '-0.02em',
+      }}
+    >
+      Marked
+    </span>
+  </div>
+);
+
+// ============================================
+// LOGO 11: Arrow Bookmark (화살표 북마크)
+// ============================================
+const ArrowBookmarkIcon: React.FC<{ size?: number; color?: string }> = ({
+  size = 40,
+  color = BRAND.primary,
+}) => (
+  <svg width={size} height={size} viewBox="0 0 48 48" fill="none">
+    <rect width="48" height="48" rx="12" fill={color} />
+    {/* 아래를 향하는 화살표 + 체크 합성 */}
+    <path d="M24 10V30" stroke="white" strokeWidth="3.5" strokeLinecap="round" />
+    <path
+      d="M14 22L24 32L34 22"
+      stroke="white"
+      strokeWidth="3.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path d="M14 38H34" stroke="white" strokeWidth="3" strokeLinecap="round" opacity="0.5" />
+  </svg>
+);
+
+const ArrowBookmarkWordmark: React.FC<{
+  size?: number;
+  color?: string;
+  textColor?: string;
+}> = ({ size = 40, color = BRAND.primary, textColor = 'currentColor' }) => (
+  <div style={{ display: 'flex', alignItems: 'center', gap: size * 0.3 }}>
+    <ArrowBookmarkIcon size={size} color={color} />
+    <span
+      style={{
+        fontSize: size * 0.55,
+        fontWeight: 600,
+        fontFamily: 'system-ui, -apple-system, sans-serif',
+        color: textColor,
+        letterSpacing: '-0.01em',
+      }}
+    >
+      Marked
+    </span>
+  </div>
+);
+
+// ============================================
+// LOGO 12: Stack Layers (레이어 스택)
+// ============================================
+const StackLayersIcon: React.FC<{ size?: number; color?: string }> = ({
+  size = 40,
+  color = BRAND.primary,
+}) => (
+  <svg width={size} height={size} viewBox="0 0 48 48" fill="none">
+    <rect width="48" height="48" rx="12" fill={color} />
+    {/* 3개 레이어 스택 */}
+    <path d="M24 10L38 18L24 26L10 18L24 10Z" fill="white" opacity="0.9" />
+    <path
+      d="M10 24L24 32L38 24"
+      stroke="white"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      opacity="0.6"
+    />
+    <path
+      d="M10 30L24 38L38 30"
+      stroke="white"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      opacity="0.4"
+    />
+  </svg>
+);
+
+const StackLayersWordmark: React.FC<{
+  size?: number;
+  color?: string;
+  textColor?: string;
+}> = ({ size = 40, color = BRAND.primary, textColor = 'currentColor' }) => (
+  <div style={{ display: 'flex', alignItems: 'center', gap: size * 0.3 }}>
+    <StackLayersIcon size={size} color={color} />
+    <span
+      style={{
+        fontSize: size * 0.55,
+        fontWeight: 600,
+        fontFamily: 'system-ui, -apple-system, sans-serif',
+        color: textColor,
+        letterSpacing: '-0.01em',
+      }}
+    >
+      Marked
+    </span>
+  </div>
+);
+
+// ============================================
+// LOGO 13: Signal Wave (시그널 웨이브)
+// ============================================
+const SignalWaveIcon: React.FC<{ size?: number; color?: string }> = ({
+  size = 40,
+  color = BRAND.primary,
+}) => (
+  <svg width={size} height={size} viewBox="0 0 48 48" fill="none">
+    <rect width="48" height="48" rx="12" fill={color} />
+    {/* 체크와 시그널의 합성 */}
+    <path
+      d="M10 28C14 28 14 20 18 20C22 20 22 28 26 28C30 28 30 14 34 14C38 14 38 24 42 24"
+      stroke="white"
+      strokeWidth="3.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <circle cx="38" cy="34" r="4" fill="white" opacity="0.5" />
+  </svg>
+);
+
+const SignalWaveWordmark: React.FC<{
+  size?: number;
+  color?: string;
+  textColor?: string;
+}> = ({ size = 40, color = BRAND.primary, textColor = 'currentColor' }) => (
+  <div style={{ display: 'flex', alignItems: 'center', gap: size * 0.3 }}>
+    <SignalWaveIcon size={size} color={color} />
+    <span
+      style={{
+        fontSize: size * 0.55,
+        fontWeight: 600,
+        fontFamily: 'system-ui, -apple-system, sans-serif',
+        color: textColor,
+        letterSpacing: '-0.01em',
+      }}
+    >
+      Marked
+    </span>
+  </div>
+);
+
+// ============================================
+// LOGO 14: Target Pin (타겟 핀)
+// ============================================
+const TargetPinIcon: React.FC<{ size?: number; color?: string }> = ({
+  size = 40,
+  color = BRAND.primary,
+}) => (
+  <svg width={size} height={size} viewBox="0 0 48 48" fill="none">
+    <rect width="48" height="48" rx="12" fill={color} />
+    {/* 동심원 + 체크 포인트 */}
+    <circle cx="24" cy="22" r="14" stroke="white" strokeWidth="2.5" fill="none" opacity="0.4" />
+    <circle cx="24" cy="22" r="8" stroke="white" strokeWidth="2.5" fill="none" opacity="0.7" />
+    <circle cx="24" cy="22" r="3" fill="white" />
+    {/* 아래로 향하는 포인터 */}
+    <path d="M24 36V42" stroke="white" strokeWidth="3" strokeLinecap="round" opacity="0.6" />
+  </svg>
+);
+
+const TargetPinWordmark: React.FC<{
+  size?: number;
+  color?: string;
+  textColor?: string;
+}> = ({ size = 40, color = BRAND.primary, textColor = 'currentColor' }) => (
+  <div style={{ display: 'flex', alignItems: 'center', gap: size * 0.3 }}>
+    <TargetPinIcon size={size} color={color} />
+    <span
+      style={{
+        fontSize: size * 0.55,
+        fontWeight: 600,
+        fontFamily: 'system-ui, -apple-system, sans-serif',
+        color: textColor,
+        letterSpacing: '-0.01em',
+      }}
+    >
+      Marked
+    </span>
+  </div>
+);
+
+// ============================================
+// LOGO 15: Bracket Mark (브래킷 마크)
+// ============================================
+const BracketMarkIcon: React.FC<{ size?: number; color?: string }> = ({
+  size = 40,
+  color = BRAND.primary,
+}) => (
+  <svg width={size} height={size} viewBox="0 0 48 48" fill="none">
+    <rect width="48" height="48" rx="12" fill={color} />
+    {/* 코드 브래킷 스타일 체크 */}
+    <path
+      d="M12 14L8 24L12 34"
+      stroke="white"
+      strokeWidth="3"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      opacity="0.5"
+    />
+    <path
+      d="M36 14L40 24L36 34"
+      stroke="white"
+      strokeWidth="3"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      opacity="0.5"
+    />
+    {/* 중앙 체크 */}
+    <path
+      d="M17 24L22 29L31 18"
+      stroke="white"
+      strokeWidth="3.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
+const BracketMarkWordmark: React.FC<{
+  size?: number;
+  color?: string;
+  textColor?: string;
+}> = ({ size = 40, color = BRAND.primary, textColor = 'currentColor' }) => (
+  <div style={{ display: 'flex', alignItems: 'center', gap: size * 0.3 }}>
+    <BracketMarkIcon size={size} color={color} />
+    <span
+      style={{
+        fontSize: size * 0.55,
+        fontWeight: 600,
+        fontFamily: 'SF Mono, Monaco, monospace',
+        color: textColor,
+        letterSpacing: '-0.02em',
+      }}
+    >
+      Marked
+    </span>
+  </div>
+);
+
+// ============================================
+// LOGO 16: Brain / Mind Map
 // ============================================
 const BrainMindIcon: React.FC<{ size?: number; color?: string }> = ({
   size = 40,
@@ -483,10 +1180,146 @@ const BrainMindWordmark: React.FC<{
 // Logo concepts data
 const logoConcepts: LogoConcept[] = [
   {
+    id: 'soft-ribbon',
+    name: 'Soft Ribbon',
+    nameKr: '소프트 리본',
+    description: '부드러운 곡선의 책갈피. 따뜻하고 친근한 느낌.',
+    Icon: SoftRibbonIcon,
+    Wordmark: SoftRibbonWordmark,
+  },
+  {
+    id: 'flag-tab',
+    name: 'Flag Tab',
+    nameKr: '플래그 탭',
+    description: '옆으로 뻗은 태그/깃발 형태. 독특하고 인상적.',
+    Icon: FlagTabIcon,
+    Wordmark: FlagTabWordmark,
+  },
+  {
+    id: 'corner-mark',
+    name: 'Corner Mark',
+    nameKr: '코너 마크',
+    description: '접힌 페이지 모서리. 저장의 직관적 표현.',
+    Icon: CornerMarkIcon,
+    Wordmark: CornerMarkWordmark,
+  },
+  {
+    id: 'drop-pin',
+    name: 'Drop Pin',
+    nameKr: '드롭 핀',
+    description: '물방울/핀 형태. Raindrop 스타일 영감.',
+    Icon: DropPinIcon,
+    Wordmark: DropPinWordmark,
+  },
+  {
+    id: 'round-tag',
+    name: 'Round Tag',
+    nameKr: '라운드 태그',
+    description: '원형 태그/라벨. 미니멀하고 현대적.',
+    Icon: RoundTagIcon,
+    Wordmark: RoundTagWordmark,
+  },
+  {
+    id: 'square-bookmark',
+    name: 'Square Bookmark',
+    nameKr: '스퀘어 북마크',
+    description: '정사각형에 V컷. 깔끔하고 단단한 느낌.',
+    Icon: SquareBookmarkIcon,
+    Wordmark: SquareBookmarkWordmark,
+  },
+  {
+    id: 'negative-ribbon',
+    name: 'Negative Ribbon',
+    nameKr: '네거티브 리본',
+    description: '흰 배경에 그린 북마크. 반전된 독특한 스타일.',
+    Icon: NegativeRibbonIcon,
+    Wordmark: NegativeRibbonWordmark,
+  },
+  {
+    id: 'glow-dot',
+    name: 'Glow Dot',
+    nameKr: '글로우 도트',
+    description: '심플한 원형 포인트. Spotify 스타일 영감.',
+    Icon: GlowDotIcon,
+    Wordmark: GlowDotWordmark,
+  },
+  {
+    id: 'marked-pin',
+    name: 'Marked Pin',
+    nameKr: '마크드 핀',
+    description: '핀과 체크마크를 합성한 심볼. 위치를 표시하고 완료를 알리는 이중 의미.',
+    Icon: MarkedPinIcon,
+    Wordmark: MarkedPinWordmark,
+  },
+  {
+    id: 'ribbon-mark',
+    name: 'Ribbon Mark',
+    nameKr: '리본 마크',
+    description: '책갈피 리본과 체크마크의 조합. 북마크 기능을 직관적으로 표현.',
+    Icon: RibbonMarkIcon,
+    Wordmark: RibbonMarkWordmark,
+  },
+  {
+    id: 'corner-fold',
+    name: 'Corner Fold',
+    nameKr: '코너 폴드',
+    description: '접힌 페이지 모서리로 저장을 표현. 체크마크가 문서 내에 위치.',
+    Icon: CornerFoldIcon,
+    Wordmark: CornerFoldWordmark,
+  },
+  {
+    id: 'spark-check',
+    name: 'Spark Check',
+    nameKr: '스파크 체크',
+    description: '곡선형 체크에 스파크 악센트. 완료의 기쁨과 특별함을 표현.',
+    Icon: SparkCheckIcon,
+    Wordmark: SparkCheckWordmark,
+  },
+  {
+    id: 'arrow-bookmark',
+    name: 'Arrow Bookmark',
+    nameKr: '애로우 북마크',
+    description: '아래로 향하는 화살표로 저장 동작을 표현. 간결하고 동적인 느낌.',
+    Icon: ArrowBookmarkIcon,
+    Wordmark: ArrowBookmarkWordmark,
+  },
+  {
+    id: 'stack-layers',
+    name: 'Stack Layers',
+    nameKr: '스택 레이어',
+    description: '3D 레이어 스택으로 정리된 컬렉션을 표현. 조직화의 느낌.',
+    Icon: StackLayersIcon,
+    Wordmark: StackLayersWordmark,
+  },
+  {
+    id: 'signal-wave',
+    name: 'Signal Wave',
+    nameKr: '시그널 웨이브',
+    description: '상승하는 웨이브로 성장과 진행을 표현. 동적이고 현대적인 느낌.',
+    Icon: SignalWaveIcon,
+    Wordmark: SignalWaveWordmark,
+  },
+  {
+    id: 'target-pin',
+    name: 'Target Pin',
+    nameKr: '타겟 핀',
+    description: '동심원과 핀의 조합. 정확한 저장 위치를 표현하는 미니멀 디자인.',
+    Icon: TargetPinIcon,
+    Wordmark: TargetPinWordmark,
+  },
+  {
+    id: 'bracket-mark',
+    name: 'Bracket Mark',
+    nameKr: '브래킷 마크',
+    description: '코드 브래킷과 체크마크의 조합. 개발자 친화적인 느낌.',
+    Icon: BracketMarkIcon,
+    Wordmark: BracketMarkWordmark,
+  },
+  {
     id: 'checkmark-bookmark',
-    name: 'Checkmark Bookmark',
-    nameKr: '체크마크 북마크',
-    description: '현재 사용 중인 로고. 저장 완료를 의미하는 체크마크를 활용한 직관적인 디자인.',
+    name: 'Checkmark (Original)',
+    nameKr: '체크마크 (기존)',
+    description: '기존 사용 중인 로고. 단순한 체크마크 디자인.',
     Icon: CheckmarkBookmarkIcon,
     Wordmark: CheckmarkBookmarkWordmark,
   },
@@ -637,12 +1470,26 @@ export default function LogoShowcase() {
                 }}
               >
                 {isDark ? (
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
                     <circle cx="12" cy="12" r="5" />
                     <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
                   </svg>
                 ) : (
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
                     <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
                   </svg>
                 )}
@@ -668,8 +1515,11 @@ export default function LogoShowcase() {
                 color: BRAND.primaryLight,
               }}
             >
-              <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: BRAND.primary }} />
-              8 Logo Concepts
+              <span
+                className="h-1.5 w-1.5 rounded-full"
+                style={{ backgroundColor: BRAND.primary }}
+              />
+              {logoConcepts.length} Logo Concepts
             </div>
             <h1 className="mb-4 text-4xl font-bold tracking-tight md:text-5xl">
               Logo <span style={{ color: BRAND.primaryLight }}>Exploration</span>
@@ -712,27 +1562,17 @@ export default function LogoShowcase() {
                   {variant === 'icon' ? (
                     <concept.Icon size={64} color={BRAND.primary} />
                   ) : (
-                    <concept.Wordmark
-                      size={48}
-                      color={BRAND.primary}
-                      textColor={text}
-                    />
+                    <concept.Wordmark size={48} color={BRAND.primary} textColor={text} />
                   )}
                 </div>
 
                 {/* Info Section */}
-                <div
-                  className="border-t p-4"
-                  style={{ borderColor: border }}
-                >
+                <div className="border-t p-4" style={{ borderColor: border }}>
                   <h3 className="mb-1 font-semibold">{concept.name}</h3>
                   <p className="mb-2 text-xs" style={{ color: BRAND.primaryLight }}>
                     {concept.nameKr}
                   </p>
-                  <p
-                    className="text-xs leading-relaxed"
-                    style={{ color: textMuted }}
-                  >
+                  <p className="text-xs leading-relaxed" style={{ color: textMuted }}>
                     {concept.description}
                   </p>
                 </div>
@@ -752,10 +1592,7 @@ export default function LogoShowcase() {
 
       {/* Detailed View Section */}
       {selectedLogo && (
-        <section
-          className="border-t"
-          style={{ borderColor: border, backgroundColor: bgCard }}
-        >
+        <section className="border-t" style={{ borderColor: border, backgroundColor: bgCard }}>
           <div className="mx-auto max-w-7xl px-6 py-16">
             {(() => {
               const concept = logoConcepts.find((c) => c.id === selectedLogo);
