@@ -136,10 +136,10 @@ async function processJobWithThrottling(
   supabase: SupabaseClient,
   job: EnrichmentJob
 ): Promise<void> {
-  // Get the URL from the canonical
+  // Get the URL from the canonical (include favicon to preserve base64)
   const { data: canonical } = await supabase
     .from('link_canonicals')
-    .select('original_url, domain')
+    .select('original_url, domain, favicon')
     .eq('id', job.link_canonical_id)
     .single();
 
@@ -154,7 +154,7 @@ async function processJobWithThrottling(
   await acquireDomainSlot(domain);
 
   try {
-    await processJob(supabase, job, canonical.original_url);
+    await processJob(supabase, job, canonical.original_url, canonical.favicon);
   } finally {
     releaseDomainSlot(domain);
   }
@@ -193,7 +193,8 @@ function releaseDomainSlot(domain: string): void {
 async function processJob(
   supabase: SupabaseClient,
   job: EnrichmentJob,
-  url: string
+  url: string,
+  existingFavicon: string | null
 ): Promise<void> {
   try {
     // Fetch metadata from the actual URL
@@ -206,6 +207,9 @@ async function processJob(
       maxLength: 300,
     });
 
+    // Preserve base64 favicons from import — only update if not already a data URI
+    const shouldUpdateFavicon = !existingFavicon?.startsWith('data:image/');
+
     // Update canonical with enriched data
     const { error: updateError } = await supabase
       .from('link_canonicals')
@@ -213,7 +217,7 @@ async function processJob(
         title: metadata.title,
         description: description || null,
         og_image: metadata.ogImage,
-        favicon: metadata.favicon,
+        ...(shouldUpdateFavicon ? { favicon: metadata.favicon } : {}),
         updated_at: new Date().toISOString(),
       })
       .eq('id', job.link_canonical_id);
@@ -232,6 +236,23 @@ async function processJob(
       .eq('id', job.id);
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+
+    // Even if page fetch failed, save Google Favicon as fallback
+    try {
+      const hostname = new URL(url).hostname;
+      const googleFavicon = `https://www.google.com/s2/favicons?domain=${hostname}&sz=32`;
+      await supabase
+        .from('link_canonicals')
+        .update({
+          favicon: googleFavicon,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', job.link_canonical_id)
+        .is('favicon', null); // Only if favicon is still null
+    } catch {
+      // Ignore fallback errors
+    }
+
     await markJobFailed(supabase, job, errorMessage);
   }
 }

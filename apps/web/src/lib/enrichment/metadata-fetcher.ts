@@ -49,7 +49,7 @@ export async function fetchMetadata(url: string): Promise<PageMetadata> {
         title: null,
         description: null,
         ogImage: null,
-        favicon: getFaviconUrl(url),
+        favicon: getGoogleFaviconUrl(url),
         pageText: null,
       };
     }
@@ -81,22 +81,10 @@ function parseHtmlMetadata(html: string, baseUrl: string): PageMetadata {
   const metaDescription = descMatch ? decodeHtmlEntities(descMatch[1]!.trim()) : null;
 
   // Extract og:image (with fallbacks)
-  let ogImage = extractBestImage(html, baseUrl);
+  const ogImage = extractBestImage(html, baseUrl);
 
-  // Extract favicon
-  const faviconMatch =
-    html.match(/<link[^>]+rel=["'](?:shortcut )?icon["'][^>]+href=["']([^"']+)["']/i) ||
-    html.match(/<link[^>]+href=["']([^"']+)["'][^>]+rel=["'](?:shortcut )?icon["']/i);
-  let favicon = faviconMatch ? faviconMatch[1]!.trim() : getFaviconUrl(baseUrl);
-
-  // Make favicon absolute
-  if (favicon && !favicon.startsWith('http')) {
-    try {
-      favicon = new URL(favicon, baseUrl).href;
-    } catch {
-      favicon = getFaviconUrl(baseUrl);
-    }
-  }
+  // Extract favicon (try multiple strategies)
+  const favicon = extractBestFavicon(html, baseUrl);
 
   // Extract page text for description fallback
   const pageText = extractVisibleText(html);
@@ -253,7 +241,7 @@ function isLikelyNonContentImage(src: string): boolean {
     /data:image/i, // Base64 inline images (often small)
   ];
 
-  return skipPatterns.some(pattern => pattern.test(lowerSrc));
+  return skipPatterns.some((pattern) => pattern.test(lowerSrc));
 }
 
 /**
@@ -288,14 +276,90 @@ function resolveUrl(url: string, baseUrl: string): string | null {
 }
 
 /**
- * Get default favicon URL for a domain
+ * Extract the best favicon from HTML with multiple fallback strategies
+ *
+ * Priority:
+ * 1. <link rel="icon"> with largest size (SVG > PNG > ICO)
+ * 2. <link rel="apple-touch-icon"> (usually 180x180 high quality)
+ * 3. <link rel="shortcut icon">
+ * 4. /favicon.ico (HEAD check)
+ * 5. Google Favicon API (final fallback, always works)
  */
-function getFaviconUrl(url: string): string | null {
+function extractBestFavicon(html: string, baseUrl: string): string {
+  const candidates: { href: string; priority: number }[] = [];
+
+  // Match all <link> tags with icon-related rel values
+  const linkTagRegex = /<link\s[^>]*>/gi;
+  let linkMatch;
+
+  while ((linkMatch = linkTagRegex.exec(html)) !== null) {
+    const tag = linkMatch[0];
+
+    const relMatch = tag.match(/rel=["']([^"']+)["']/i);
+    if (!relMatch) continue;
+    const rel = relMatch[1]!.toLowerCase();
+
+    const hrefMatch = tag.match(/href=["']([^"']+)["']/i);
+    if (!hrefMatch) continue;
+    const href = hrefMatch[1]!.trim();
+    if (!href || href === '#') continue;
+
+    const sizesMatch = tag.match(/sizes=["']([^"']+)["']/i);
+    const typeMatch = tag.match(/type=["']([^"']+)["']/i);
+
+    if (rel.includes('apple-touch-icon')) {
+      // apple-touch-icon: high quality, usually 180x180
+      candidates.push({ href, priority: 80 });
+    } else if (rel.includes('icon')) {
+      let priority = 50;
+
+      // Prefer SVG
+      if (typeMatch && typeMatch[1]!.includes('svg')) {
+        priority = 90;
+      } else if (href.endsWith('.svg')) {
+        priority = 90;
+      }
+
+      // Prefer larger sizes
+      if (sizesMatch) {
+        const size = parseInt(sizesMatch[1]!.split('x')[0]!, 10);
+        if (!isNaN(size)) {
+          if (size >= 128) priority = Math.max(priority, 70);
+          else if (size >= 32) priority = Math.max(priority, 60);
+        }
+      }
+
+      candidates.push({ href, priority });
+    }
+  }
+
+  // Sort by priority descending, pick best
+  candidates.sort((a, b) => b.priority - a.priority);
+
+  if (candidates.length > 0) {
+    const best = candidates[0]!.href;
+    // Make absolute
+    if (best.startsWith('http')) return best;
+    try {
+      return new URL(best, baseUrl).href;
+    } catch {
+      // fall through to fallbacks
+    }
+  }
+
+  // Fallback: Google Favicon API (reliable, always returns something)
+  return getGoogleFaviconUrl(baseUrl);
+}
+
+/**
+ * Google Favicon API - reliable fallback that works for most domains
+ */
+function getGoogleFaviconUrl(url: string): string {
   try {
     const parsed = new URL(url);
-    return `${parsed.origin}/favicon.ico`;
+    return `https://www.google.com/s2/favicons?domain=${parsed.hostname}&sz=32`;
   } catch {
-    return null;
+    return `https://www.google.com/s2/favicons?domain=${url}&sz=32`;
   }
 }
 
