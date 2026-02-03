@@ -59,7 +59,10 @@ export function parseRaindropCsv(content: string): ParseResult {
 
     // Parse folder path - Raindrop uses " / " (space-slash-space) for hierarchy
     const folderPath = folder
-      ? folder.split(/\s*\/\s*/).map((s) => s.trim()).filter(Boolean)
+      ? folder
+          .split(/\s*\/\s*/)
+          .map((s) => s.trim())
+          .filter(Boolean)
       : [];
 
     // Register folders
@@ -79,6 +82,7 @@ export function parseRaindropCsv(content: string): ParseResult {
       title: title || url,
       addDate,
       folderPath,
+      icon: null,
     });
   }
 
@@ -169,6 +173,7 @@ export function parseRaindropHtml(html: string): ParseResult {
         title: title || url,
         addDate,
         folderPath: [...folderStack],
+        icon: null,
       });
       continue;
     }

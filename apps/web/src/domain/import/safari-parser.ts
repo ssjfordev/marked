@@ -84,6 +84,10 @@ export function parseSafariBookmarks(html: string): ParseResult {
       const addDateStr = bookmarkMatch[2];
       const title = decodeHtmlEntities(bookmarkMatch[3] || '');
 
+      // Extract ICON attribute
+      const iconMatch = trimmed.match(/ICON="([^"]+)"/i);
+      const icon = iconMatch ? iconMatch[1]! : null;
+
       // Validate URL
       if (!VALID_URL_PATTERN.test(url)) {
         skippedUrls++;
@@ -109,6 +113,7 @@ export function parseSafariBookmarks(html: string): ParseResult {
         title: title || url,
         addDate,
         folderPath,
+        icon,
       });
       continue;
     }

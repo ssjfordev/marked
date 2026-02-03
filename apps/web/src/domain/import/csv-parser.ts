@@ -62,7 +62,10 @@ export function parseCsvBookmarks(content: string): ParseResult {
 
     // Parse folder path
     const folderPath = row.folder
-      ? row.folder.split('/').map((s) => s.trim()).filter(Boolean)
+      ? row.folder
+          .split('/')
+          .map((s) => s.trim())
+          .filter(Boolean)
       : [];
 
     // Register folders
@@ -73,6 +76,7 @@ export function parseCsvBookmarks(content: string): ParseResult {
       title: row.title || row.url,
       addDate: null,
       folderPath,
+      icon: null,
     });
   }
 

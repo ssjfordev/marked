@@ -140,6 +140,7 @@ export async function processImportJob(
       urlKey: string;
       domain: string;
       folderPathKey: string;
+      icon: string | null;
     }> = [];
 
     for (const bookmark of parseResult.bookmarks) {
@@ -166,7 +167,7 @@ export async function processImportJob(
 
     const uniqueUrls = new Map<
       string,
-      { urlKey: string; url: string; domain: string; title: string }
+      { urlKey: string; url: string; domain: string; title: string; icon: string | null }
     >();
     for (const b of bookmarksWithKeys) {
       if (!uniqueUrls.has(b.urlKey)) {
@@ -175,6 +176,7 @@ export async function processImportJob(
           url: b.url,
           domain: b.domain,
           title: b.title,
+          icon: b.icon,
         });
       }
     }
@@ -206,6 +208,7 @@ export async function processImportJob(
           original_url: b.url,
           domain: b.domain,
           title: b.title,
+          ...(b.icon ? { favicon: b.icon } : {}),
         })),
         { onConflict: 'url_key', ignoreDuplicates: true }
       );
@@ -222,6 +225,31 @@ export async function processImportJob(
         }
       }
     }
+    // Step 3a-2: Backfill favicon for existing canonicals
+    // Base64 icons from browser export are high-quality — always prefer over URL favicons
+    const withIcons = uniqueUrlsArray.filter((b) => b.icon);
+    if (withIcons.length > 0) {
+      for (let i = 0; i < withIcons.length; i += FETCH_BATCH) {
+        const batch = withIcons.slice(i, i + FETCH_BATCH);
+        for (const b of batch) {
+          if (b.icon?.startsWith('data:image/')) {
+            // Base64 favicon: always overwrite (better than URL favicons)
+            await supabase
+              .from('link_canonicals')
+              .update({ favicon: b.icon })
+              .eq('url_key', b.urlKey);
+          } else {
+            // URL favicon: only set if currently null
+            await supabase
+              .from('link_canonicals')
+              .update({ favicon: b.icon })
+              .eq('url_key', b.urlKey)
+              .is('favicon', null);
+          }
+        }
+      }
+    }
+
     // Phase 2 complete
     await updateProgress(40);
 
@@ -533,7 +561,13 @@ async function createFolders(
   // If wrapInFolder is true, create a wrapper folder first
   let wrapperFolderId: string | null = null;
   if (wrapInFolder) {
-    const baseName = wrapFolderName || `imported-${Date.now()}`;
+    const baseName =
+      wrapFolderName ||
+      (() => {
+        const now = new Date();
+        const month = now.toLocaleString('en-US', { month: 'short' });
+        return `Import · ${month} ${now.getDate()}, ${now.getFullYear()}`;
+      })();
     const wrapperName = await getUniqueFolderName(supabase, userId, baseName, null);
 
     // Get max position for root level

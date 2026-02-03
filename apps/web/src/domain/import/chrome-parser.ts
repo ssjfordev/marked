@@ -19,6 +19,7 @@ export interface ParsedBookmark {
   title: string;
   addDate: Date | null;
   folderPath: string[]; // Path from root, e.g. ['Bookmarks Bar', 'Tech', 'React']
+  icon: string | null; // ICON attribute from bookmark (usually data:image/png;base64,...)
 }
 
 export interface ParsedFolder {
@@ -105,7 +106,7 @@ export function parseChromeBooksmarks(html: string): ParseResult {
       continue;
     }
 
-    // Bookmark: <DT><A HREF="url" ADD_DATE="timestamp" ...>Title</A>
+    // Bookmark: <DT><A HREF="url" ADD_DATE="timestamp" ICON="..." ...>Title</A>
     const bookmarkMatch = trimmed.match(
       /<DT><A\s+HREF="([^"]+)"(?:\s+ADD_DATE="(\d+)")?[^>]*>([^<]*)<\/A>/i
     );
@@ -113,6 +114,10 @@ export function parseChromeBooksmarks(html: string): ParseResult {
       const url = decodeHtmlEntities(bookmarkMatch[1]!);
       const addDateStr = bookmarkMatch[2];
       const title = decodeHtmlEntities(bookmarkMatch[3] || '');
+
+      // Extract ICON attribute (usually data:image/png;base64,...)
+      const iconMatch = trimmed.match(/ICON="([^"]+)"/i);
+      const icon = iconMatch ? iconMatch[1]! : null;
 
       // Validate URL
       if (!VALID_URL_PATTERN.test(url)) {
@@ -140,6 +145,7 @@ export function parseChromeBooksmarks(html: string): ParseResult {
         title: title || url, // Use URL as fallback title
         addDate,
         folderPath,
+        icon,
       });
       continue;
     }
