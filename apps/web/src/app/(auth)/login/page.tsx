@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import { signInWithGoogle } from '@/lib/auth/actions';
 
 export const dynamic = 'force-dynamic';
@@ -16,13 +17,25 @@ export default async function LoginPage({
       <div className="w-full max-w-md space-y-8">
         <div className="text-center">
           {/* Logo */}
-          <div className="w-14 h-14 rounded-2xl bg-primary flex items-center justify-center mx-auto mb-6">
-            <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-            </svg>
-          </div>
-          <h1 className="text-3xl font-bold text-foreground">Marked</h1>
-          <p className="mt-3 text-foreground-muted">링크를 저장하는 게 아니라, 지식으로 정리합니다.</p>
+          <Image
+            src="/logos/marked-logo-full.png"
+            alt="Marked"
+            width={160}
+            height={40}
+            unoptimized
+            className="dark:hidden h-10 w-auto mx-auto mb-4"
+          />
+          <Image
+            src="/logos/marked-logo-full-white.png"
+            alt="Marked"
+            width={160}
+            height={40}
+            unoptimized
+            className="hidden dark:block h-10 w-auto mx-auto mb-4"
+          />
+          <p className="mt-3 text-foreground-muted">
+            링크를 저장하는 게 아니라, 지식으로 정리합니다.
+          </p>
         </div>
 
         <div className="rounded-xl border border-border bg-surface p-8">
@@ -43,20 +56,42 @@ export default async function LoginPage({
 
           <div className="mt-6 flex items-center gap-3">
             <div className="h-px flex-1 bg-border" />
-            <span className="text-xs text-foreground-faint uppercase tracking-wide">Secure login</span>
+            <span className="text-xs text-foreground-faint uppercase tracking-wide">
+              Secure login
+            </span>
             <div className="h-px flex-1 bg-border" />
           </div>
 
           <div className="mt-6 flex items-center justify-center gap-4 text-foreground-muted">
             <div className="flex items-center gap-1.5">
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                />
               </svg>
               <span className="text-xs">Encrypted</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+                />
               </svg>
               <span className="text-xs">Private</span>
             </div>
@@ -65,9 +100,14 @@ export default async function LoginPage({
 
         <p className="text-center text-sm text-foreground-muted">
           By continuing, you agree to our{' '}
-          <a href="/terms" className="text-primary-light hover:underline">Terms of Service</a>
-          {' '}and{' '}
-          <a href="/privacy" className="text-primary-light hover:underline">Privacy Policy</a>.
+          <a href="/terms" className="text-primary-light hover:underline">
+            Terms of Service
+          </a>{' '}
+          and{' '}
+          <a href="/privacy" className="text-primary-light hover:underline">
+            Privacy Policy
+          </a>
+          .
         </p>
       </div>
     </div>

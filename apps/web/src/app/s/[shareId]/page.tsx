@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import { createServiceClient } from '@/lib/supabase/server';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
@@ -41,12 +42,13 @@ export default async function SharedFolderPage({ params }: PageProps) {
 
   // Get canonicals
   const canonicalIds = instances?.map((i) => i.link_canonical_id) ?? [];
-  const { data: canonicals } = canonicalIds.length > 0
-    ? await supabase
-        .from('link_canonicals')
-        .select('id, original_url, domain, title, description, og_image, favicon')
-        .in('id', canonicalIds)
-    : { data: [] };
+  const { data: canonicals } =
+    canonicalIds.length > 0
+      ? await supabase
+          .from('link_canonicals')
+          .select('id, original_url, domain, title, description, og_image, favicon')
+          .in('id', canonicalIds)
+      : { data: [] };
 
   const canonicalMap = new Map(canonicals?.map((c) => [c.id, c]) ?? []);
 
@@ -76,8 +78,18 @@ export default async function SharedFolderPage({ params }: PageProps) {
               <span className="text-5xl">{folder.icon}</span>
             ) : (
               <div className="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center">
-                <svg className="w-7 h-7 text-primary-light" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                <svg
+                  className="w-7 h-7 text-primary-light"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={1.5}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
+                  />
                 </svg>
               </div>
             )}
@@ -116,12 +128,23 @@ export default async function SharedFolderPage({ params }: PageProps) {
             href="/"
             className="flex items-center gap-2 text-sm text-foreground-muted hover:text-foreground transition-colors"
           >
-            <div className="w-5 h-5 rounded bg-primary flex items-center justify-center">
-              <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-              </svg>
-            </div>
-            <span>Powered by <strong className="text-foreground">Marked</strong></span>
+            <span>Powered by</span>
+            <Image
+              src="/logos/marked-logo-full.png"
+              alt="Marked"
+              width={72}
+              height={18}
+              unoptimized
+              className="dark:hidden h-4 w-auto"
+            />
+            <Image
+              src="/logos/marked-logo-full-white.png"
+              alt="Marked"
+              width={72}
+              height={18}
+              unoptimized
+              className="hidden dark:block h-4 w-auto"
+            />
           </Link>
         </div>
       </footer>

@@ -18,6 +18,10 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: 'Marked - Smart Bookmark Manager',
   description: 'Save, organize, and find your bookmarks with ease',
+  icons: {
+    icon: '/logos/marked-favicon.png',
+    apple: '/logos/apple-touch-icon.png',
+  },
 };
 
 // Script to prevent flash of wrong theme + dev build info

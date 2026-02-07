@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useEffect, useState } from 'react';
 
 export default function ExtensionLogoutPage() {
@@ -17,11 +18,15 @@ export default function ExtensionLogoutPage() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center p-4 bg-bg">
       <div className="w-full max-w-md space-y-6 text-center">
-        <div className="w-14 h-14 rounded-2xl bg-primary flex items-center justify-center mx-auto">
-          <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-          </svg>
-        </div>
+        <Image
+          src="/logos/marked-app-icon.png"
+          alt="Marked"
+          width={56}
+          height={56}
+          unoptimized
+          className="rounded-2xl mx-auto"
+          style={{ width: '56px', height: '56px' }}
+        />
 
         <div>
           <h1 className="text-2xl font-bold text-foreground">Signed out</h1>

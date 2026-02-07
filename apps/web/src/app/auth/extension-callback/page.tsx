@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
@@ -112,31 +113,33 @@ function ExtensionCallbackContent() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center p-4 bg-bg">
       <div className="w-full max-w-md text-center space-y-6">
-        <div className="w-14 h-14 rounded-2xl bg-primary flex items-center justify-center mx-auto">
+        <div className="relative w-14 h-14 mx-auto">
+          <Image
+            src="/logos/marked-app-icon.png"
+            alt="Marked"
+            width={56}
+            height={56}
+            unoptimized
+            className={`rounded-2xl ${status === 'sending' ? 'opacity-50' : ''} ${status === 'error' ? 'opacity-30' : ''}`}
+            style={{ width: '56px', height: '56px' }}
+          />
           {status === 'sending' && (
-            <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
-          )}
-          {status === 'success' && (
-            <svg
-              className="w-7 h-7 text-white"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2.5}
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-            </svg>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+            </div>
           )}
           {status === 'error' && (
-            <svg
-              className="w-7 h-7 text-white"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2.5}
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <svg
+                className="w-7 h-7 text-red-500"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2.5}
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </div>
           )}
         </div>
 

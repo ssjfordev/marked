@@ -2,6 +2,7 @@ import { requireUser } from '@/lib/auth/actions';
 import { createServiceClient } from '@/lib/supabase/server';
 import { SidebarFolders } from '@/components/SidebarFolders';
 import { Header } from '@/components/Header';
+import Image from 'next/image';
 import Link from 'next/link';
 
 type SubscriptionData = {
@@ -140,18 +141,22 @@ export default async function DashboardLayout({ children }: { children: React.Re
         {/* Logo */}
         <div className="h-14 flex items-center px-3 border-b border-border">
           <Link href="/" className="flex items-center gap-2.5 hover:opacity-80 transition-opacity">
-            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-              <svg
-                className="w-4.5 h-4.5 text-white"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2.5}
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-              </svg>
-            </div>
-            <span className="text-base font-semibold text-foreground">Marked</span>
+            <Image
+              src="/logos/marked-logo-full.png"
+              alt="Marked"
+              width={108}
+              height={27}
+              unoptimized
+              className="dark:hidden h-6 w-auto"
+            />
+            <Image
+              src="/logos/marked-logo-full-white.png"
+              alt="Marked"
+              width={108}
+              height={27}
+              unoptimized
+              className="hidden dark:block h-6 w-auto"
+            />
             <span className="px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded bg-amber-500/15 text-amber-500 border border-amber-500/25">
               Dev
             </span>
