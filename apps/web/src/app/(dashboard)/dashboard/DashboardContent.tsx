@@ -232,7 +232,7 @@ function LinkCard({ link, onToggleFavorite, onDelete, formatDate }: LinkCardProp
       onMouseLeave={() => setShowActions(false)}
     >
       {/* Thumbnail (always shown — fallback if missing or broken) */}
-      <div className="relative h-32 bg-surface-secondary overflow-hidden">
+      <div className="relative aspect-[16/9] bg-surface-secondary overflow-hidden">
         <img
           src={thumbnailSrc}
           alt=""
