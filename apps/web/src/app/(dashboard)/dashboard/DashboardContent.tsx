@@ -1,8 +1,25 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+
+const FALLBACK_THUMBNAILS = [
+  '/images/fallback-thumbnails/waves.png',
+  '/images/fallback-thumbnails/bubbles.png',
+  '/images/fallback-thumbnails/lines.png',
+  '/images/fallback-thumbnails/dots.png',
+  '/images/fallback-thumbnails/geometric.png',
+  '/images/fallback-thumbnails/gradient.png',
+];
+
+function getFallbackThumbnail(id: string): string {
+  let hash = 0;
+  for (let i = 0; i < id.length; i++) {
+    hash = ((hash << 5) - hash + id.charCodeAt(i)) | 0;
+  }
+  return FALLBACK_THUMBNAILS[Math.abs(hash) % FALLBACK_THUMBNAILS.length];
+}
 
 interface LinkCanonical {
   id: string;
@@ -31,14 +48,18 @@ interface DashboardContentProps {
   favoriteLinks: LinkInstance[];
 }
 
-export function DashboardContent({ recentLinks: initialRecent, favoriteLinks: initialFavorites }: DashboardContentProps) {
+export function DashboardContent({
+  recentLinks: initialRecent,
+  favoriteLinks: initialFavorites,
+}: DashboardContentProps) {
   const router = useRouter();
   const [recentLinks, setRecentLinks] = useState(initialRecent);
   const [favoriteLinks, setFavoriteLinks] = useState(initialFavorites);
 
   const handleToggleFavorite = async (linkId: string) => {
     // Find the link in either list
-    const link = recentLinks.find((l) => l.id === linkId) || favoriteLinks.find((l) => l.id === linkId);
+    const link =
+      recentLinks.find((l) => l.id === linkId) || favoriteLinks.find((l) => l.id === linkId);
     if (!link) return;
 
     const wasFavorite = link.is_favorite;
@@ -162,8 +183,18 @@ export function DashboardContent({ recentLinks: initialRecent, favoriteLinks: in
         ) : (
           <div className="rounded-xl border border-border bg-surface p-8 text-center">
             <div className="w-12 h-12 rounded-xl bg-yellow-500/10 flex items-center justify-center mx-auto mb-3">
-              <svg className="w-6 h-6 text-yellow-500/60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z" />
+              <svg
+                className="w-6 h-6 text-yellow-500/60"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={1.5}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z"
+                />
               </svg>
             </div>
             <p className="text-foreground-muted">No favorites yet</p>
@@ -188,6 +219,11 @@ function LinkCard({ link, onToggleFavorite, onDelete, formatDate }: LinkCardProp
   const [showActions, setShowActions] = useState(false);
   const title = link.user_title || link.canonical.title || link.canonical.domain;
   const description = link.user_description || link.canonical.description;
+  const fallbackThumbnail = useMemo(
+    () => getFallbackThumbnail(title + link.canonical.domain),
+    [title, link.canonical.domain]
+  );
+  const [thumbnailSrc, setThumbnailSrc] = useState(link.canonical.og_image || fallbackThumbnail);
 
   return (
     <div
@@ -195,31 +231,18 @@ function LinkCard({ link, onToggleFavorite, onDelete, formatDate }: LinkCardProp
       onMouseEnter={() => setShowActions(true)}
       onMouseLeave={() => setShowActions(false)}
     >
-      {/* Thumbnail */}
+      {/* Thumbnail (always shown — fallback if missing or broken) */}
       <div className="relative h-32 bg-surface-secondary overflow-hidden">
-        {link.canonical.og_image ? (
-          <img
-            src={link.canonical.og_image}
-            alt=""
-            className="w-full h-full object-cover"
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            {link.canonical.favicon ? (
-              <img
-                src={link.canonical.favicon}
-                alt=""
-                className="w-12 h-12 rounded-lg"
-              />
-            ) : (
-              <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
-                <span className="text-xl font-medium text-primary-light">
-                  {link.canonical.domain.charAt(0).toUpperCase()}
-                </span>
-              </div>
-            )}
-          </div>
-        )}
+        <img
+          src={thumbnailSrc}
+          alt=""
+          className="w-full h-full object-cover"
+          onError={() => {
+            if (thumbnailSrc !== fallbackThumbnail) {
+              setThumbnailSrc(fallbackThumbnail);
+            }
+          }}
+        />
 
         {/* Favorite button overlay */}
         <button
@@ -261,8 +284,18 @@ function LinkCard({ link, onToggleFavorite, onDelete, formatDate }: LinkCardProp
             }}
             className="absolute top-2 left-2 p-1.5 rounded-lg bg-black/40 text-white/80 hover:text-red-400 transition-colors"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+              />
             </svg>
           </button>
         )}
@@ -283,15 +316,11 @@ function LinkCard({ link, onToggleFavorite, onDelete, formatDate }: LinkCardProp
               className="w-4 h-4 rounded mt-0.5 flex-shrink-0"
             />
           )}
-          <h3 className="font-medium text-foreground text-sm line-clamp-2 leading-snug">
-            {title}
-          </h3>
+          <h3 className="font-medium text-foreground text-sm line-clamp-2 leading-snug">{title}</h3>
         </div>
 
         {description && (
-          <p className="text-xs text-foreground-muted line-clamp-2 mb-2">
-            {description}
-          </p>
+          <p className="text-xs text-foreground-muted line-clamp-2 mb-2">{description}</p>
         )}
 
         <div className="flex items-center justify-between text-xs text-foreground-muted/60">
@@ -311,9 +340,7 @@ function LinkCard({ link, onToggleFavorite, onDelete, formatDate }: LinkCardProp
               </span>
             ))}
             {link.tags.length > 3 && (
-              <span className="text-[10px] text-foreground-muted/60">
-                +{link.tags.length - 3}
-              </span>
+              <span className="text-[10px] text-foreground-muted/60">+{link.tags.length - 3}</span>
             )}
           </div>
         )}
