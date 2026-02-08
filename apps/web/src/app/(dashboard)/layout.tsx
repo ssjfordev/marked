@@ -1,4 +1,5 @@
-import { requireUser } from '@/lib/auth/actions';
+import { getUser } from '@/lib/auth/actions';
+import { redirect } from 'next/navigation';
 import { createServiceClient } from '@/lib/supabase/server';
 import { SidebarFolders } from '@/components/SidebarFolders';
 import { Header } from '@/components/Header';
@@ -79,7 +80,10 @@ function buildFolderTree(dbFolders: DbFolderRow[]): SidebarFolder[] {
 }
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const user = await requireUser();
+  const user = await getUser();
+  if (!user) {
+    redirect('/');
+  }
   const supabase = createServiceClient();
 
   const { data: subscriptionData } = await supabase
@@ -140,7 +144,10 @@ export default async function DashboardLayout({ children }: { children: React.Re
       <aside className="w-64 flex-shrink-0 border-r border-border bg-bg flex flex-col overflow-hidden">
         {/* Logo */}
         <div className="h-14 flex items-center px-3 border-b border-border">
-          <Link href="/" className="flex items-center gap-2.5 hover:opacity-80 transition-opacity">
+          <Link
+            href="/dashboard"
+            className="flex items-center gap-2.5 hover:opacity-80 transition-opacity"
+          >
             <Image
               src="/logos/marked-logo-full.png"
               alt="Marked"

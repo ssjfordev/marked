@@ -1,4 +1,5 @@
 import Image from 'next/image';
+import Link from 'next/link';
 import { signInWithGoogle } from '@/lib/auth/actions';
 
 export const dynamic = 'force-dynamic';
@@ -17,22 +18,24 @@ export default async function LoginPage({
       <div className="w-full max-w-md space-y-8">
         <div className="text-center">
           {/* Logo */}
-          <Image
-            src="/logos/marked-logo-full.png"
-            alt="Marked"
-            width={160}
-            height={40}
-            unoptimized
-            className="dark:hidden h-10 w-auto mx-auto mb-4"
-          />
-          <Image
-            src="/logos/marked-logo-full-white.png"
-            alt="Marked"
-            width={160}
-            height={40}
-            unoptimized
-            className="hidden dark:block h-10 w-auto mx-auto mb-4"
-          />
+          <Link href="/dashboard" className="inline-block hover:opacity-80 transition-opacity">
+            <Image
+              src="/logos/marked-logo-full.png"
+              alt="Marked"
+              width={160}
+              height={40}
+              unoptimized
+              className="dark:hidden h-10 w-auto mx-auto mb-4"
+            />
+            <Image
+              src="/logos/marked-logo-full-white.png"
+              alt="Marked"
+              width={160}
+              height={40}
+              unoptimized
+              className="hidden dark:block h-10 w-auto mx-auto mb-4"
+            />
+          </Link>
           <p className="mt-3 text-foreground-muted">
             링크를 저장하는 게 아니라, 지식으로 정리합니다.
           </p>
