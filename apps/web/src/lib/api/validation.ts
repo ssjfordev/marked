@@ -30,7 +30,7 @@ export const updateFolderSchema = z.object({
   name: sanitized.pipe(z.string().min(1).max(TEXT_LIMITS.NAME)).optional(),
   icon: z.string().max(TEXT_LIMITS.ICON).nullable().optional(),
   description: sanitized.pipe(z.string().max(TEXT_LIMITS.DESCRIPTION)).nullable().optional(),
-  parentId: z.string().uuid().nullable().optional(),
+  parentId: z.string().max(50).nullable().optional(),
   position: z.number().int().min(0).optional(),
 });
 
@@ -39,7 +39,10 @@ export const updateFolderSchema = z.object({
 export const createLinkSchema = z.object({
   url: urlSchema,
   folderId: uuidSchema,
-  tags: z.array(sanitized.pipe(z.string().min(1).max(TEXT_LIMITS.NAME))).max(20).optional(),
+  tags: z
+    .array(sanitized.pipe(z.string().min(1).max(TEXT_LIMITS.NAME)))
+    .max(20)
+    .optional(),
   userTitle: sanitized.pipe(z.string().max(TEXT_LIMITS.TITLE)).optional(),
   userDescription: sanitized.pipe(z.string().max(TEXT_LIMITS.DESCRIPTION)).optional(),
 });

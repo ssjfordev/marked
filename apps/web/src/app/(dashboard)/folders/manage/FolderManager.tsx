@@ -2,7 +2,6 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { IconButton } from '@/components/ui/IconButton';
@@ -27,10 +26,20 @@ export function FolderManager({ initialFolders }: FolderManagerProps) {
   const router = useRouter();
   const [folders, setFolders] = useState(initialFolders);
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
+  const [hasReorderChanges, setHasReorderChanges] = useState(false);
+  const hasReorderChangesRef = useRef(false);
+  const initialFoldersRef = useRef(initialFolders);
+
+  // Keep ref in sync with state
+  useEffect(() => {
+    hasReorderChangesRef.current = hasReorderChanges;
+  }, [hasReorderChanges]);
 
   // Sync with server data when it changes
   useEffect(() => {
     setFolders(initialFolders);
+    initialFoldersRef.current = initialFolders;
+    setHasReorderChanges(false);
   }, [initialFolders]);
   const [editingFolderId, setEditingFolderId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState('');
@@ -73,14 +82,18 @@ export function FolderManager({ initialFolders }: FolderManagerProps) {
     [router]
   );
 
-  // Flush on page unload
+  // Flush pending deletes + warn on unsaved reorder changes
   useEffect(() => {
-    const handleBeforeUnload = () => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       const pending = pendingDeleteRef.current;
-      if (!pending) return;
-      clearTimeout(pending.timeoutId);
-      for (const folderId of pending.folderIds) {
-        navigator.sendBeacon(`/api/v1/folders/${folderId}?_method=DELETE`, '');
+      if (pending) {
+        clearTimeout(pending.timeoutId);
+        for (const folderId of pending.folderIds) {
+          navigator.sendBeacon(`/api/v1/folders/${folderId}?_method=DELETE`, '');
+        }
+      }
+      if (hasReorderChangesRef.current) {
+        e.preventDefault();
       }
     };
     window.addEventListener('beforeunload', handleBeforeUnload);
@@ -367,70 +380,179 @@ export function FolderManager({ initialFolders }: FolderManagerProps) {
     return false;
   };
 
-  const handleDrop = async (e: React.DragEvent) => {
+  // Helper: remove a folder from tree by id and return the removed folder
+  const removeFolderFromTree = (
+    tree: Folder[],
+    folderId: string
+  ): { tree: Folder[]; removed: Folder | null } => {
+    let removed: Folder | null = null;
+    const filter = (items: Folder[]): Folder[] =>
+      items.reduce<Folder[]>((acc, f) => {
+        if (f.id === folderId) {
+          removed = f;
+          return acc;
+        }
+        const newChildren = f.children ? filter(f.children) : undefined;
+        acc.push({ ...f, children: newChildren });
+        return acc;
+      }, []);
+    return { tree: filter(tree), removed };
+  };
+
+  // Helper: insert a folder into tree at a specific position
+  const insertFolderInTree = (
+    tree: Folder[],
+    folder: Folder,
+    targetId: string,
+    position: 'above' | 'below' | 'inside'
+  ): Folder[] => {
+    if (position === 'inside') {
+      return tree.map((f) => {
+        if (f.id === targetId) {
+          const children = f.children
+            ? [...f.children, { ...folder, parent_id: f.id }]
+            : [{ ...folder, parent_id: f.id }];
+          return { ...f, children };
+        }
+        return f.children
+          ? { ...f, children: insertFolderInTree(f.children, folder, targetId, position) }
+          : f;
+      });
+    }
+    // above or below
+    const insertInLevel = (items: Folder[]): { items: Folder[]; inserted: boolean } => {
+      const out: Folder[] = [];
+      let inserted = false;
+      for (const f of items) {
+        if (f.id === targetId) {
+          inserted = true;
+          if (position === 'above') {
+            out.push({ ...folder, parent_id: f.parent_id });
+            out.push(f);
+          } else {
+            out.push(f);
+            out.push({ ...folder, parent_id: f.parent_id });
+          }
+        } else {
+          out.push(f);
+        }
+      }
+      return { items: out, inserted };
+    };
+
+    const { items: topLevel, inserted } = insertInLevel(tree);
+    if (inserted) return topLevel;
+    // Not found at this level, recurse
+    return tree.map((f) =>
+      f.children
+        ? { ...f, children: insertFolderInTree(f.children, folder, targetId, position) }
+        : f
+    );
+  };
+
+  // Helper: reassign position numbers in tree
+  const reassignPositions = (tree: Folder[]): Folder[] =>
+    tree.map((f, i) => ({
+      ...f,
+      position: i,
+      children: f.children ? reassignPositions(f.children) : undefined,
+    }));
+
+  // Helper: flatten tree into list of { id, parent_id, position }
+  const flattenTree = (
+    tree: Folder[]
+  ): { id: string; parent_id: string | null; position: number }[] => {
+    const result: { id: string; parent_id: string | null; position: number }[] = [];
+    for (const f of tree) {
+      result.push({ id: f.id, parent_id: f.parent_id, position: f.position });
+      if (f.children) result.push(...flattenTree(f.children));
+    }
+    return result;
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     if (!draggedFolder || !dropTarget) return;
 
-    // Don't drop on itself
     if (draggedFolder.id === dropTarget.id) {
       setDraggedFolder(null);
       setDropTarget(null);
       return;
     }
 
-    // Don't drop a parent folder into its own descendant (circular reference)
     if (isDescendant(draggedFolder, dropTarget.id)) {
-      console.warn('Cannot move a folder into its own descendant');
       setDraggedFolder(null);
       setDropTarget(null);
       return;
     }
 
-    setReordering(true);
+    // Remove dragged folder from current position
+    const { tree: treeWithout, removed } = removeFolderFromTree(folders, draggedFolder.id);
+    if (!removed) {
+      setDraggedFolder(null);
+      setDropTarget(null);
+      return;
+    }
+
+    // Insert at new position (strip children of the moved folder to keep them intact)
+    const movedFolder = { ...removed };
+    const newTree = insertFolderInTree(
+      treeWithout,
+      movedFolder,
+      dropTarget.id,
+      dropTarget.position
+    );
+    const reindexed = reassignPositions(newTree);
+
+    setFolders(reindexed);
+    setHasReorderChanges(true);
     setDraggedFolder(null);
     setDropTarget(null);
 
+    // Auto-expand target folder when dropping inside
+    if (dropTarget.position === 'inside') {
+      setExpandedFolders((prev) => new Set([...prev, dropTarget.id]));
+    }
+  };
+
+  const handleSaveReorder = async () => {
+    setReordering(true);
     try {
-      if (dropTarget.position === 'inside') {
-        // Move into folder as child
-        await fetch(`/api/v1/folders/${draggedFolder.id}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ parentId: dropTarget.id }),
-        });
-      } else {
-        // Find target folder to get its parent and position
-        const findFolder = (folders: Folder[], id: string): Folder | null => {
-          for (const f of folders) {
-            if (f.id === id) return f;
-            if (f.children) {
-              const found = findFolder(f.children, id);
-              if (found) return found;
-            }
-          }
-          return null;
-        };
+      const currentFlat = flattenTree(folders);
+      const initialFlat = flattenTree(initialFoldersRef.current);
+      const initialMap = new Map(initialFlat.map((f) => [f.id, f]));
 
-        const targetFolder = findFolder(folders, dropTarget.id);
-        if (targetFolder) {
-          const newParentId = targetFolder.parent_id;
-          const newPosition =
-            dropTarget.position === 'above' ? targetFolder.position : targetFolder.position + 1;
+      // Find changed folders
+      const changes = currentFlat.filter((f) => {
+        const orig = initialMap.get(f.id);
+        if (!orig) return true;
+        return orig.parent_id !== f.parent_id || orig.position !== f.position;
+      });
 
-          await fetch(`/api/v1/folders/${draggedFolder.id}`, {
+      // Send PATCH for each changed folder
+      await Promise.all(
+        changes.map((f) =>
+          fetch(`/api/v1/folders/${f.id}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ parentId: newParentId, position: newPosition }),
-          });
-        }
-      }
+            body: JSON.stringify({ parentId: f.parent_id, position: f.position }),
+          })
+        )
+      );
 
+      initialFoldersRef.current = folders;
+      setHasReorderChanges(false);
       router.refresh();
     } catch (error) {
-      console.error('Failed to move folder:', error);
+      console.error('Failed to save reorder:', error);
     } finally {
       setReordering(false);
     }
+  };
+
+  const handleDiscardReorder = () => {
+    setFolders(initialFoldersRef.current);
+    setHasReorderChanges(false);
   };
 
   const handleDragEnd = () => {
@@ -735,11 +857,16 @@ export function FolderManager({ initialFolders }: FolderManagerProps) {
               Cancel
             </Button>
           )}
-          <Link href="/dashboard">
-            <Button variant="secondary" size="sm">
-              Done
-            </Button>
-          </Link>
+          {hasReorderChanges && (
+            <>
+              <Button variant="secondary" size="sm" onClick={handleDiscardReorder}>
+                되돌리기
+              </Button>
+              <Button variant="primary" size="sm" onClick={handleSaveReorder}>
+                순서 저장
+              </Button>
+            </>
+          )}
         </div>
       </div>
 

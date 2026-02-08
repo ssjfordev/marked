@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { requireUser } from '@/lib/auth/actions';
 import { createServiceClient } from '@/lib/supabase/server';
 import { FolderManager } from './FolderManager';
@@ -33,7 +34,7 @@ function buildFolderTree(dbFolders: DbFolder[]): Folder[] {
 
   // Create map of all folders using short_id as id
   for (const folder of dbFolders) {
-    const parentShortId = folder.parent_id ? uuidToShortId.get(folder.parent_id) ?? null : null;
+    const parentShortId = folder.parent_id ? (uuidToShortId.get(folder.parent_id) ?? null) : null;
     folderMap.set(folder.short_id, {
       id: folder.short_id,
       name: folder.name,
@@ -88,10 +89,23 @@ export default async function FolderManagePage() {
   return (
     <div className="max-w-3xl mx-auto">
       <div className="mb-8">
+        <Link
+          href="/dashboard"
+          className="inline-flex items-center gap-1.5 text-sm text-foreground-muted hover:text-foreground transition-colors mb-4"
+        >
+          <svg
+            className="w-4 h-4"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2}
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+          </svg>
+          대시보드
+        </Link>
         <h1 className="text-2xl font-semibold text-foreground mb-2">Manage Folders</h1>
-        <p className="text-foreground-muted">
-          Create, rename, reorder, and organize your folders.
-        </p>
+        <p className="text-foreground-muted">Create, rename, reorder, and organize your folders.</p>
       </div>
 
       <FolderManager initialFolders={folderTree} />
