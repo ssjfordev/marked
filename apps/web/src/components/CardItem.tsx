@@ -81,7 +81,9 @@ export function CardItem({
 }: CardItemProps) {
   const fallbackThumbnail = useMemo(() => getFallbackThumbnail(title + domain), [title, domain]);
   const [thumbnailSrc, setThumbnailSrc] = useState(thumbnail || fallbackThumbnail);
-  const [faviconSrc, setFaviconSrc] = useState(favicon);
+  const [faviconSrc, setFaviconSrc] = useState(
+    favicon || `https://www.google.com/s2/favicons?domain=${domain}&sz=32`
+  );
   const [faviconError, setFaviconError] = useState(false);
   const handleClick = () => {
     if (selectionMode && onSelect) {

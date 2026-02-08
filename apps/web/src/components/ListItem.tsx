@@ -65,7 +65,15 @@ export function ListItem({
   onAddTag,
   onRemoveTag,
 }: ListItemProps) {
-  const [faviconSrc, setFaviconSrc] = useState(favicon);
+  const [faviconSrc, setFaviconSrc] = useState(() => {
+    if (favicon) return favicon;
+    try {
+      const hostname = new URL(url).hostname;
+      return `https://www.google.com/s2/favicons?domain=${hostname}&sz=32`;
+    } catch {
+      return null;
+    }
+  });
   const [faviconError, setFaviconError] = useState(false);
   const handleClick = () => {
     if (selectionMode && onSelect) {

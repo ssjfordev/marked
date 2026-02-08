@@ -309,13 +309,14 @@ function LinkCard({ link, onToggleFavorite, onDelete, formatDate }: LinkCardProp
         className="block p-4"
       >
         <div className="flex items-start gap-2 mb-2">
-          {link.canonical.favicon && (
-            <img
-              src={link.canonical.favicon}
-              alt=""
-              className="w-4 h-4 rounded mt-0.5 flex-shrink-0"
-            />
-          )}
+          <img
+            src={
+              link.canonical.favicon ||
+              `https://www.google.com/s2/favicons?domain=${link.canonical.domain}&sz=32`
+            }
+            alt=""
+            className="w-4 h-4 rounded mt-0.5 flex-shrink-0"
+          />
           <h3 className="font-medium text-foreground text-sm line-clamp-2 leading-snug">{title}</h3>
         </div>
 

@@ -116,10 +116,19 @@ export function AssetPageClient({
       <nav className="mb-6 flex items-center gap-2 text-sm">
         {folder && (
           <>
-            <Link href={`/folders/${folder.id}`} className="text-foreground-muted hover:text-foreground transition-colors">
+            <Link
+              href={`/folders/${folder.id}`}
+              className="text-foreground-muted hover:text-foreground transition-colors"
+            >
               {folder.name}
             </Link>
-            <svg className="w-4 h-4 text-foreground-faint" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <svg
+              className="w-4 h-4 text-foreground-faint"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
             </svg>
           </>
@@ -131,18 +140,19 @@ export function AssetPageClient({
       <header className="mb-8">
         <div className="flex items-start gap-4">
           {/* Favicon */}
-          {canonical.favicon && (
-            <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-surface border border-border flex items-center justify-center overflow-hidden">
-              <Image
-                src={canonical.favicon}
-                alt=""
-                width={32}
-                height={32}
-                className="rounded"
-                unoptimized
-              />
-            </div>
-          )}
+          <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-surface border border-border flex items-center justify-center overflow-hidden">
+            <Image
+              src={
+                canonical.favicon ||
+                `https://www.google.com/s2/favicons?domain=${canonical.domain}&sz=32`
+              }
+              alt=""
+              width={32}
+              height={32}
+              className="rounded"
+              unoptimized
+            />
+          </div>
 
           <div className="flex-1 min-w-0">
             <h1 className="text-2xl font-bold text-foreground">{displayTitle}</h1>
@@ -198,7 +208,13 @@ export function AssetPageClient({
                 onClick={() => handleRemoveTag(tag.id)}
                 className="hidden group-hover:inline-flex items-center justify-center w-4 h-4 rounded-full hover:bg-primary/20 transition-colors"
               >
-                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <svg
+                  className="w-3 h-3"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
@@ -243,10 +259,25 @@ export function AssetPageClient({
 
       {/* Paid feature gate */}
       {!hasAssetPageAccess && (
-        <div className="mb-8 rounded-xl border p-5" style={{ borderColor: 'var(--status-warning-border)', backgroundColor: 'var(--status-warning-bg)' }}>
+        <div
+          className="mb-8 rounded-xl border p-5"
+          style={{
+            borderColor: 'var(--status-warning-border)',
+            backgroundColor: 'var(--status-warning-bg)',
+          }}
+        >
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: 'var(--status-warning-bg)' }}>
-              <svg className="h-5 w-5" style={{ color: 'var(--status-warning-text)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div
+              className="w-10 h-10 rounded-full flex items-center justify-center"
+              style={{ backgroundColor: 'var(--status-warning-bg)' }}
+            >
+              <svg
+                className="h-5 w-5"
+                style={{ color: 'var(--status-warning-text)' }}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -256,7 +287,9 @@ export function AssetPageClient({
               </svg>
             </div>
             <div className="flex-1">
-              <span className="font-medium" style={{ color: 'var(--status-warning-text)' }}>Upgrade to unlock full features</span>
+              <span className="font-medium" style={{ color: 'var(--status-warning-text)' }}>
+                Upgrade to unlock full features
+              </span>
               <p className="mt-0.5 text-sm text-foreground-muted">
                 Memo editing and advanced mark features are available with a Pro subscription.
               </p>
@@ -287,12 +320,24 @@ export function AssetPageClient({
           {marks.length === 0 ? (
             <div className="rounded-xl border border-dashed border-border p-8 text-center">
               <div className="w-12 h-12 rounded-xl bg-surface-hover flex items-center justify-center mx-auto mb-3">
-                <svg className="w-6 h-6 text-foreground-faint" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                <svg
+                  className="w-6 h-6 text-foreground-faint"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={1.5}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+                  />
                 </svg>
               </div>
               <p className="text-foreground-muted">No marks yet</p>
-              <p className="mt-1 text-sm text-foreground-faint">Highlight text while browsing to add marks</p>
+              <p className="mt-1 text-sm text-foreground-faint">
+                Highlight text while browsing to add marks
+              </p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -327,7 +372,12 @@ export function AssetPageClient({
         <section className="rounded-xl border border-border bg-surface p-6">
           <h2 className="mb-5 flex items-center gap-2.5 text-lg font-semibold text-foreground">
             <div className="w-8 h-8 rounded-lg bg-info/10 flex items-center justify-center">
-              <svg className="h-4 w-4 text-info" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg
+                className="h-4 w-4 text-info"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -368,7 +418,10 @@ export function AssetPageClient({
                 </svg>
               </div>
               <p className="text-foreground-muted">Memos are a Pro feature</p>
-              <Link href="/settings/billing" className="mt-2 inline-block text-sm text-primary-light hover:text-primary-dark transition-colors">
+              <Link
+                href="/settings/billing"
+                className="mt-2 inline-block text-sm text-primary-light hover:text-primary-dark transition-colors"
+              >
                 Upgrade to unlock
               </Link>
             </div>

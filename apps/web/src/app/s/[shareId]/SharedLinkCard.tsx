@@ -37,6 +37,9 @@ export function SharedLinkCard({ link }: SharedLinkCardProps) {
     [link.title, link.domain]
   );
   const [thumbnailSrc, setThumbnailSrc] = useState(link.ogImage || fallbackThumbnail);
+  const [faviconSrc, setFaviconSrc] = useState(
+    link.favicon || `https://www.google.com/s2/favicons?domain=${link.domain}&sz=32`
+  );
   const [faviconError, setFaviconError] = useState(false);
 
   return (
@@ -64,12 +67,19 @@ export function SharedLinkCard({ link }: SharedLinkCardProps) {
       <div className="p-4">
         {/* Favicon + Domain */}
         <div className="flex items-center gap-2 mb-2">
-          {link.favicon && !faviconError ? (
+          {faviconSrc && !faviconError ? (
             <img
-              src={link.favicon}
+              src={faviconSrc}
               alt=""
               className="w-4 h-4 rounded"
-              onError={() => setFaviconError(true)}
+              onError={() => {
+                const googleFallback = `https://www.google.com/s2/favicons?domain=${link.domain}&sz=32`;
+                if (faviconSrc !== googleFallback) {
+                  setFaviconSrc(googleFallback);
+                } else {
+                  setFaviconError(true);
+                }
+              }}
             />
           ) : (
             <div className="w-4 h-4 rounded bg-foreground-faint/20 flex items-center justify-center">
