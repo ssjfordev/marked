@@ -5,7 +5,7 @@
  */
 
 import { createServerClient } from '@/lib/supabase/server';
-import { requireAuth, success, handleError, NotFoundError } from '@/lib/api';
+import { requireAuth, cachedSuccess, handleError, NotFoundError } from '@/lib/api';
 import type { Tag } from '@/types/api';
 import type { Database } from '@/types/database';
 
@@ -13,7 +13,9 @@ interface RouteParams {
   params: Promise<{ id: string }>;
 }
 
-type LinkCanonicalRow = Database['public']['Tables']['link_canonicals']['Row'] & { short_id: string };
+type LinkCanonicalRow = Database['public']['Tables']['link_canonicals']['Row'] & {
+  short_id: string;
+};
 type TagRow = Database['public']['Tables']['tags']['Row'];
 
 interface LinkInstanceWithCanonical {
@@ -72,30 +74,28 @@ export async function GET(_request: Request, { params }: RouteParams) {
     if (error) throw error;
 
     // Transform to API response format with short_id
-    const result = ((links ?? []) as unknown as LinkInstanceWithCanonical[]).map(
-      (link) => ({
-        id: link.id,
-        user_title: link.user_title,
-        user_description: link.user_description,
-        position: link.position,
-        is_favorite: link.is_favorite,
-        created_at: link.created_at,
-        updated_at: link.updated_at,
-        canonical: {
-          id: link.link_canonicals.short_id, // Use short_id
-          url_key: link.link_canonicals.url_key,
-          original_url: link.link_canonicals.original_url,
-          domain: link.link_canonicals.domain,
-          title: link.link_canonicals.title,
-          description: link.link_canonicals.description,
-          og_image: link.link_canonicals.og_image,
-          favicon: link.link_canonicals.favicon,
-        },
-        tags: link.link_tags.map((lt) => lt.tags).filter((t): t is Tag => t !== null),
-      })
-    );
+    const result = ((links ?? []) as unknown as LinkInstanceWithCanonical[]).map((link) => ({
+      id: link.id,
+      user_title: link.user_title,
+      user_description: link.user_description,
+      position: link.position,
+      is_favorite: link.is_favorite,
+      created_at: link.created_at,
+      updated_at: link.updated_at,
+      canonical: {
+        id: link.link_canonicals.short_id, // Use short_id
+        url_key: link.link_canonicals.url_key,
+        original_url: link.link_canonicals.original_url,
+        domain: link.link_canonicals.domain,
+        title: link.link_canonicals.title,
+        description: link.link_canonicals.description,
+        og_image: link.link_canonicals.og_image,
+        favicon: link.link_canonicals.favicon,
+      },
+      tags: link.link_tags.map((lt) => lt.tags).filter((t): t is Tag => t !== null),
+    }));
 
-    return success(result);
+    return cachedSuccess(result);
   } catch (err) {
     return handleError(err);
   }

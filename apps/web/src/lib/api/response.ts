@@ -16,6 +16,26 @@ export function success<T>(data: T, status: number = 200): NextResponse<ApiResul
 }
 
 /**
+ * Create a success response with browser cache headers.
+ * Uses private caching (user-specific data) with stale-while-revalidate
+ * for instant back-navigation.
+ */
+export function cachedSuccess<T>(
+  data: T,
+  maxAge: number = 10,
+  staleWhileRevalidate: number = 60
+): NextResponse<ApiResult<T>> {
+  return NextResponse.json(
+    { data },
+    {
+      headers: {
+        'Cache-Control': `private, max-age=${maxAge}, stale-while-revalidate=${staleWhileRevalidate}`,
+      },
+    }
+  );
+}
+
+/**
  * Create an error response from an ApiError
  */
 export function error(err: ApiError): NextResponse<ApiResult<never>> {

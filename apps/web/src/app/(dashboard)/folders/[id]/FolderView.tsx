@@ -49,28 +49,32 @@ export function FolderView() {
     setLinks(null);
     setNotFound(false);
 
-    // Single API call: folder metadata + links combined
-    fetch(`/api/v1/folders/${folderId}?include=links`)
+    // Parallel fetch: folder header renders first (~1s), links follow (~2s)
+    // Progressive rendering — user sees something quickly
+    fetch(`/api/v1/folders/${folderId}`)
       .then((res) => {
         if (res.status === 404) throw new Error('not-found');
         return res.json();
       })
       .then((json) => {
-        if (cancelled) return;
-        if (json?.data) {
-          const { links: folderLinks, ...folderData } = json.data;
-          setFolder(folderData);
-          setLinks(folderLinks ?? []);
-        }
+        if (!cancelled && json?.data) setFolder(json.data);
       })
       .catch((err) => {
         if (cancelled) return;
-        if (err.message === 'not-found') {
-          setNotFound(true);
-        } else {
-          console.error('Failed to fetch folder data:', err);
+        if (err.message === 'not-found') setNotFound(true);
+        else {
+          console.error('Failed to fetch folder:', err);
           setNotFound(true);
         }
+      });
+
+    fetch(`/api/v1/folders/${folderId}/links`)
+      .then((res) => res.json())
+      .then((json) => {
+        if (!cancelled && json?.data) setLinks(json.data);
+      })
+      .catch((err) => {
+        if (!cancelled) console.error('Failed to fetch links:', err);
       });
 
     return () => {

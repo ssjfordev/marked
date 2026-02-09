@@ -10,6 +10,7 @@ import { createServiceClient } from '@/lib/supabase/server';
 import {
   requireAuth,
   success,
+  cachedSuccess,
   handleError,
   validateRequest,
   updateFolderSchema,
@@ -136,7 +137,7 @@ export async function GET(request: Request, { params }: RouteParams) {
       result.links = links;
     }
 
-    return success(result);
+    return cachedSuccess(result);
   } catch (err) {
     return handleError(err);
   }
