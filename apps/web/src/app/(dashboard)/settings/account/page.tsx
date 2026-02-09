@@ -1,13 +1,5 @@
-import { requireUser } from '@/lib/auth/actions';
-import { AccountClient } from './AccountClient';
+import { AccountView } from './AccountView';
 
-export default async function AccountPage() {
-  const user = await requireUser();
-
-  return (
-    <AccountClient
-      email={user.email || ''}
-      createdAt={user.created_at}
-    />
-  );
+export default function AccountPage() {
+  return <AccountView />;
 }
