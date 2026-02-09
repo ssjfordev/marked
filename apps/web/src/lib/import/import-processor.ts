@@ -231,22 +231,24 @@ export async function processImportJob(
     if (withIcons.length > 0) {
       for (let i = 0; i < withIcons.length; i += FETCH_BATCH) {
         const batch = withIcons.slice(i, i + FETCH_BATCH);
-        for (const b of batch) {
-          if (b.icon?.startsWith('data:image/')) {
-            // Base64 favicon: always overwrite (better than URL favicons)
-            await supabase
-              .from('link_canonicals')
-              .update({ favicon: b.icon })
-              .eq('url_key', b.urlKey);
-          } else {
-            // URL favicon: only set if currently null
-            await supabase
-              .from('link_canonicals')
-              .update({ favicon: b.icon })
-              .eq('url_key', b.urlKey)
-              .is('favicon', null);
-          }
-        }
+        await Promise.all(
+          batch.map((b) => {
+            if (b.icon?.startsWith('data:image/')) {
+              // Base64 favicon: always overwrite (better than URL favicons)
+              return supabase
+                .from('link_canonicals')
+                .update({ favicon: b.icon })
+                .eq('url_key', b.urlKey);
+            } else {
+              // URL favicon: only set if currently null
+              return supabase
+                .from('link_canonicals')
+                .update({ favicon: b.icon })
+                .eq('url_key', b.urlKey)
+                .is('favicon', null);
+            }
+          })
+        );
       }
     }
 
@@ -597,6 +599,27 @@ async function createFolders(
     wrapperFolderId = wrapperFolder.id;
   }
 
+  // Bulk fetch all existing folders for this user to avoid per-folder queries
+  const { data: allExistingFolders } = await supabase
+    .from('folders')
+    .select('id, name, parent_id, position')
+    .eq('user_id', userId);
+
+  // Build lookup: "name:parent_id" -> folder, and track max positions per parent
+  const existingFolderLookup = new Map<string, { id: string; position: number }>();
+  const maxPositions = new Map<string, number>(); // parentId (or "null") -> max position
+
+  for (const f of allExistingFolders ?? []) {
+    const parentKey = f.parent_id ?? 'null';
+    const lookupKey = `${f.name}:${parentKey}`;
+    existingFolderLookup.set(lookupKey, { id: f.id, position: f.position });
+
+    const currentMax = maxPositions.get(parentKey) ?? -1;
+    if (f.position > currentMax) {
+      maxPositions.set(parentKey, f.position);
+    }
+  }
+
   for (const folder of flatFolders) {
     const pathKey = folder.path.join('/');
     const parentPathKey = folder.parentPath.join('/');
@@ -609,35 +632,17 @@ async function createFolders(
       parentId = wrapperFolderId; // null if not wrapping
     }
 
-    // Check if folder already exists under this parent
-    let query = supabase.from('folders').select('id').eq('user_id', userId).eq('name', folder.name);
-
-    if (parentId) {
-      query = query.eq('parent_id', parentId);
-    } else {
-      query = query.is('parent_id', null);
-    }
-
-    const { data: existing } = await query.maybeSingle();
+    const parentKey = parentId ?? 'null';
+    const lookupKey = `${folder.name}:${parentKey}`;
+    const existing = existingFolderLookup.get(lookupKey);
 
     if (existing) {
       folderMap.set(pathKey, existing.id);
     } else {
-      // Get max position
-      let posQuery = supabase.from('folders').select('position').eq('user_id', userId);
-
-      if (parentId) {
-        posQuery = posQuery.eq('parent_id', parentId);
-      } else {
-        posQuery = posQuery.is('parent_id', null);
-      }
-
-      const { data: maxPosData } = await posQuery
-        .order('position', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      const position = (maxPosData?.position ?? -1) + 1;
+      // Calculate position from in-memory max
+      const currentMax = maxPositions.get(parentKey) ?? -1;
+      const position = currentMax + 1;
+      maxPositions.set(parentKey, position);
 
       // Create folder
       const { data: newFolder, error } = await supabase
@@ -653,6 +658,9 @@ async function createFolders(
 
       if (error) throw error;
       folderMap.set(pathKey, newFolder.id);
+
+      // Add to lookup so subsequent folders can find this parent
+      existingFolderLookup.set(lookupKey, { id: newFolder.id, position });
     }
   }
 

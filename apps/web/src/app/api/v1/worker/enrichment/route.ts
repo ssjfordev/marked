@@ -15,8 +15,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { runWorkerIteration } from '@/lib/enrichment';
 import { v4 as uuidv4 } from 'uuid';
 
-// Maximum runtime for Vercel Hobby plan is 10 seconds
-// For Pro plan it's 60 seconds
+export const maxDuration = 60;
+
 const MAX_ITERATIONS = 5;
 
 export async function POST(request: NextRequest) {

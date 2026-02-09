@@ -5,11 +5,14 @@
  * GET /api/v1/import - List user's import jobs
  */
 
+import { after } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
 import { requireAuth, success, handleError, ValidationError } from '@/lib/api';
 import { processImportJob } from '@/lib/import/import-processor';
 import { detectFormat, isValidImportExtension, type ImportFormat } from '@/domain/import';
 import type { Database } from '@/types/database';
+
+export const maxDuration = 60;
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
@@ -95,29 +98,28 @@ export async function POST(request: Request) {
 
     if (jobError) throw jobError;
 
-    // Run import synchronously — DB-only ops complete in seconds
-    const result = await processImportJob(job.id, user.id, fileContent, format, {
-      wrapInFolder,
-      wrapFolderName,
+    // Run import asynchronously — return immediately so FE can poll progress
+    after(async () => {
+      try {
+        const result = await processImportJob(job.id, user.id, fileContent, format, {
+          wrapInFolder,
+          wrapFolderName,
+        });
+
+        console.log('[Import] Job completed:', {
+          jobId: job.id,
+          format,
+          confidence,
+          linksCreated: result.linksCreated,
+          linksSkipped: result.linksSkipped,
+          failedCount: result.failedBookmarks.length,
+        });
+      } catch (err) {
+        console.error('[Import] Background job failed:', err);
+      }
     });
 
-    console.log('[Import] Job completed:', {
-      jobId: job.id,
-      format,
-      confidence,
-      linksCreated: result.linksCreated,
-      linksSkipped: result.linksSkipped,
-      failedCount: result.failedBookmarks.length,
-    });
-
-    // Re-fetch the completed job to return final state
-    const { data: completedJob } = await supabase
-      .from('import_jobs')
-      .select('*')
-      .eq('id', job.id)
-      .single();
-
-    return success({ job: completedJob ?? job, detectedFormat: format, result }, 201);
+    return success({ job, detectedFormat: format }, 201);
   } catch (err) {
     return handleError(err);
   }
