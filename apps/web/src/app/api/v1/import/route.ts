@@ -9,6 +9,7 @@ import { after } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
 import { requireAuth, success, handleError, ValidationError } from '@/lib/api';
 import { processImportJob } from '@/lib/import/import-processor';
+import { runWorkerIteration } from '@/lib/enrichment';
 import { detectFormat, isValidImportExtension, type ImportFormat } from '@/domain/import';
 import type { Database } from '@/types/database';
 
@@ -114,6 +115,14 @@ export async function POST(request: Request) {
           linksSkipped: result.linksSkipped,
           failedCount: result.failedBookmarks.length,
         });
+
+        // Run enrichment immediately after import to populate thumbnails
+        const workerId = `import-${job.id.slice(0, 8)}`;
+        for (let i = 0; i < 5; i++) {
+          const processed = await runWorkerIteration(workerId);
+          if (processed === 0) break;
+        }
+        console.log('[Import] Enrichment pass completed for job:', job.id);
       } catch (err) {
         console.error('[Import] Background job failed:', err);
       }
