@@ -1,14 +1,8 @@
 /**
- * Links API - Create
+ * Links API - List, Create
  *
+ * GET /api/v1/links - List all links (with optional ?favorites=true filter)
  * POST /api/v1/links - Create a new link
- *
- * This handles URL deduplication via url_key:
- * 1. Canonicalize the URL to get url_key
- * 2. Check if link_canonical with that url_key exists
- * 3. If not, create new link_canonical
- * 4. Create link_instance pointing to the canonical
- * 5. Handle tags (create if not exist, link to instance)
  */
 
 import { createServerClient } from '@/lib/supabase/server';
@@ -20,6 +14,87 @@ import {
   createLinkSchema,
   NotFoundError,
 } from '@/lib/api';
+import type { Tag } from '@/types/api';
+import type { Database } from '@/types/database';
+
+type LinkCanonicalRow = Database['public']['Tables']['link_canonicals']['Row'] & {
+  short_id: string;
+};
+type TagRow = Database['public']['Tables']['tags']['Row'];
+
+interface LinkInstanceWithCanonical {
+  id: string;
+  user_id: string;
+  link_canonical_id: string;
+  folder_id: string;
+  user_title: string | null;
+  user_description: string | null;
+  position: number;
+  is_favorite: boolean;
+  created_at: string;
+  updated_at: string;
+  link_canonicals: LinkCanonicalRow;
+  link_tags: Array<{
+    tags: TagRow;
+  }>;
+}
+
+export async function GET(request: Request) {
+  try {
+    const user = await requireAuth();
+    const supabase = await createServerClient();
+    const { searchParams } = new URL(request.url);
+    const favoritesOnly = searchParams.get('favorites') === 'true';
+
+    let query = supabase
+      .from('link_instances')
+      .select(
+        `
+        *,
+        link_canonicals (id, short_id, url_key, original_url, domain, title, description, og_image, favicon, created_at, updated_at),
+        link_tags (
+          tags (*)
+        )
+      `
+      )
+      .eq('user_id', user.id);
+
+    if (favoritesOnly) {
+      query = query.eq('is_favorite', true).order('updated_at', { ascending: false });
+    } else {
+      query = query.order('created_at', { ascending: false });
+    }
+
+    const { data: links, error } = await query;
+
+    if (error) throw error;
+
+    const result = ((links ?? []) as unknown as LinkInstanceWithCanonical[]).map((link) => ({
+      id: link.id,
+      user_title: link.user_title,
+      user_description: link.user_description,
+      position: link.position,
+      is_favorite: link.is_favorite,
+      created_at: link.created_at,
+      updated_at: link.updated_at,
+      canonical: {
+        id: link.link_canonicals.short_id,
+        url_key: link.link_canonicals.url_key,
+        original_url: link.link_canonicals.original_url,
+        domain: link.link_canonicals.domain,
+        title: link.link_canonicals.title,
+        description: link.link_canonicals.description,
+        og_image: link.link_canonicals.og_image,
+        favicon: link.link_canonicals.favicon,
+      },
+      tags: link.link_tags.map((lt) => lt.tags).filter((t): t is Tag => t !== null),
+    }));
+
+    return success(result);
+  } catch (err) {
+    return handleError(err);
+  }
+}
 import { canonicalizeUrl } from '@/domain/url';
 
 export async function POST(request: Request) {
@@ -112,7 +187,9 @@ export async function POST(request: Request) {
     // Fetch canonical separately for type safety
     const { data: canonical } = await supabase
       .from('link_canonicals')
-      .select('id, short_id, url_key, original_url, domain, title, description, og_image, favicon, created_at, updated_at')
+      .select(
+        'id, short_id, url_key, original_url, domain, title, description, og_image, favicon, created_at, updated_at'
+      )
       .eq('id', canonicalId)
       .single();
 
@@ -125,10 +202,7 @@ export async function POST(request: Request) {
     let tags: { id: string; name: string }[] = [];
     if (linkTags && linkTags.length > 0) {
       const tagIds = linkTags.map((lt) => lt.tag_id);
-      const { data: tagData } = await supabase
-        .from('tags')
-        .select('id, name')
-        .in('id', tagIds);
+      const { data: tagData } = await supabase.from('tags').select('id, name').in('id', tagIds);
       tags = tagData ?? [];
     }
 
@@ -141,16 +215,18 @@ export async function POST(request: Request) {
       is_favorite: linkInstance.is_favorite,
       created_at: linkInstance.created_at,
       updated_at: linkInstance.updated_at,
-      canonical: canonical ? {
-        id: canonical.short_id,
-        url_key: canonical.url_key,
-        original_url: canonical.original_url,
-        domain: canonical.domain,
-        title: canonical.title,
-        description: canonical.description,
-        og_image: canonical.og_image,
-        favicon: canonical.favicon,
-      } : null,
+      canonical: canonical
+        ? {
+            id: canonical.short_id,
+            url_key: canonical.url_key,
+            original_url: canonical.original_url,
+            domain: canonical.domain,
+            title: canonical.title,
+            description: canonical.description,
+            og_image: canonical.og_image,
+            favicon: canonical.favicon,
+          }
+        : null,
       tags,
     };
 
