@@ -10,77 +10,74 @@ interface PageProps {
   params: Promise<{ id: string }>;
 }
 
+interface RpcFolderData {
+  folder: {
+    id: string;
+    short_id: string;
+    name: string;
+    icon: string | null;
+    description: string | null;
+    share_id: string | null;
+  };
+  instances: Array<{
+    id: string;
+    user_title: string | null;
+    user_description: string | null;
+    position: number;
+    is_favorite: boolean | null;
+    created_at: string;
+    link_canonical_id: string;
+  }>;
+  canonicals: Array<{
+    id: string;
+    short_id: string;
+    url_key: string;
+    original_url: string;
+    domain: string;
+    title: string | null;
+    description: string | null;
+    og_image: string | null;
+    favicon: string | null;
+  }>;
+  tags: Array<{
+    link_instance_id: string;
+    tag_id: string;
+    tag_name: string;
+  }>;
+}
+
 export default async function FolderPage({ params }: PageProps) {
   const user = await requireUser();
   const { id: shortId } = await params;
   const supabase = createServiceClient();
 
-  // Fetch folder by short_id
-  const { data: folder } = await supabase
-    .from('folders')
-    .select('id, short_id, name, icon, description, share_id')
-    .eq('short_id', shortId)
-    .eq('user_id', user.id)
-    .single();
+  // Single RPC call instead of 3-4 sequential queries
+  const { data, error } = await supabase.rpc('get_folder_data', {
+    p_short_id: shortId,
+    p_user_id: user.id,
+  });
+
+  if (error || !data) {
+    notFound();
+  }
+
+  const { folder, instances, canonicals, tags } = data as unknown as RpcFolderData;
 
   if (!folder) {
     notFound();
   }
 
-  // Fetch link instances in this folder (use folder UUID)
-  const { data: instances } = await supabase
-    .from('link_instances')
-    .select('id, user_title, user_description, position, is_favorite, created_at, link_canonical_id')
-    .eq('folder_id', folder.id)
-    .eq('user_id', user.id)
-    .order('position');
-
-  if (!instances) {
-    return (
-      <div className="max-w-5xl mx-auto">
-        <div className="mb-6">
-          <h1 className="text-2xl font-semibold text-foreground">{folder.name}</h1>
-        </div>
-        <FolderLinks links={[]} folderId={folder.short_id} />
-      </div>
-    );
-  }
-
-  // Fetch canonicals for all instances (include short_id)
-  const canonicalIds = instances.map((i) => i.link_canonical_id);
-  const { data: canonicals } = await supabase
-    .from('link_canonicals')
-    .select('id, short_id, url_key, original_url, domain, title, description, og_image, favicon')
-    .in('id', canonicalIds);
-
-  const canonicalMap = new Map(canonicals?.map((c) => [c.id, c]) ?? []);
-
-  // Fetch tags for all instances
-  const instanceIds = instances.map((i) => i.id);
-  const { data: linkTags } = await supabase
-    .from('link_tags')
-    .select('link_instance_id, tag_id')
-    .in('link_instance_id', instanceIds);
-
-  const tagIds = [...new Set(linkTags?.map((lt) => lt.tag_id) ?? [])];
-  let tagMap = new Map<string, { id: string; name: string }>();
-  if (tagIds.length > 0) {
-    const { data: tags } = await supabase.from('tags').select('id, name').in('id', tagIds);
-    tagMap = new Map(tags?.map((t) => [t.id, t]) ?? []);
-  }
+  const canonicalMap = new Map(canonicals.map((c) => [c.id, c]));
 
   // Build link tags map
   const instanceTagsMap = new Map<string, { id: string; name: string }[]>();
-  for (const lt of linkTags ?? []) {
-    const tag = tagMap.get(lt.tag_id);
-    if (tag) {
-      const existing = instanceTagsMap.get(lt.link_instance_id) ?? [];
-      existing.push(tag);
-      instanceTagsMap.set(lt.link_instance_id, existing);
-    }
+  for (const t of tags) {
+    const existing = instanceTagsMap.get(t.link_instance_id) ?? [];
+    existing.push({ id: t.tag_id, name: t.tag_name });
+    instanceTagsMap.set(t.link_instance_id, existing);
   }
 
-  // Transform data for the component (use short_id for canonical)
+  // Transform data for the component
   const linksData = instances
     .map((instance) => {
       const canonical = canonicalMap.get(instance.link_canonical_id);
@@ -94,7 +91,7 @@ export default async function FolderPage({ params }: PageProps) {
         is_favorite: instance.is_favorite ?? false,
         created_at: instance.created_at,
         canonical: {
-          id: (canonical as { short_id: string }).short_id, // Use short_id as public id
+          id: canonical.short_id,
           url_key: canonical.url_key,
           original_url: canonical.original_url,
           domain: canonical.domain,

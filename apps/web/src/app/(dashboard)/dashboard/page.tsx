@@ -7,100 +7,58 @@ export default async function DashboardPage() {
   const user = await requireUser();
   const supabase = createServiceClient();
 
-  // Fetch recent links (last 6)
-  const { data: recentInstances } = await supabase
-    .from('link_instances')
-    .select('id, user_title, user_description, position, is_favorite, created_at, link_canonical_id, folder_id')
-    .eq('user_id', user.id)
-    .order('created_at', { ascending: false })
-    .limit(6);
+  // Single RPC call instead of 5+ sequential queries
+  const { data: dashData } = await supabase.rpc('get_dashboard_data', {
+    p_user_id: user.id,
+  });
 
-  // Fetch favorite links (last 6)
-  const { data: favoriteInstances } = await supabase
-    .from('link_instances')
-    .select('id, user_title, user_description, position, is_favorite, created_at, link_canonical_id, folder_id')
-    .eq('user_id', user.id)
-    .eq('is_favorite', true)
-    .order('updated_at', { ascending: false })
-    .limit(6);
+  const {
+    recent_instances: recentInstances = [],
+    favorite_instances: favoriteInstances = [],
+    total_links: totalLinks = 0,
+    total_folders: totalFolders = 0,
+    total_favorites: totalFavorites = 0,
+    canonicals = [],
+    tags = [],
+  } = (dashData as Record<string, unknown>) ?? {};
 
-  // Get total counts for stats
-  const { count: totalLinks } = await supabase
-    .from('link_instances')
-    .select('*', { count: 'exact', head: true })
-    .eq('user_id', user.id);
+  const canonicalMap = new Map(
+    (
+      canonicals as Array<{
+        id: string;
+        url_key: string;
+        original_url: string;
+        domain: string;
+        title: string | null;
+        description: string | null;
+        og_image: string | null;
+        favicon: string | null;
+      }>
+    ).map((c) => [c.id, c])
+  );
 
-  const { count: totalFolders } = await supabase
-    .from('folders')
-    .select('*', { count: 'exact', head: true })
-    .eq('user_id', user.id);
+  const instanceTagsMap = new Map<string, { id: string; name: string }[]>();
+  for (const t of tags as Array<{ link_instance_id: string; tag_id: string; tag_name: string }>) {
+    const existing = instanceTagsMap.get(t.link_instance_id) ?? [];
+    existing.push({ id: t.tag_id, name: t.tag_name });
+    instanceTagsMap.set(t.link_instance_id, existing);
+  }
 
-  const { count: totalFavorites } = await supabase
-    .from('link_instances')
-    .select('*', { count: 'exact', head: true })
-    .eq('user_id', user.id)
-    .eq('is_favorite', true);
-
-  // Combine all instances and fetch canonicals
-  const allInstances = [...(recentInstances ?? []), ...(favoriteInstances ?? [])];
-  const uniqueCanonicalIds = [...new Set(allInstances.map((i) => i.link_canonical_id))];
-
-  let canonicalMap = new Map<string, {
+  type Instance = {
     id: string;
-    url_key: string;
-    original_url: string;
-    domain: string;
-    title: string | null;
-    description: string | null;
-    og_image: string | null;
-    favicon: string | null;
-  }>();
+    user_title: string | null;
+    user_description: string | null;
+    position: number;
+    is_favorite: boolean | null;
+    created_at: string;
+    link_canonical_id: string;
+  };
 
-  if (uniqueCanonicalIds.length > 0) {
-    const { data: canonicals } = await supabase
-      .from('link_canonicals')
-      .select('id, url_key, original_url, domain, title, description, og_image, favicon')
-      .in('id', uniqueCanonicalIds);
-
-    canonicalMap = new Map(canonicals?.map((c) => [c.id, c]) ?? []);
-  }
-
-  // Fetch tags for all instances
-  const instanceIds = allInstances.map((i) => i.id);
-  let instanceTagsMap = new Map<string, { id: string; name: string }[]>();
-
-  if (instanceIds.length > 0) {
-    const { data: linkTags } = await supabase
-      .from('link_tags')
-      .select('link_instance_id, tag_id')
-      .in('link_instance_id', instanceIds);
-
-    const tagIds = [...new Set(linkTags?.map((lt) => lt.tag_id) ?? [])];
-    let tagMap = new Map<string, { id: string; name: string }>();
-
-    if (tagIds.length > 0) {
-      const { data: tags } = await supabase.from('tags').select('id, name').in('id', tagIds);
-      tagMap = new Map(tags?.map((t) => [t.id, t]) ?? []);
-    }
-
-    for (const lt of linkTags ?? []) {
-      const tag = tagMap.get(lt.tag_id);
-      if (tag) {
-        const existing = instanceTagsMap.get(lt.link_instance_id) ?? [];
-        existing.push(tag);
-        instanceTagsMap.set(lt.link_instance_id, existing);
-      }
-    }
-  }
-
-  // Transform instances to link data
-  const transformInstances = (instances: typeof recentInstances) => {
-    if (!instances) return [];
+  const transformInstances = (instances: Instance[]) => {
     return instances
       .map((instance) => {
         const canonical = canonicalMap.get(instance.link_canonical_id);
         if (!canonical) return null;
-
         return {
           id: instance.id,
           user_title: instance.user_title,
@@ -124,9 +82,9 @@ export default async function DashboardPage() {
       .filter((l): l is NonNullable<typeof l> => l !== null);
   };
 
-  const recentLinks = transformInstances(recentInstances);
-  const favoriteLinks = transformInstances(favoriteInstances);
-  const hasAnyLinks = (totalLinks ?? 0) > 0;
+  const recentLinks = transformInstances(recentInstances as Instance[]);
+  const favoriteLinks = transformInstances(favoriteInstances as Instance[]);
+  const hasAnyLinks = (totalLinks as number) > 0;
 
   // If no links at all, show empty state
   if (!hasAnyLinks) {
@@ -134,12 +92,8 @@ export default async function DashboardPage() {
       <div className="max-w-4xl mx-auto">
         {/* Welcome Section */}
         <div className="mb-8">
-          <h1 className="text-2xl font-semibold text-foreground mb-2">
-            Welcome back
-          </h1>
-          <p className="text-foreground-muted">
-            {user.email}
-          </p>
+          <h1 className="text-2xl font-semibold text-foreground mb-2">Welcome back</h1>
+          <p className="text-foreground-muted">{user.email}</p>
         </div>
 
         {/* Empty State */}
@@ -160,9 +114,7 @@ export default async function DashboardPage() {
             </svg>
           </div>
 
-          <h2 className="text-lg font-medium text-foreground mb-2">
-            No links yet
-          </h2>
+          <h2 className="text-lg font-medium text-foreground mb-2">No links yet</h2>
           <p className="text-foreground-muted mb-6 max-w-sm mx-auto">
             Import your existing bookmarks or save links with the browser extension to get started.
           </p>
@@ -172,8 +124,18 @@ export default async function DashboardPage() {
               href="/import"
               className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-primary text-white font-medium text-sm hover:bg-primary-dark transition-colors"
             >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
+                />
               </svg>
               Import Bookmarks
             </Link>
@@ -183,8 +145,18 @@ export default async function DashboardPage() {
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg border border-border text-foreground-secondary font-medium text-sm hover:bg-hover hover:border-border-hover transition-colors"
             >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                />
               </svg>
               Get Extension
             </a>
@@ -195,8 +167,18 @@ export default async function DashboardPage() {
         <div className="mt-8 grid gap-4 sm:grid-cols-3">
           <div className="p-5 rounded-xl border border-border bg-surface">
             <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center mb-3">
-              <svg className="w-5 h-5 text-primary-light" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+              <svg
+                className="w-5 h-5 text-primary-light"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
+                />
               </svg>
             </div>
             <h3 className="font-medium text-foreground mb-1">Organize with folders</h3>
@@ -207,8 +189,18 @@ export default async function DashboardPage() {
 
           <div className="p-5 rounded-xl border border-border bg-surface">
             <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center mb-3">
-              <svg className="w-5 h-5 text-primary-light" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A2 2 0 013 12V7a4 4 0 014-4z" />
+              <svg
+                className="w-5 h-5 text-primary-light"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A2 2 0 013 12V7a4 4 0 014-4z"
+                />
               </svg>
             </div>
             <h3 className="font-medium text-foreground mb-1">Tag for quick access</h3>
@@ -219,8 +211,18 @@ export default async function DashboardPage() {
 
           <div className="p-5 rounded-xl border border-border bg-surface">
             <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center mb-3">
-              <svg className="w-5 h-5 text-primary-light" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              <svg
+                className="w-5 h-5 text-primary-light"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
               </svg>
             </div>
             <h3 className="font-medium text-foreground mb-1">Search everything</h3>
@@ -243,11 +245,24 @@ export default async function DashboardPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4 mb-8">
-        <Link href="/links" className="p-5 rounded-xl border border-border bg-surface hover:border-border-hover hover:bg-hover transition-colors cursor-pointer">
+        <Link
+          href="/links"
+          className="p-5 rounded-xl border border-border bg-surface hover:border-border-hover hover:bg-hover transition-colors cursor-pointer"
+        >
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-              <svg className="w-5 h-5 text-primary-light" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+              <svg
+                className="w-5 h-5 text-primary-light"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
+                />
               </svg>
             </div>
             <div>
@@ -257,11 +272,24 @@ export default async function DashboardPage() {
           </div>
         </Link>
 
-        <Link href="/folders/manage" className="p-5 rounded-xl border border-border bg-surface hover:border-border-hover hover:bg-hover transition-colors cursor-pointer">
+        <Link
+          href="/folders/manage"
+          className="p-5 rounded-xl border border-border bg-surface hover:border-border-hover hover:bg-hover transition-colors cursor-pointer"
+        >
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-              <svg className="w-5 h-5 text-primary-light" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+              <svg
+                className="w-5 h-5 text-primary-light"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
+                />
               </svg>
             </div>
             <div>
@@ -271,7 +299,10 @@ export default async function DashboardPage() {
           </div>
         </Link>
 
-        <Link href="/favorites" className="p-5 rounded-xl border border-border bg-surface hover:border-border-hover hover:bg-hover transition-colors cursor-pointer">
+        <Link
+          href="/favorites"
+          className="p-5 rounded-xl border border-border bg-surface hover:border-border-hover hover:bg-hover transition-colors cursor-pointer"
+        >
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-yellow-500/10 flex items-center justify-center">
               <svg className="w-5 h-5 text-yellow-500" fill="currentColor" viewBox="0 0 24 24">
