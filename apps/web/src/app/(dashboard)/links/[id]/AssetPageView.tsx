@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useParams } from 'next/navigation';
 import { AssetPageClient } from './AssetPageClient';
 
 interface AssetData {
@@ -38,11 +39,8 @@ interface AssetData {
   hasMemoAccess: boolean;
 }
 
-interface AssetPageViewProps {
-  shortId: string;
-}
-
-export function AssetPageView({ shortId }: AssetPageViewProps) {
+export function AssetPageView() {
+  const { id: shortId } = useParams<{ id: string }>();
   const [data, setData] = useState<AssetData | null>(null);
   const [notFound, setNotFound] = useState(false);
 

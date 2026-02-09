@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useParams } from 'next/navigation';
 import { FolderLinks } from './FolderLinks';
 import { FolderHeader } from './FolderHeader';
 import { FolderDescription } from './FolderDescription';
@@ -36,11 +37,8 @@ interface LinkInstance {
   tags: { id: string; name: string }[];
 }
 
-interface FolderViewProps {
-  folderId: string;
-}
-
-export function FolderView({ folderId }: FolderViewProps) {
+export function FolderView() {
+  const { id: folderId } = useParams<{ id: string }>();
   const [folder, setFolder] = useState<FolderData | null>(null);
   const [links, setLinks] = useState<LinkInstance[] | null>(null);
   const [notFound, setNotFound] = useState(false);
