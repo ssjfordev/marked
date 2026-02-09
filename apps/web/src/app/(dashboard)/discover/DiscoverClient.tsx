@@ -17,7 +17,7 @@ function getFallbackThumbnail(id: string): string {
   for (let i = 0; i < id.length; i++) {
     hash = ((hash << 5) - hash + id.charCodeAt(i)) | 0;
   }
-  return FALLBACK_THUMBNAILS[Math.abs(hash) % FALLBACK_THUMBNAILS.length];
+  return FALLBACK_THUMBNAILS[Math.abs(hash) % FALLBACK_THUMBNAILS.length] ?? FALLBACK_THUMBNAILS[0];
 }
 
 interface RandomLink {
