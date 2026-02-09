@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 
 const FALLBACK_THUMBNAILS = [
@@ -17,7 +17,8 @@ function getFallbackThumbnail(id: string): string {
   for (let i = 0; i < id.length; i++) {
     hash = ((hash << 5) - hash + id.charCodeAt(i)) | 0;
   }
-  return FALLBACK_THUMBNAILS[Math.abs(hash) % FALLBACK_THUMBNAILS.length] ?? FALLBACK_THUMBNAILS[0];
+  const index = Math.abs(hash) % FALLBACK_THUMBNAILS.length;
+  return FALLBACK_THUMBNAILS[index] ?? '/images/fallback-thumbnails/waves.png';
 }
 
 interface RandomLink {
@@ -46,7 +47,29 @@ export function DiscoverClient() {
   const [loading, setLoading] = useState(true);
   const [shuffling, setShuffling] = useState(false);
 
-  const fetchRandomLinks = useCallback(async () => {
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/api/v1/links/random?count=6')
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data) => {
+        if (!cancelled && data) {
+          setLinks(data.data?.links ?? []);
+          setTotal(data.data?.total ?? 0);
+        }
+      })
+      .catch((error) => {
+        console.error('Failed to fetch random links:', error);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const handleShuffle = async () => {
+    setShuffling(true);
     try {
       const response = await fetch('/api/v1/links/random?count=6');
       if (response.ok) {
@@ -57,15 +80,6 @@ export function DiscoverClient() {
     } catch (error) {
       console.error('Failed to fetch random links:', error);
     }
-  }, []);
-
-  useEffect(() => {
-    fetchRandomLinks().finally(() => setLoading(false));
-  }, [fetchRandomLinks]);
-
-  const handleShuffle = async () => {
-    setShuffling(true);
-    await fetchRandomLinks();
     setTimeout(() => setShuffling(false), 300);
   };
 

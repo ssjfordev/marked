@@ -69,9 +69,11 @@ export function HeroInteractive() {
       // Update ripples
       const ripples = ripplesRef.current;
       for (let i = ripples.length - 1; i >= 0; i--) {
-        ripples[i].radius += 4;
-        ripples[i].alpha *= 0.975;
-        if (ripples[i].alpha < 0.005) ripples.splice(i, 1);
+        const ripple = ripples[i];
+        if (!ripple) continue;
+        ripple.radius += 4;
+        ripple.alpha *= 0.975;
+        if (ripple.alpha < 0.005) ripples.splice(i, 1);
       }
 
       // Spotlight glow at cursor
