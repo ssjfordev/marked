@@ -14,35 +14,64 @@ interface FolderData {
   share_id: string | null;
 }
 
+interface LinkCanonical {
+  id: string;
+  url_key: string;
+  original_url: string;
+  domain: string;
+  title: string | null;
+  description: string | null;
+  og_image: string | null;
+  favicon: string | null;
+}
+
+interface LinkInstance {
+  id: string;
+  user_title: string | null;
+  user_description: string | null;
+  position: number;
+  is_favorite: boolean;
+  created_at: string;
+  canonical: LinkCanonical;
+  tags: { id: string; name: string }[];
+}
+
 interface FolderViewProps {
   folderId: string;
 }
 
 export function FolderView({ folderId }: FolderViewProps) {
   const [folder, setFolder] = useState<FolderData | null>(null);
+  const [links, setLinks] = useState<LinkInstance[] | null>(null);
   const [notFound, setNotFound] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     setFolder(null);
+    setLinks(null);
     setNotFound(false);
 
-    fetch(`/api/v1/folders/${folderId}`)
-      .then((res) => {
-        if (res.status === 404) {
-          if (!cancelled) setNotFound(true);
-          return null;
-        }
+    // Fetch folder metadata and links in PARALLEL
+    Promise.all([
+      fetch(`/api/v1/folders/${folderId}`).then((res) => {
+        if (res.status === 404) throw new Error('not-found');
         return res.json();
-      })
-      .then((json) => {
-        if (!cancelled && json?.data) {
-          setFolder(json.data);
-        }
+      }),
+      fetch(`/api/v1/folders/${folderId}/links`).then((res) => res.json()),
+    ])
+      .then(([folderJson, linksJson]) => {
+        if (cancelled) return;
+        if (folderJson?.data) setFolder(folderJson.data);
+        if (linksJson?.data) setLinks(linksJson.data);
       })
       .catch((err) => {
-        console.error('Failed to fetch folder:', err);
-        if (!cancelled) setNotFound(true);
+        if (cancelled) return;
+        if (err.message === 'not-found') {
+          setNotFound(true);
+        } else {
+          console.error('Failed to fetch folder data:', err);
+          setNotFound(true);
+        }
       });
 
     return () => {
@@ -97,7 +126,7 @@ export function FolderView({ folderId }: FolderViewProps) {
         </div>
         <FolderDescription folderId={folder.id} description={folder.description} />
       </div>
-      <FolderLinks folderId={folder.id} />
+      <FolderLinks folderId={folder.id} links={links ?? undefined} />
     </div>
   );
 }
