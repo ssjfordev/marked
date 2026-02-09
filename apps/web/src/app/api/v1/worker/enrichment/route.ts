@@ -21,9 +21,13 @@ const MAX_ITERATIONS = 5;
 
 export async function POST(request: NextRequest) {
   // Verify cron secret in production
-  if (process.env.ENV === 'production') {
-    const cronSecret = request.headers.get('x-cron-secret');
-    if (cronSecret !== process.env.CRON_SECRET) {
+  // Vercel Cron sends "Authorization: Bearer <CRON_SECRET>"
+  if (process.env.ENV === 'production' && process.env.CRON_SECRET) {
+    const authHeader = request.headers.get('authorization');
+    const cronHeader = request.headers.get('x-cron-secret');
+    const isAuthorized =
+      authHeader === `Bearer ${process.env.CRON_SECRET}` || cronHeader === process.env.CRON_SECRET;
+    if (!isAuthorized) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
   }
