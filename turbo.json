@@ -3,7 +3,32 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": [".next/**", "!.next/cache/**", "dist/**"]
+      "outputs": [".next/**", "!.next/cache/**", "dist/**"],
+      "env": [
+        "SUPABASE_SECRET_KEY",
+        "STRIPE_SECRET_KEY",
+        "STRIPE_WEBHOOK_SECRET",
+        "STRIPE_PRO_MONTHLY_PRICE_ID",
+        "STRIPE_PRO_YEARLY_PRICE_ID",
+        "CRON_SECRET",
+        "AI_PROVIDER",
+        "AI_MAX_TOKENS",
+        "AI_TEMPERATURE",
+        "AI_TIMEOUT",
+        "OPENAI_API_KEY",
+        "OPENAI_MODEL",
+        "ANTHROPIC_API_KEY",
+        "ANTHROPIC_MODEL",
+        "ENV",
+        "NEXT_PUBLIC_SUPABASE_URL",
+        "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY",
+        "NEXT_PUBLIC_APP_URL",
+        "NEXT_PUBLIC_GA_ID",
+        "NEXT_PUBLIC_COMMIT_HASH",
+        "NEXT_PUBLIC_BUILD_TIME",
+        "NEXT_PUBLIC_MAINTENANCE_MODE",
+        "NEXT_PUBLIC_EXTENSION_ID"
+      ]
     },
     "dev": {
       "cache": false,
