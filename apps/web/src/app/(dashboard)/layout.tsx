@@ -86,23 +86,17 @@ export default async function DashboardLayout({ children }: { children: React.Re
   }
   const supabase = createServiceClient();
 
-  const { data: subscriptionData } = await supabase
-    .from('subscriptions')
-    .select('plan, status')
-    .eq('user_id', user.id)
-    .maybeSingle();
-
-  const { data: foldersData } = await supabase
-    .from('folders')
-    .select('id, short_id, name, icon, parent_id, position')
-    .eq('user_id', user.id)
-    .order('position');
-
-  // Get link counts per folder
-  const { data: linkCountsData } = await supabase
-    .from('link_instances')
-    .select('folder_id')
-    .eq('user_id', user.id);
+  // Run all 3 queries in parallel to avoid sequential DB roundtrips
+  const [{ data: subscriptionData }, { data: foldersData }, { data: linkCountsData }] =
+    await Promise.all([
+      supabase.from('subscriptions').select('plan, status').eq('user_id', user.id).maybeSingle(),
+      supabase
+        .from('folders')
+        .select('id, short_id, name, icon, parent_id, position')
+        .eq('user_id', user.id)
+        .order('position'),
+      supabase.from('link_instances').select('folder_id').eq('user_id', user.id),
+    ]);
 
   // Create UUID -> short_id mapping for link counts
   const uuidToShortId = new Map<string, string>();
