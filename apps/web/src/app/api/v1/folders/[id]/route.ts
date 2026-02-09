@@ -51,10 +51,12 @@ function transformFolder(
   };
 }
 
-export async function GET(_request: Request, { params }: RouteParams) {
+export async function GET(request: Request, { params }: RouteParams) {
   try {
     const user = await requireAuth();
     const { id: shortId } = await params;
+    const { searchParams } = new URL(request.url);
+    const includeLinks = searchParams.get('include') === 'links';
 
     const supabase = createServiceClient();
 
@@ -71,18 +73,70 @@ export async function GET(_request: Request, { params }: RouteParams) {
       throw new NotFoundError('Folder not found');
     }
 
-    // Resolve parent short_id if exists
-    let parentShortId: string | null = null;
-    if (folder.parent_id) {
-      const { data: parent } = await supabase
-        .from('folders')
-        .select('short_id')
-        .eq('id', folder.parent_id)
-        .single();
-      parentShortId = parent?.short_id ?? null;
+    // Run parent resolution and links fetch in parallel
+    const [parentShortId, links] = await Promise.all([
+      folder.parent_id
+        ? supabase
+            .from('folders')
+            .select('short_id')
+            .eq('id', folder.parent_id)
+            .single()
+            .then(({ data }) => data?.short_id ?? null)
+        : Promise.resolve(null),
+      includeLinks
+        ? supabase
+            .from('link_instances')
+            .select(
+              `
+              *,
+              link_canonicals (id, short_id, url_key, original_url, domain, title, description, og_image, favicon, created_at, updated_at),
+              link_tags (
+                tags (*)
+              )
+            `
+            )
+            .eq('folder_id', folder.id)
+            .eq('user_id', user.id)
+            .order('position', { ascending: true })
+            .order('created_at', { ascending: false })
+            .then(({ data, error: linksError }) => {
+              if (linksError) throw linksError;
+              return (data ?? []).map((link: Record<string, unknown>) => {
+                const canonical = link.link_canonicals as Record<string, unknown>;
+                const linkTags = link.link_tags as Array<{ tags: Record<string, unknown> | null }>;
+                return {
+                  id: link.id,
+                  user_title: link.user_title,
+                  user_description: link.user_description,
+                  position: link.position,
+                  is_favorite: link.is_favorite,
+                  created_at: link.created_at,
+                  updated_at: link.updated_at,
+                  canonical: {
+                    id: canonical.short_id,
+                    url_key: canonical.url_key,
+                    original_url: canonical.original_url,
+                    domain: canonical.domain,
+                    title: canonical.title,
+                    description: canonical.description,
+                    og_image: canonical.og_image,
+                    favicon: canonical.favicon,
+                  },
+                  tags: linkTags
+                    .map((lt) => lt.tags)
+                    .filter((t): t is Record<string, unknown> => t !== null),
+                };
+              });
+            })
+        : Promise.resolve(undefined),
+    ]);
+
+    const result: Record<string, unknown> = transformFolder(folder, parentShortId);
+    if (links !== undefined) {
+      result.links = links;
     }
 
-    return success(transformFolder(folder, parentShortId));
+    return success(result);
   } catch (err) {
     return handleError(err);
   }

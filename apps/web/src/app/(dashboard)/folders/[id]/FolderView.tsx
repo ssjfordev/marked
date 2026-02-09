@@ -51,18 +51,19 @@ export function FolderView({ folderId }: FolderViewProps) {
     setLinks(null);
     setNotFound(false);
 
-    // Fetch folder metadata and links in PARALLEL
-    Promise.all([
-      fetch(`/api/v1/folders/${folderId}`).then((res) => {
+    // Single API call: folder metadata + links combined
+    fetch(`/api/v1/folders/${folderId}?include=links`)
+      .then((res) => {
         if (res.status === 404) throw new Error('not-found');
         return res.json();
-      }),
-      fetch(`/api/v1/folders/${folderId}/links`).then((res) => res.json()),
-    ])
-      .then(([folderJson, linksJson]) => {
+      })
+      .then((json) => {
         if (cancelled) return;
-        if (folderJson?.data) setFolder(folderJson.data);
-        if (linksJson?.data) setLinks(linksJson.data);
+        if (json?.data) {
+          const { links: folderLinks, ...folderData } = json.data;
+          setFolder(folderData);
+          setLinks(folderLinks ?? []);
+        }
       })
       .catch((err) => {
         if (cancelled) return;
