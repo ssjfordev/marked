@@ -3,58 +3,60 @@ import { createServiceClient } from '@/lib/supabase/server';
 import Link from 'next/link';
 import { DashboardContent } from './DashboardContent';
 
+interface DashInstance {
+  id: string;
+  user_title: string | null;
+  user_description: string | null;
+  position: number;
+  is_favorite: boolean | null;
+  created_at: string;
+  link_canonical_id: string;
+}
+
+interface DashCanonical {
+  id: string;
+  url_key: string;
+  original_url: string;
+  domain: string;
+  title: string | null;
+  description: string | null;
+  og_image: string | null;
+  favicon: string | null;
+}
+
 export default async function DashboardPage() {
   const user = await requireUser();
   const supabase = createServiceClient();
 
   // Single RPC call instead of 5+ sequential queries
-  const { data: dashData } = await supabase.rpc('get_dashboard_data', {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: dashData } = await (supabase.rpc as any)('get_dashboard_data', {
     p_user_id: user.id,
   });
 
-  const {
-    recent_instances: recentInstances = [],
-    favorite_instances: favoriteInstances = [],
-    total_links: totalLinks = 0,
-    total_folders: totalFolders = 0,
-    total_favorites: totalFavorites = 0,
-    canonicals = [],
-    tags = [],
-  } = (dashData as Record<string, unknown>) ?? {};
+  const raw = (dashData as Record<string, unknown>) ?? {};
+  const recentInstances = (raw.recent_instances ?? []) as DashInstance[];
+  const favoriteInstances = (raw.favorite_instances ?? []) as DashInstance[];
+  const totalLinks = Number(raw.total_links ?? 0);
+  const totalFolders = Number(raw.total_folders ?? 0);
+  const totalFavorites = Number(raw.total_favorites ?? 0);
+  const canonicals = (raw.canonicals ?? []) as DashCanonical[];
+  const tags = (raw.tags ?? []) as Array<{
+    link_instance_id: string;
+    tag_id: string;
+    tag_name: string;
+  }>;
 
-  const canonicalMap = new Map(
-    (
-      canonicals as Array<{
-        id: string;
-        url_key: string;
-        original_url: string;
-        domain: string;
-        title: string | null;
-        description: string | null;
-        og_image: string | null;
-        favicon: string | null;
-      }>
-    ).map((c) => [c.id, c])
-  );
+  const canonicalMap = new Map(canonicals.map((c) => [c.id, c]));
 
   const instanceTagsMap = new Map<string, { id: string; name: string }[]>();
-  for (const t of tags as Array<{ link_instance_id: string; tag_id: string; tag_name: string }>) {
+  for (const t of tags) {
     const existing = instanceTagsMap.get(t.link_instance_id) ?? [];
     existing.push({ id: t.tag_id, name: t.tag_name });
     instanceTagsMap.set(t.link_instance_id, existing);
   }
 
-  type Instance = {
-    id: string;
-    user_title: string | null;
-    user_description: string | null;
-    position: number;
-    is_favorite: boolean | null;
-    created_at: string;
-    link_canonical_id: string;
-  };
-
-  const transformInstances = (instances: Instance[]) => {
+  const transformInstances = (instances: DashInstance[]) => {
     return instances
       .map((instance) => {
         const canonical = canonicalMap.get(instance.link_canonical_id);
@@ -82,9 +84,9 @@ export default async function DashboardPage() {
       .filter((l): l is NonNullable<typeof l> => l !== null);
   };
 
-  const recentLinks = transformInstances(recentInstances as Instance[]);
-  const favoriteLinks = transformInstances(favoriteInstances as Instance[]);
-  const hasAnyLinks = (totalLinks as number) > 0;
+  const recentLinks = transformInstances(recentInstances as DashInstance[]);
+  const favoriteLinks = transformInstances(favoriteInstances as DashInstance[]);
+  const hasAnyLinks = totalLinks > 0;
 
   // If no links at all, show empty state
   if (!hasAnyLinks) {
@@ -266,7 +268,7 @@ export default async function DashboardPage() {
               </svg>
             </div>
             <div>
-              <p className="text-2xl font-semibold text-foreground">{totalLinks ?? 0}</p>
+              <p className="text-2xl font-semibold text-foreground">{totalLinks}</p>
               <p className="text-sm text-foreground-muted">Total Links</p>
             </div>
           </div>
@@ -293,7 +295,7 @@ export default async function DashboardPage() {
               </svg>
             </div>
             <div>
-              <p className="text-2xl font-semibold text-foreground">{totalFolders ?? 0}</p>
+              <p className="text-2xl font-semibold text-foreground">{totalFolders}</p>
               <p className="text-sm text-foreground-muted">Folders</p>
             </div>
           </div>
@@ -310,7 +312,7 @@ export default async function DashboardPage() {
               </svg>
             </div>
             <div>
-              <p className="text-2xl font-semibold text-foreground">{totalFavorites ?? 0}</p>
+              <p className="text-2xl font-semibold text-foreground">{totalFavorites}</p>
               <p className="text-sm text-foreground-muted">Favorites</p>
             </div>
           </div>

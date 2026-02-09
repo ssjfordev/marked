@@ -52,7 +52,8 @@ export default async function FolderPage({ params }: PageProps) {
   const supabase = createServiceClient();
 
   // Single RPC call instead of 3-4 sequential queries
-  const { data, error } = await supabase.rpc('get_folder_data', {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = await (supabase.rpc as any)('get_folder_data', {
     p_short_id: shortId,
     p_user_id: user.id,
   });
