@@ -24,6 +24,7 @@ import {
   type ImportFormat,
 } from '@/domain/import';
 import { canonicalizeUrl } from '@/domain/url';
+import { runWorkerIteration } from '@/lib/enrichment';
 import type { Database } from '@/types/database';
 
 type SupabaseClient = ReturnType<typeof createServiceClient>;
@@ -460,6 +461,18 @@ export async function processImportJob(
       );
     }
     console.log('[Import] Queued enrichment jobs for background processing');
+
+    // Run enrichment immediately — don't wait for cron
+    try {
+      const workerId = `import-${jobId.slice(0, 8)}`;
+      for (let i = 0; i < 5; i++) {
+        const processed = await runWorkerIteration(workerId);
+        if (processed === 0) break;
+      }
+      console.log('[Import] Enrichment pass completed');
+    } catch (enrichErr) {
+      console.error('[Import] Enrichment pass failed (non-blocking):', enrichErr);
+    }
 
     // Mark job as succeeded
     await updateJobStatus(supabase, jobId, {
