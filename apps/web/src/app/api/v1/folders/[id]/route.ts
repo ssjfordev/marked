@@ -23,20 +23,27 @@ interface RouteParams {
 /**
  * Transform folder to use short_id as id
  */
-function transformFolder(folder: {
-  id: string;
-  short_id: string;
-  name: string;
-  icon: string | null;
-  parent_id: string | null;
-  position: number;
-  created_at: string;
-  updated_at: string;
-}, parentShortId: string | null = null) {
+function transformFolder(
+  folder: {
+    id: string;
+    short_id: string;
+    name: string;
+    icon: string | null;
+    description: string | null;
+    share_id: string | null;
+    parent_id: string | null;
+    position: number;
+    created_at: string;
+    updated_at: string;
+  },
+  parentShortId: string | null = null
+) {
   return {
     id: folder.short_id,
     name: folder.name,
     icon: folder.icon,
+    description: folder.description,
+    share_id: folder.share_id,
     parent_id: parentShortId,
     position: folder.position,
     created_at: folder.created_at,
@@ -53,7 +60,9 @@ export async function GET(_request: Request, { params }: RouteParams) {
 
     const { data: folder, error } = await supabase
       .from('folders')
-      .select('id, short_id, name, icon, parent_id, position, created_at, updated_at')
+      .select(
+        'id, short_id, name, icon, description, share_id, parent_id, position, created_at, updated_at'
+      )
       .eq('short_id', shortId)
       .eq('user_id', user.id)
       .single();
@@ -90,7 +99,9 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     // Get folder by short_id
     const { data: existing, error: fetchError } = await supabase
       .from('folders')
-      .select('id, short_id, name, icon, parent_id, position, created_at, updated_at')
+      .select(
+        'id, short_id, name, icon, description, share_id, parent_id, position, created_at, updated_at'
+      )
       .eq('short_id', shortId)
       .eq('user_id', user.id)
       .single();
@@ -146,7 +157,9 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       .update(updates)
       .eq('id', existing.id)
       .eq('user_id', user.id)
-      .select('id, short_id, name, icon, parent_id, position, created_at, updated_at')
+      .select(
+        'id, short_id, name, icon, description, share_id, parent_id, position, created_at, updated_at'
+      )
       .single();
 
     if (error) throw error;
