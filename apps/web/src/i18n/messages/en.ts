@@ -142,6 +142,7 @@ const en: Record<MessageKeys, string | string[]> = {
   'addLink.save': 'Save Link',
 
   // Selection toolbar
+  'selection.select': 'Select',
   'selection.selectAll': 'All',
   'selection.selected': 'selected',
   'selection.delete': 'Delete',
@@ -332,6 +333,10 @@ const en: Record<MessageKeys, string | string[]> = {
   'asset.unlockUpgrade': 'Upgrade to unlock',
   'asset.deleteMark': 'Delete mark',
   'asset.deleteMarkConfirm': 'Delete this mark?',
+  'asset.clickToEdit': 'Click to edit',
+  'asset.addDescription': 'Add description...',
+  'asset.changeFolder': 'Change folder',
+  'asset.moveToFolder': 'Move to folder',
 
   // Settings
   'settings.title': 'Settings',

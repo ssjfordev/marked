@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { LinkList } from '@/components/LinkList';
 import { useRouter } from 'next/navigation';
 import { SelectionProvider, useSelection, SelectionToolbar } from '@/components/selection';
+import { useLocale } from '@/components/LanguageProvider';
 
 interface LinkCanonical {
   id: string;
@@ -52,6 +53,7 @@ function FolderLinksContent({ links: initialLinks, folderId, folders = [] }: Fol
   const [isLoading, setIsLoading] = useState(!initialLinks);
   const pendingReorderRef = useRef<AbortController | null>(null);
 
+  const { t } = useLocale();
   const { isSelectionMode, selectedIds, toggleSelect, enterSelectionMode } = useSelection();
 
   // Fetch links from API when no initial data provided (client-side navigation)
@@ -429,7 +431,7 @@ function FolderLinksContent({ links: initialLinks, folderId, folders = [] }: Fol
                   d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
                 />
               </svg>
-              선택
+              {t('selection.select')}
             </button>
           )}
 

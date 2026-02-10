@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { debounce } from '@/lib/utils/debounce';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { TagInput } from '@/components/ui/TagInput';
+import { FolderSelectModal } from '@/components/FolderSelectModal';
 import { TEXT_LIMITS } from '@/lib/api/sanitize';
 import { useLocale } from '@/components/LanguageProvider';
 
@@ -36,6 +37,12 @@ interface Memo {
   updated_at: string;
 }
 
+interface Folder {
+  id: string;
+  name: string;
+  children?: Folder[];
+}
+
 interface AssetPageClientProps {
   canonical: LinkCanonical;
   instance: {
@@ -54,7 +61,7 @@ interface AssetPageClientProps {
 export function AssetPageClient({
   canonical,
   instance,
-  folder,
+  folder: initialFolder,
   tags,
   marks,
   memo,
@@ -69,8 +76,51 @@ export function AssetPageClient({
   const [newTagName, setNewTagName] = useState('');
   const [deleteMarkId, setDeleteMarkId] = useState<string | null>(null);
 
-  const displayTitle = instance.user_title || canonical.title || canonical.domain;
-  const displayDescription = instance.user_description || canonical.description;
+  // Inline editing state
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [editTitle, setEditTitle] = useState(
+    instance.user_title || canonical.title || canonical.domain
+  );
+  const [isEditingDescription, setIsEditingDescription] = useState(false);
+  const [editDescription, setEditDescription] = useState(
+    instance.user_description || canonical.description || ''
+  );
+  const titleInputRef = useRef<HTMLInputElement>(null);
+  const descTextareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Folder move state
+  const [currentFolder, setCurrentFolder] = useState(initialFolder);
+  const [folders, setFolders] = useState<Folder[]>([]);
+  const [isFolderModalOpen, setIsFolderModalOpen] = useState(false);
+
+  const displayTitle = editTitle || canonical.domain;
+  const displayDescription = isEditingDescription
+    ? editDescription
+    : instance.user_description || canonical.description;
+
+  // Focus inputs when entering edit mode
+  useEffect(() => {
+    if (isEditingTitle && titleInputRef.current) {
+      titleInputRef.current.focus();
+      titleInputRef.current.select();
+    }
+  }, [isEditingTitle]);
+
+  useEffect(() => {
+    if (isEditingDescription && descTextareaRef.current) {
+      descTextareaRef.current.focus();
+    }
+  }, [isEditingDescription]);
+
+  // Fetch folders for folder move
+  useEffect(() => {
+    fetch('/api/v1/folders')
+      .then((res) => res.json())
+      .then((json) => {
+        if (json.data) setFolders(json.data);
+      })
+      .catch((err) => console.error('Failed to fetch folders:', err));
+  }, []);
 
   // Debounced memo save
   const saveMemo = useCallback(
@@ -112,18 +162,124 @@ export function AssetPageClient({
     router.refresh();
   };
 
+  // Title inline edit handlers
+  const handleTitleSave = async () => {
+    setIsEditingTitle(false);
+    const newTitle = editTitle.trim();
+    if (!newTitle || newTitle === (instance.user_title || canonical.title || canonical.domain))
+      return;
+
+    try {
+      await fetch(`/api/v1/links/${instance.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userTitle: newTitle }),
+      });
+      router.refresh();
+    } catch (error) {
+      console.error('Failed to update title:', error);
+      setEditTitle(instance.user_title || canonical.title || canonical.domain);
+    }
+  };
+
+  const handleTitleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      handleTitleSave();
+    } else if (e.key === 'Escape') {
+      setIsEditingTitle(false);
+      setEditTitle(instance.user_title || canonical.title || canonical.domain);
+    }
+  };
+
+  // Description inline edit handlers
+  const handleDescriptionSave = async () => {
+    setIsEditingDescription(false);
+    const newDesc = editDescription.trim();
+    const oldDesc = instance.user_description || canonical.description || '';
+    if (newDesc === oldDesc) return;
+
+    try {
+      await fetch(`/api/v1/links/${instance.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userDescription: newDesc }),
+      });
+      router.refresh();
+    } catch (error) {
+      console.error('Failed to update description:', error);
+      setEditDescription(instance.user_description || canonical.description || '');
+    }
+  };
+
+  const handleDescriptionKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Escape') {
+      setIsEditingDescription(false);
+      setEditDescription(instance.user_description || canonical.description || '');
+    }
+  };
+
+  // Folder move handler
+  const handleFolderSelect = async (folderId: string, folderName: string) => {
+    // Optimistic update
+    setCurrentFolder({ id: folderId, name: folderName });
+
+    try {
+      await fetch(`/api/v1/links/${instance.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ folderId }),
+      });
+      router.refresh();
+    } catch (error) {
+      console.error('Failed to move to folder:', error);
+      setCurrentFolder(initialFolder);
+    }
+  };
+
   return (
     <div className="max-w-4xl mx-auto">
       {/* Breadcrumb */}
       <nav className="mb-6 flex items-center gap-2 text-sm">
-        {folder && (
+        {currentFolder ? (
           <>
-            <Link
-              href={`/folders/${folder.id}`}
-              className="text-foreground-muted hover:text-foreground transition-colors"
+            <button
+              onClick={() => setIsFolderModalOpen(true)}
+              className="text-foreground-muted hover:text-foreground transition-colors flex items-center gap-1 group"
+              title={t('asset.changeFolder')}
             >
-              {folder.name}
-            </Link>
+              {currentFolder.name}
+              <svg
+                className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+                />
+              </svg>
+            </button>
+            <svg
+              className="w-4 h-4 text-foreground-faint"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+            </svg>
+          </>
+        ) : (
+          <>
+            <button
+              onClick={() => setIsFolderModalOpen(true)}
+              className="text-foreground-muted hover:text-foreground transition-colors text-sm"
+            >
+              {t('asset.moveToFolder')}
+            </button>
             <svg
               className="w-4 h-4 text-foreground-faint"
               fill="none"
@@ -157,7 +313,39 @@ export function AssetPageClient({
           </div>
 
           <div className="flex-1 min-w-0">
-            <h1 className="text-2xl font-bold text-foreground">{displayTitle}</h1>
+            {/* Editable Title */}
+            {isEditingTitle ? (
+              <input
+                ref={titleInputRef}
+                value={editTitle}
+                onChange={(e) => setEditTitle(e.target.value)}
+                onBlur={handleTitleSave}
+                onKeyDown={handleTitleKeyDown}
+                className="text-2xl font-bold text-foreground bg-transparent border-b-2 border-primary/50 outline-none w-full py-0.5"
+                maxLength={TEXT_LIMITS.TITLE}
+              />
+            ) : (
+              <h1
+                onClick={() => setIsEditingTitle(true)}
+                className="text-2xl font-bold text-foreground cursor-pointer group flex items-center gap-2"
+                title={t('asset.clickToEdit')}
+              >
+                {displayTitle}
+                <svg
+                  className="w-4 h-4 text-foreground-faint opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+                  />
+                </svg>
+              </h1>
+            )}
 
             {/* URL */}
             <a
@@ -193,9 +381,52 @@ export function AssetPageClient({
           </div>
         )}
 
-        {/* Description */}
-        {displayDescription && (
-          <p className="mt-5 text-foreground-secondary leading-relaxed">{displayDescription}</p>
+        {/* Editable Description */}
+        {isEditingDescription ? (
+          <textarea
+            ref={descTextareaRef}
+            value={editDescription}
+            onChange={(e) => setEditDescription(e.target.value)}
+            onBlur={handleDescriptionSave}
+            onKeyDown={handleDescriptionKeyDown}
+            className="mt-5 w-full text-foreground-secondary leading-relaxed bg-transparent border-b-2 border-primary/50 outline-none resize-none min-h-[60px]"
+            rows={3}
+            maxLength={TEXT_LIMITS.LONG_TEXT}
+          />
+        ) : displayDescription ? (
+          <p
+            onClick={() => {
+              setEditDescription(instance.user_description || canonical.description || '');
+              setIsEditingDescription(true);
+            }}
+            className="mt-5 text-foreground-secondary leading-relaxed cursor-pointer group flex items-start gap-2"
+            title={t('asset.clickToEdit')}
+          >
+            <span className="flex-1">{displayDescription}</span>
+            <svg
+              className="w-3.5 h-3.5 text-foreground-faint opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 mt-1"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+              />
+            </svg>
+          </p>
+        ) : (
+          <button
+            onClick={() => {
+              setEditDescription('');
+              setIsEditingDescription(true);
+            }}
+            className="mt-5 text-foreground-faint hover:text-foreground-muted transition-colors text-sm"
+          >
+            {t('asset.addDescription')}
+          </button>
         )}
 
         {/* Tags */}
@@ -441,6 +672,16 @@ export function AssetPageClient({
         confirmText={t('common.delete')}
         cancelText={t('common.cancel')}
         confirmVariant="danger"
+      />
+
+      {/* Folder select modal */}
+      <FolderSelectModal
+        isOpen={isFolderModalOpen}
+        onClose={() => setIsFolderModalOpen(false)}
+        onSelect={handleFolderSelect}
+        folders={folders}
+        selectedFolderId={currentFolder?.id}
+        title={t('asset.changeFolder')}
       />
     </div>
   );

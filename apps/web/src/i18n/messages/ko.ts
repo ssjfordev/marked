@@ -137,6 +137,7 @@ const ko = {
   'addLink.save': '링크 저장',
 
   // Selection toolbar
+  'selection.select': '선택',
   'selection.selectAll': '전체',
   'selection.selected': '선택됨',
   'selection.delete': '삭제',
@@ -327,6 +328,10 @@ const ko = {
   'asset.unlockUpgrade': '업그레이드하여 잠금 해제',
   'asset.deleteMark': '마크 삭제',
   'asset.deleteMarkConfirm': '이 마크를 삭제하시겠습니까?',
+  'asset.clickToEdit': '클릭하여 수정',
+  'asset.addDescription': '설명 추가...',
+  'asset.changeFolder': '폴더 변경',
+  'asset.moveToFolder': '폴더 지정',
 
   // Settings
   'settings.title': '설정',
