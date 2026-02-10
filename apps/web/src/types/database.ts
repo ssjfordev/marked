@@ -268,7 +268,14 @@ export type Database = {
         Row: {
           id: string;
           user_id: string;
-          source_type: 'chrome_html' | 'firefox_html' | 'safari_html' | 'edge_html' | 'raindrop_html' | 'raindrop_csv' | 'csv';
+          source_type:
+            | 'chrome_html'
+            | 'firefox_html'
+            | 'safari_html'
+            | 'edge_html'
+            | 'raindrop_html'
+            | 'raindrop_csv'
+            | 'csv';
           status: 'queued' | 'running' | 'succeeded' | 'failed' | 'canceled';
           total_items: number;
           processed_items: number;
@@ -281,7 +288,14 @@ export type Database = {
         Insert: {
           id?: string;
           user_id: string;
-          source_type?: 'chrome_html' | 'firefox_html' | 'safari_html' | 'edge_html' | 'raindrop_html' | 'raindrop_csv' | 'csv';
+          source_type?:
+            | 'chrome_html'
+            | 'firefox_html'
+            | 'safari_html'
+            | 'edge_html'
+            | 'raindrop_html'
+            | 'raindrop_csv'
+            | 'csv';
           status?: 'queued' | 'running' | 'succeeded' | 'failed' | 'canceled';
           total_items?: number;
           processed_items?: number;
@@ -294,7 +308,14 @@ export type Database = {
         Update: {
           id?: string;
           user_id?: string;
-          source_type?: 'chrome_html' | 'firefox_html' | 'safari_html' | 'edge_html' | 'raindrop_html' | 'raindrop_csv' | 'csv';
+          source_type?:
+            | 'chrome_html'
+            | 'firefox_html'
+            | 'safari_html'
+            | 'edge_html'
+            | 'raindrop_html'
+            | 'raindrop_csv'
+            | 'csv';
           status?: 'queued' | 'running' | 'succeeded' | 'failed' | 'canceled';
           total_items?: number;
           processed_items?: number;
@@ -345,6 +366,27 @@ export type Database = {
           last_error?: string | null;
           created_at?: string;
           updated_at?: string;
+        };
+        Relationships: [];
+      };
+      user_preferences: {
+        Row: {
+          user_id: string;
+          language: string | null;
+          created_at: string | null;
+          updated_at: string | null;
+        };
+        Insert: {
+          user_id: string;
+          language?: string | null;
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
+        Update: {
+          user_id?: string;
+          language?: string | null;
+          created_at?: string | null;
+          updated_at?: string | null;
         };
         Relationships: [];
       };

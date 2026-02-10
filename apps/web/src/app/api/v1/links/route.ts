@@ -209,6 +209,7 @@ export async function POST(request: Request) {
     // Build response with short_id as canonical.id
     const response = {
       id: linkInstance.id,
+      link_canonical_id: canonicalId,
       user_title: linkInstance.user_title,
       user_description: linkInstance.user_description,
       position: linkInstance.position,

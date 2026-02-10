@@ -49,7 +49,7 @@ let selectedText = '';
 let selectedRange: Range | null = null;
 let currentColor = 'yellow';
 let currentMemo = '';
-const _pageMarks: PageMark[] = [];
+// Marks are loaded dynamically via loadPageMarks()
 
 // ============================================================================
 // INITIALIZATION
@@ -552,8 +552,141 @@ function removeHighlight(element: HTMLElement) {
 }
 
 async function loadPageMarks() {
-  // TODO: Load existing marks for this URL from API and render them
-  // This would require finding the text in the page and highlighting it
+  try {
+    const response = await chrome.runtime.sendMessage({
+      type: 'GET_MARKS',
+      payload: { url: window.location.href },
+    });
+
+    if (!response.success || !response.marks || response.marks.length === 0) {
+      return;
+    }
+
+    // Wait for page to be mostly loaded
+    if (document.readyState !== 'complete') {
+      await new Promise<void>((resolve) => {
+        window.addEventListener('load', () => resolve(), { once: true });
+      });
+    }
+
+    for (const mark of response.marks) {
+      const range = findTextInPage(mark.text);
+      if (range) {
+        const colorObj = MARK_COLORS.find((c) => c.bg === mark.color) || MARK_COLORS[0];
+        const highlight = document.createElement('mark');
+        highlight.className = 'marked-highlight';
+        highlight.style.backgroundColor = mark.color || colorObj.bg;
+        highlight.dataset.markId = mark.id;
+        highlight.dataset.markColor = mark.color || colorObj.bg;
+        highlight.dataset.markNote = mark.note || '';
+
+        try {
+          range.surroundContents(highlight);
+        } catch {
+          const contents = range.extractContents();
+          highlight.appendChild(contents);
+          range.insertNode(highlight);
+        }
+
+        highlight.addEventListener('click', (e) => {
+          e.stopPropagation();
+          showEditPopup(highlight, {
+            id: mark.id,
+            text: mark.text,
+            color: mark.color,
+            note: mark.note || undefined,
+            canonicalId: '',
+          });
+        });
+      }
+    }
+  } catch {
+    // Silently fail - marks loading is non-critical
+  }
+}
+
+/**
+ * Find text in the page DOM using TreeWalker.
+ * Returns a Range if found, null otherwise.
+ */
+function findTextInPage(searchText: string): Range | null {
+  const body = document.body;
+  if (!body) return null;
+
+  const walker = document.createTreeWalker(body, NodeFilter.SHOW_TEXT, {
+    acceptNode: (node) => {
+      const parent = node.parentElement;
+      if (!parent) return NodeFilter.FILTER_REJECT;
+      const tag = parent.tagName;
+      if (tag === 'SCRIPT' || tag === 'STYLE' || tag === 'NOSCRIPT') {
+        return NodeFilter.FILTER_REJECT;
+      }
+      // Skip already-highlighted marks
+      if (parent.classList.contains('marked-highlight')) {
+        return NodeFilter.FILTER_REJECT;
+      }
+      return NodeFilter.FILTER_ACCEPT;
+    },
+  });
+
+  // Try exact match in a single text node first
+  let node: Text | null;
+  while ((node = walker.nextNode() as Text | null)) {
+    const text = node.textContent || '';
+    const idx = text.indexOf(searchText);
+    if (idx !== -1) {
+      const range = document.createRange();
+      range.setStart(node, idx);
+      range.setEnd(node, idx + searchText.length);
+      return range;
+    }
+  }
+
+  // Fallback: try matching across adjacent text nodes
+  walker.currentNode = body;
+  const textNodes: Text[] = [];
+  while ((node = walker.nextNode() as Text | null)) {
+    textNodes.push(node);
+  }
+
+  // Build concatenated text with node boundaries
+  let concat = '';
+  const nodeOffsets: Array<{ node: Text; start: number; end: number }> = [];
+  for (const tn of textNodes) {
+    const text = tn.textContent || '';
+    nodeOffsets.push({ node: tn, start: concat.length, end: concat.length + text.length });
+    concat += text;
+  }
+
+  const idx = concat.indexOf(searchText);
+  if (idx === -1) return null;
+
+  const endIdx = idx + searchText.length;
+
+  // Find start and end nodes
+  let startNode: Text | null = null;
+  let startOffset = 0;
+  let endNode: Text | null = null;
+  let endOffset = 0;
+
+  for (const entry of nodeOffsets) {
+    if (!startNode && entry.end > idx) {
+      startNode = entry.node;
+      startOffset = idx - entry.start;
+    }
+    if (entry.end >= endIdx) {
+      endNode = entry.node;
+      endOffset = endIdx - entry.start;
+      break;
+    }
+  }
+
+  if (!startNode || !endNode) return null;
+
+  const range = document.createRange();
+  range.setStart(startNode, startOffset);
+  range.setEnd(endNode, endOffset);
+  return range;
 }
 
 // ============================================================================

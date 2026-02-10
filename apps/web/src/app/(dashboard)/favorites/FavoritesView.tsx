@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { FavoriteLinks } from './FavoriteLinks';
+import { useLocale } from '@/components/LanguageProvider';
 
 interface LinkCanonical {
   id: string;
@@ -26,6 +27,7 @@ interface LinkInstance {
 }
 
 export function FavoritesView() {
+  const { t } = useLocale();
   const [links, setLinks] = useState<LinkInstance[] | null>(null);
 
   useEffect(() => {
@@ -83,16 +85,14 @@ export function FavoritesView() {
               </svg>
             </div>
             <div>
-              <h1 className="text-2xl font-semibold text-foreground">Favorites</h1>
-              <p className="text-sm text-foreground-muted">0 links</p>
+              <h1 className="text-2xl font-semibold text-foreground">{t('favorites.title')}</h1>
+              <p className="text-sm text-foreground-muted">{t('favorites.count', { count: 0 })}</p>
             </div>
           </div>
         </div>
         <div className="rounded-xl border border-border bg-surface p-12 text-center">
-          <h2 className="text-lg font-medium text-foreground mb-2">No favorites yet</h2>
-          <p className="text-foreground-muted max-w-sm mx-auto">
-            Click the star icon on any link to add it to your favorites for quick access.
-          </p>
+          <h2 className="text-lg font-medium text-foreground mb-2">{t('favorites.empty')}</h2>
+          <p className="text-foreground-muted max-w-sm mx-auto">{t('favorites.emptyDesc')}</p>
         </div>
       </div>
     );
@@ -108,9 +108,11 @@ export function FavoritesView() {
             </svg>
           </div>
           <div>
-            <h1 className="text-2xl font-semibold text-foreground">Favorites</h1>
+            <h1 className="text-2xl font-semibold text-foreground">{t('favorites.title')}</h1>
             <p className="text-sm text-foreground-muted">
-              {links.length} {links.length === 1 ? 'link' : 'links'}
+              {links.length === 1
+                ? t('favorites.countOne', { count: links.length })
+                : t('favorites.count', { count: links.length })}
             </p>
           </div>
         </div>

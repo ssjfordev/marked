@@ -6,6 +6,7 @@ import { CardItem } from './CardItem';
 import { TagInput } from './ui/TagInput';
 import { Modal, ModalFooter } from './ui/Modal';
 import { Button } from './ui/Button';
+import { useLocale } from '@/components/LanguageProvider';
 
 interface LinkCanonical {
   id: string;
@@ -70,10 +71,14 @@ export function LinkList({
   onRemoveTag,
   onReorder,
 }: LinkListProps) {
+  const { t } = useLocale();
   const [addingTagToLinkId, setAddingTagToLinkId] = useState<string | null>(null);
   const [newTagName, setNewTagName] = useState('');
   const [draggedId, setDraggedId] = useState<string | null>(null);
-  const [dropTarget, setDropTarget] = useState<{ id: string; position: 'above' | 'below' | 'left' | 'right' } | null>(null);
+  const [dropTarget, setDropTarget] = useState<{
+    id: string;
+    position: 'above' | 'below' | 'left' | 'right';
+  } | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const dragNodeRef = useRef<HTMLDivElement | null>(null);
 
@@ -162,9 +167,8 @@ export function LinkList({
     if (!onReorder || !draggedId || draggedId === targetLink.id || !dropTarget) return;
 
     // Convert card positions to list positions for the reorder callback
-    const position = dropTarget.position === 'left' || dropTarget.position === 'above'
-      ? 'above'
-      : 'below';
+    const position =
+      dropTarget.position === 'left' || dropTarget.position === 'above' ? 'above' : 'below';
 
     onReorder({
       draggedId,
@@ -194,10 +198,8 @@ export function LinkList({
             />
           </svg>
         </div>
-        <p className="text-foreground-muted mb-1">No links in this folder</p>
-        <p className="text-sm text-foreground-faint">
-          Add links using the browser extension or import bookmarks
-        </p>
+        <p className="text-foreground-muted mb-1">{t('link.noLinks')}</p>
+        <p className="text-sm text-foreground-faint">{t('link.noLinksDesc')}</p>
       </div>
     );
   }
@@ -219,9 +221,7 @@ export function LinkList({
             isFavorite={link.is_favorite}
             isDragging={draggedId === link.id}
             dropPosition={
-              dropTarget?.id === link.id
-                ? (dropTarget.position as 'left' | 'right')
-                : null
+              dropTarget?.id === link.id ? (dropTarget.position as 'left' | 'right') : null
             }
             draggable={!!onReorder}
             selectionMode={selectionMode}
@@ -261,9 +261,7 @@ export function LinkList({
               isFavorite={link.is_favorite}
               isDragging={draggedId === link.id}
               dropPosition={
-                dropTarget?.id === link.id
-                  ? (dropTarget.position as 'above' | 'below')
-                  : null
+                dropTarget?.id === link.id ? (dropTarget.position as 'above' | 'below') : null
               }
               draggable={!!onReorder}
               selectionMode={selectionMode}
@@ -280,9 +278,7 @@ export function LinkList({
               onEdit={onEditLink ? () => onEditLink(link) : undefined}
               onDelete={onDeleteLink ? () => setDeleteConfirmId(link.id) : undefined}
               onAddTag={onAddTag ? () => setAddingTagToLinkId(link.id) : undefined}
-              onRemoveTag={
-                onRemoveTag ? (tagId) => onRemoveTag(link.id, tagId) : undefined
-              }
+              onRemoveTag={onRemoveTag ? (tagId) => onRemoveTag(link.id, tagId) : undefined}
             />
           </div>
         ))}
@@ -295,14 +291,14 @@ export function LinkList({
           setAddingTagToLinkId(null);
           setNewTagName('');
         }}
-        title="Add Tag"
+        title={t('link.addTag')}
         size="sm"
       >
         <div className="space-y-4">
           <p className="text-foreground-muted text-sm">
-            Add a tag to{' '}
+            {t('link.addTagTo')}{' '}
             <span className="text-foreground font-medium">
-              {linkToAddTag ? getDisplayTitle(linkToAddTag) : 'this link'}
+              {linkToAddTag ? getDisplayTitle(linkToAddTag) : t('link.thisLink')}
             </span>
           </p>
           <TagInput
@@ -319,7 +315,7 @@ export function LinkList({
               setAddingTagToLinkId(null);
               setNewTagName('');
             }}
-            placeholder="Search or create tag..."
+            placeholder={t('link.searchOrCreateTag')}
             autoFocus
           />
         </div>
@@ -332,7 +328,7 @@ export function LinkList({
               setNewTagName('');
             }}
           >
-            Cancel
+            {t('common.cancel')}
           </Button>
           <Button
             variant="primary"
@@ -344,7 +340,7 @@ export function LinkList({
             }}
             disabled={!newTagName.trim()}
           >
-            Add Tag
+            {t('link.addTag')}
           </Button>
         </ModalFooter>
       </Modal>
@@ -353,30 +349,22 @@ export function LinkList({
       <Modal
         isOpen={!!deleteConfirmId}
         onClose={() => setDeleteConfirmId(null)}
-        title="Delete Link"
+        title={t('link.deleteTitle')}
         size="sm"
       >
         <p className="text-foreground-muted text-sm">
-          Are you sure you want to delete{' '}
+          {t('link.deleteConfirm')}{' '}
           <span className="text-foreground font-medium">
-            {linkToDelete ? getDisplayTitle(linkToDelete) : 'this link'}
+            {linkToDelete ? getDisplayTitle(linkToDelete) : t('link.thisLink')}
           </span>
-          ? This action cannot be undone.
+          {t('link.deleteConfirmSuffix')}
         </p>
         <ModalFooter>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setDeleteConfirmId(null)}
-          >
-            Cancel
+          <Button variant="ghost" size="sm" onClick={() => setDeleteConfirmId(null)}>
+            {t('common.cancel')}
           </Button>
-          <Button
-            variant="danger"
-            size="sm"
-            onClick={handleConfirmDelete}
-          >
-            Delete
+          <Button variant="danger" size="sm" onClick={handleConfirmDelete}>
+            {t('common.delete')}
           </Button>
         </ModalFooter>
       </Modal>

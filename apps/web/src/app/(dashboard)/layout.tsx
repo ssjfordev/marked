@@ -5,6 +5,7 @@ import { SidebarFolders } from '@/components/SidebarFolders';
 import { Header } from '@/components/Header';
 import Image from 'next/image';
 import Link from 'next/link';
+import { createT } from '@/i18n';
 
 type SubscriptionData = {
   plan: 'free' | 'pro' | 'ai_pro';
@@ -85,8 +86,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
     redirect('/');
   }
   const supabase = createServiceClient();
+  const { t } = await createT();
 
-  // Run all 3 queries in parallel to avoid sequential DB roundtrips
+  // Run all queries in parallel to avoid sequential DB roundtrips
   const [{ data: subscriptionData }, { data: foldersData }, { data: linkCountsData }] =
     await Promise.all([
       supabase.from('subscriptions').select('plan, status').eq('user_id', user.id).maybeSingle(),
@@ -124,11 +126,11 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const totalFolders = foldersData?.length ?? 0;
 
   const tips = [
-    '⌘K to search across all links',
-    'Drag folders to reorder them',
-    'Import from Chrome, Safari, and more',
-    '⭐ Star links to find them faster',
-    'Share folders with a public link',
+    t('tips.searchShortcut'),
+    t('tips.dragFolders'),
+    t('tips.importBookmarks'),
+    t('tips.starLinks'),
+    t('tips.shareFolders'),
   ];
   const randomTip = tips[Math.floor(Math.random() * tips.length)];
 
@@ -171,12 +173,12 @@ export default async function DashboardLayout({ children }: { children: React.Re
           {/* Folders header with edit button */}
           <div className="flex items-center justify-between px-1.5 mb-1">
             <span className="text-[11px] font-medium text-foreground-faint uppercase tracking-wider">
-              Folders
+              {t('sidebar.folders')}
             </span>
             <Link
               href="/folders/manage"
               className="p-1 rounded text-foreground-faint hover:text-foreground-muted hover:bg-hover transition-colors"
-              title="Manage folders"
+              title={t('sidebar.manageFolders')}
             >
               <svg
                 className="w-3.5 h-3.5"
@@ -199,7 +201,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         {/* Info box */}
         <div className="px-3 py-3 border-t border-border space-y-2.5">
           <div className="text-[11px] text-foreground-faint">
-            {totalLinks} links · {totalFolders} folders
+            {t('sidebar.linksFolders', { links: totalLinks, folders: totalFolders })}
           </div>
           <div className="text-[11px] text-foreground-faint">💡 {randomTip}</div>
           {plan === 'free' && (
@@ -207,7 +209,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
               href="/settings"
               className="block text-[11px] font-medium text-primary-light bg-primary/10 hover:bg-primary/15 rounded px-2 py-1.5 text-center transition-colors"
             >
-              ✨ Upgrade to Pro
+              {t('sidebar.upgradeToPro')}
             </Link>
           )}
         </div>
@@ -224,7 +226,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
               <div className="text-[11px] text-foreground-muted truncate">{user.email}</div>
             </div>
             <span className="text-[9px] text-primary-light font-medium px-1.5 py-0.5 bg-primary/10 rounded">
-              {plan === 'free' ? 'Free' : plan === 'pro' ? 'Pro' : 'AI Pro'}
+              {plan === 'free' ? t('plan.free') : plan === 'pro' ? t('plan.pro') : t('plan.aiPro')}
             </span>
           </div>
         </div>

@@ -2,9 +2,16 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { getUser } from '@/lib/auth/actions';
 import { HeroInteractive } from '@/components/landing/HeroInteractive';
+import { LandingLanguageToggle } from '@/components/landing/LandingLanguageToggle';
+import { createT } from '@/i18n';
 
 export default async function HomePage() {
   const user = await getUser();
+  const { t, tArray } = await createT();
+
+  const freeFeatures = tArray('landing.free.features');
+  const proFeatures = tArray('landing.pro.features');
+  const mockFolders = tArray('landing.mockFolders');
 
   return (
     <div className="min-h-screen bg-bg text-foreground overflow-hidden">
@@ -30,12 +37,13 @@ export default async function HomePage() {
             />
           </Link>
           <div className="flex items-center gap-3">
+            <LandingLanguageToggle />
             {user ? (
               <Link
                 href="/dashboard"
                 className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-primary-dark hover:shadow-lg hover:shadow-primary/20"
               >
-                대시보드로 이동
+                {t('landing.goToDashboard')}
               </Link>
             ) : (
               <>
@@ -43,13 +51,13 @@ export default async function HomePage() {
                   href="/login"
                   className="text-sm font-medium text-foreground-secondary hover:text-foreground transition-colors"
                 >
-                  로그인
+                  {t('landing.login')}
                 </Link>
                 <Link
                   href="/login"
                   className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-primary-dark hover:shadow-lg hover:shadow-primary/20"
                 >
-                  무료로 시작하기
+                  {t('landing.startFree')}
                 </Link>
               </>
             )}
@@ -84,21 +92,21 @@ export default async function HomePage() {
           <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-4 py-1.5 mb-8 hero-fade-up hero-delay-1">
             <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
             <span className="text-xs font-medium text-primary-light tracking-wide">
-              Chrome 확장 지원
+              {t('landing.chromeExtension')}
             </span>
           </div>
 
           <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.1] mb-6">
-            <span className="hero-fade-up hero-delay-2 block">흩어진 링크,</span>
+            <span className="hero-fade-up hero-delay-2 block">{t('landing.heroTitle1')}</span>
             <span className="hero-fade-up hero-delay-3 block text-primary-light">
-              한곳에서 관리하세요
+              {t('landing.heroTitle2')}
             </span>
           </h1>
 
           <p className="mx-auto max-w-2xl text-lg sm:text-xl text-foreground-muted leading-relaxed mb-10 hero-fade-up hero-delay-4">
-            웹에서 찾은 정보를 나만의 워크스페이스에 모으세요.
+            {t('landing.heroDesc1')}
             <br className="hidden sm:block" />
-            폴더, 태그, 하이라이트, 메모 — 북마크의 새로운 기준.
+            {t('landing.heroDesc2')}
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 hero-fade-up hero-delay-5">
@@ -106,7 +114,7 @@ export default async function HomePage() {
               href={user ? '/dashboard' : '/login'}
               className="hero-shimmer-btn hero-cta-glow group relative rounded-xl bg-primary px-8 py-3.5 text-base font-semibold text-white transition-all hover:bg-primary-dark hover:shadow-xl hover:shadow-primary/25 hover:-translate-y-0.5"
             >
-              {user ? '대시보드로 이동' : '무료로 시작하기'}
+              {user ? t('landing.goToDashboard') : t('landing.startFree')}
               <span className="ml-2 inline-block transition-transform group-hover:translate-x-1">
                 &rarr;
               </span>
@@ -124,7 +132,7 @@ export default async function HomePage() {
                 <path d="M3.95 6.06L8.54 14" stroke="currentColor" strokeWidth="1.5" />
                 <path d="M10.88 21.94L15.46 14" stroke="currentColor" strokeWidth="1.5" />
               </svg>
-              Chrome 확장 프로그램
+              {t('landing.feature4.title')}
             </a>
           </div>
         </div>
@@ -155,7 +163,11 @@ export default async function HomePage() {
                   <div className="h-6 w-6 rounded-md bg-primary/20" />
                   <div className="h-3 w-20 rounded bg-foreground-faint/20" />
                 </div>
-                {['전체 링크', '즐겨찾기', '폴더 관리'].map((item, i) => (
+                {[
+                  t('landing.mockSidebar.allLinks'),
+                  t('landing.mockSidebar.favorites'),
+                  t('landing.mockSidebar.manageFolders'),
+                ].map((item, i) => (
                   <div
                     key={item}
                     className={`flex items-center gap-2.5 rounded-lg px-3 py-2 text-xs ${i === 0 ? 'bg-primary/10 text-primary-light' : 'text-foreground-muted'}`}
@@ -168,9 +180,9 @@ export default async function HomePage() {
                 ))}
                 <div className="pt-3 border-t border-border mt-3">
                   <div className="text-[10px] font-semibold text-foreground-faint uppercase tracking-widest mb-2 px-3">
-                    폴더
+                    {t('landing.mockSidebar.folders')}
                   </div>
-                  {['개발 리소스', '디자인 참고', 'AI 도구'].map((folder) => (
+                  {mockFolders.map((folder) => (
                     <div
                       key={folder}
                       className="flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs text-foreground-muted"
@@ -211,7 +223,7 @@ export default async function HomePage() {
                       color: 'bg-orange-500/10',
                     },
                     {
-                      title: 'TypeScript 5.8 발표',
+                      title: 'TypeScript 5.8',
                       domain: 'devblogs.microsoft.com',
                       color: 'bg-blue-500/10',
                     },
@@ -241,13 +253,13 @@ export default async function HomePage() {
         <div className="mx-auto max-w-6xl">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-4">
-              북마크 관리,
-              <br className="sm:hidden" /> 이렇게 달라집니다
+              {t('landing.featuresTitle1')}
+              <br className="sm:hidden" /> {t('landing.featuresTitle2')}
             </h2>
             <p className="text-foreground-muted text-lg max-w-xl mx-auto">
-              저장만 하고 다시 찾지 못하는 북마크는 그만.
+              {t('landing.featuresDesc1')}
               <br />
-              Marked로 깔끔하게 정리하세요.
+              {t('landing.featuresDesc2')}
             </p>
           </div>
 
@@ -269,8 +281,8 @@ export default async function HomePage() {
                     />
                   </svg>
                 ),
-                title: '폴더 & 태그 정리',
-                desc: '계층형 폴더와 유연한 태그로 링크를 체계적으로 분류하세요. 드래그 앤 드롭으로 간편하게 정리합니다.',
+                title: t('landing.feature1.title'),
+                desc: t('landing.feature1.desc'),
               },
               {
                 icon: (
@@ -288,8 +300,8 @@ export default async function HomePage() {
                     />
                   </svg>
                 ),
-                title: '빠른 검색',
-                desc: '제목, 태그, 도메인으로 저장한 링크를 빠르게 찾으세요. 원하는 링크를 바로 꺼내 쓸 수 있습니다.',
+                title: t('landing.feature2.title'),
+                desc: t('landing.feature2.desc'),
               },
               {
                 icon: (
@@ -307,8 +319,8 @@ export default async function HomePage() {
                     />
                   </svg>
                 ),
-                title: '하이라이트 & 메모',
-                desc: '중요한 내용을 하이라이트하고 메모를 남기세요. 링크를 다시 열지 않아도 핵심을 바로 확인할 수 있습니다.',
+                title: t('landing.feature3.title'),
+                desc: t('landing.feature3.desc'),
               },
               {
                 icon: (
@@ -326,8 +338,8 @@ export default async function HomePage() {
                     />
                   </svg>
                 ),
-                title: 'Chrome 확장 프로그램',
-                desc: '클릭 한 번으로 현재 페이지를 저장. 폴더 선택, 태그 입력, 메모까지 브라우저에서 바로 완료합니다.',
+                title: t('landing.feature4.title'),
+                desc: t('landing.feature4.desc'),
               },
               {
                 icon: (
@@ -345,8 +357,8 @@ export default async function HomePage() {
                     />
                   </svg>
                 ),
-                title: '폴더 공유',
-                desc: '큐레이션한 링크 모음을 공개 URL로 공유하세요. 팀원, 동료, 커뮤니티와 지식을 나눌 수 있습니다.',
+                title: t('landing.feature5.title'),
+                desc: t('landing.feature5.desc'),
               },
               {
                 icon: (
@@ -364,8 +376,8 @@ export default async function HomePage() {
                     />
                   </svg>
                 ),
-                title: '간편한 가져오기',
-                desc: 'Chrome, Safari, Firefox, Raindrop 등 기존 북마크를 그대로 가져옵니다. 폴더 구조까지 유지됩니다.',
+                title: t('landing.feature6.title'),
+                desc: t('landing.feature6.desc'),
               },
             ].map((f) => (
               <div
@@ -387,10 +399,10 @@ export default async function HomePage() {
       <section className="px-6 py-24 border-t border-border">
         <div className="mx-auto max-w-4xl">
           <div className="text-center mb-16">
-            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-4">심플한 요금제</h2>
-            <p className="text-foreground-muted text-lg">
-              기본 기능은 무료. 더 강력한 도구가 필요할 때 Pro로 업그레이드하세요.
-            </p>
+            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-4">
+              {t('landing.pricingTitle')}
+            </h2>
+            <p className="text-foreground-muted text-lg">{t('landing.pricingDesc')}</p>
           </div>
 
           <div className="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto">
@@ -399,19 +411,12 @@ export default async function HomePage() {
               <div className="mb-6">
                 <h3 className="text-lg font-semibold mb-1">Free</h3>
                 <div className="flex items-baseline gap-1">
-                  <span className="text-4xl font-bold">₩0</span>
-                  <span className="text-foreground-muted text-sm">/월</span>
+                  <span className="text-4xl font-bold">{t('landing.free.price')}</span>
+                  <span className="text-foreground-muted text-sm">{t('landing.free.period')}</span>
                 </div>
               </div>
               <ul className="space-y-3 mb-8">
-                {[
-                  '무제한 링크 & 폴더 저장',
-                  '태그 & 즐겨찾기',
-                  'Chrome 확장 프로그램',
-                  '키워드 검색',
-                  '북마크 가져오기/내보내기',
-                  '폴더 공유 링크',
-                ].map((item) => (
+                {freeFeatures.map((item) => (
                   <li
                     key={item}
                     className="flex items-start gap-3 text-sm text-foreground-secondary"
@@ -433,33 +438,25 @@ export default async function HomePage() {
                 href="/login"
                 className="block w-full rounded-lg border border-border py-2.5 text-center text-sm font-semibold text-foreground transition-colors hover:bg-surface-hover"
               >
-                무료로 시작하기
+                {t('landing.startFree')}
               </Link>
             </div>
 
             {/* Pro */}
             <div className="relative rounded-xl border-2 border-primary/40 p-8 bg-primary/[0.03]">
               <div className="absolute -top-3 left-6 rounded-full bg-primary px-3 py-0.5 text-xs font-bold text-white">
-                추천
+                {t('landing.pro.badge')}
               </div>
               <div className="mb-6">
                 <h3 className="text-lg font-semibold mb-1">Pro</h3>
                 <div className="flex items-baseline gap-1">
-                  <span className="text-4xl font-bold">₩2,500</span>
-                  <span className="text-foreground-muted text-sm">/월</span>
+                  <span className="text-4xl font-bold">{t('landing.pro.price')}</span>
+                  <span className="text-foreground-muted text-sm">{t('landing.pro.period')}</span>
                 </div>
-                <p className="text-xs text-foreground-faint mt-1">
-                  연간 결제 시 ₩19,000/년 (약 17% 할인)
-                </p>
+                <p className="text-xs text-foreground-faint mt-1">{t('landing.pro.annual')}</p>
               </div>
               <ul className="space-y-3 mb-8">
-                {[
-                  'Free의 모든 기능 포함',
-                  '고급 검색 기능',
-                  '링크별 메모 작성',
-                  '에셋 페이지 (상세 뷰)',
-                  '우선 지원',
-                ].map((item) => (
+                {proFeatures.map((item) => (
                   <li
                     key={item}
                     className="flex items-start gap-3 text-sm text-foreground-secondary"
@@ -481,7 +478,7 @@ export default async function HomePage() {
                 href="/login"
                 className="block w-full rounded-lg bg-primary py-2.5 text-center text-sm font-semibold text-white transition-colors hover:bg-primary-dark"
               >
-                Pro 시작하기
+                {t('landing.pro.start')}
               </Link>
             </div>
           </div>
@@ -491,17 +488,19 @@ export default async function HomePage() {
       {/* CTA */}
       <section className="px-6 py-24 border-t border-border">
         <div className="mx-auto max-w-2xl text-center">
-          <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-4">지금 시작하세요</h2>
+          <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-4">
+            {t('landing.ctaTitle')}
+          </h2>
           <p className="text-foreground-muted text-lg mb-8">
-            무료 플랜으로 바로 사용할 수 있습니다.
+            {t('landing.ctaDesc1')}
             <br />
-            기존 북마크도 그대로 가져올 수 있어요.
+            {t('landing.ctaDesc2')}
           </p>
           <Link
             href={user ? '/dashboard' : '/login'}
             className="inline-flex items-center gap-2 rounded-xl bg-primary px-8 py-3.5 text-base font-semibold text-white transition-all hover:bg-primary-dark hover:shadow-xl hover:shadow-primary/25 hover:-translate-y-0.5"
           >
-            {user ? '대시보드로 이동' : '무료로 시작하기'}
+            {user ? t('landing.goToDashboard') : t('landing.startFree')}
             <span>&rarr;</span>
           </Link>
         </div>
@@ -533,10 +532,10 @@ export default async function HomePage() {
           </div>
           <div className="flex items-center gap-6 text-xs text-foreground-muted">
             <Link href="/settings/legal" className="hover:text-foreground transition-colors">
-              이용약관
+              {t('landing.footer.terms')}
             </Link>
             <Link href="/settings/legal" className="hover:text-foreground transition-colors">
-              개인정보처리방침
+              {t('landing.footer.privacy')}
             </Link>
           </div>
         </div>

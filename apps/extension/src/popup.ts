@@ -113,9 +113,10 @@ async function init() {
   render();
 
   // Step 2: Check auth (parallel with other requests)
-  const [authStatus, foldersResult] = await Promise.all([
+  const [authStatus, foldersResult, tagsResult] = await Promise.all([
     chrome.runtime.sendMessage({ type: 'AUTH_STATUS' }),
     chrome.runtime.sendMessage({ type: 'GET_FOLDERS' }),
+    chrome.runtime.sendMessage({ type: 'GET_TAGS' }),
   ]);
 
   if (!authStatus.authenticated) {
@@ -130,6 +131,11 @@ async function init() {
   // Process folders into tree structure
   if (foldersResult.success && foldersResult.folders) {
     state.folders = foldersResult.folders;
+  }
+
+  // Load user's existing tags for autocomplete
+  if (tagsResult.success && tagsResult.tags) {
+    state.allTags = tagsResult.tags;
   }
 
   // Step 3: Check if link exists & get page metadata
@@ -357,18 +363,39 @@ function renderTagsInput(): string {
     )
     .join('');
 
+  // Filter suggestions: match input, exclude already-added tags
+  const suggestions =
+    state.tagInput.length > 0
+      ? state.allTags.filter(
+          (t) => t.toLowerCase().includes(state.tagInput.toLowerCase()) && !state.tags.includes(t)
+        )
+      : [];
+
+  const suggestionsHtml =
+    suggestions.length > 0
+      ? `<div class="tag-suggestions">${suggestions
+          .map(
+            (s) => `<div class="tag-suggestion" data-tag="${escapeHtml(s)}">${escapeHtml(s)}</div>`
+          )
+          .join('')}</div>`
+      : '';
+
   return `
     <div class="form-field">
       <label class="form-label">Tags</label>
-      <div class="tags-container">
-        ${tagsHtml}
-        <input
-          type="text"
-          id="tag-input"
-          class="tag-input"
-          value="${escapeHtml(state.tagInput)}"
-          placeholder="${state.tags.length ? '' : 'Add tags...'}"
-        >
+      <div class="tags-wrapper">
+        <div class="tags-container">
+          ${tagsHtml}
+          <input
+            type="text"
+            id="tag-input"
+            class="tag-input"
+            value="${escapeHtml(state.tagInput)}"
+            placeholder="${state.tags.length ? '' : 'Add tags...'}"
+            autocomplete="off"
+          >
+        </div>
+        ${suggestionsHtml}
       </div>
     </div>
   `;
@@ -542,6 +569,27 @@ function attachEventListeners() {
 
   tagInput?.addEventListener('input', (e) => {
     state.tagInput = (e.target as HTMLInputElement).value;
+    // Re-render to update suggestions dropdown
+    render();
+    // Re-focus the tag input after render
+    const newInput = document.getElementById('tag-input') as HTMLInputElement;
+    if (newInput) {
+      newInput.focus();
+      newInput.setSelectionRange(newInput.value.length, newInput.value.length);
+    }
+  });
+
+  // Tag suggestion clicks
+  document.querySelectorAll('.tag-suggestion').forEach((el) => {
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const tag = (e.currentTarget as HTMLElement).dataset.tag;
+      if (tag && !state.tags.includes(tag)) {
+        state.tags.push(tag);
+        state.tagInput = '';
+        render();
+      }
+    });
   });
 
   // Tag remove buttons

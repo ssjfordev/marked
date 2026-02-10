@@ -1,6 +1,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { signInWithGoogle } from '@/lib/auth/actions';
+import { createT } from '@/i18n';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,6 +13,7 @@ export default async function LoginPage({
   const params = await searchParams;
   const redirectTo = params.redirect;
   const fromExtension = params.extension === 'true';
+  const { t } = await createT();
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center p-4 bg-bg">
@@ -36,9 +38,7 @@ export default async function LoginPage({
               className="hidden dark:block h-10 w-auto mx-auto mb-4"
             />
           </Link>
-          <p className="mt-3 text-foreground-muted">
-            링크를 저장하는 게 아니라, 지식으로 정리합니다.
-          </p>
+          <p className="mt-3 text-foreground-muted">{t('login.tagline')}</p>
         </div>
 
         <div className="rounded-xl border border-border bg-surface p-8">
@@ -53,14 +53,14 @@ export default async function LoginPage({
               className="flex w-full items-center justify-center gap-3 rounded-lg border border-border bg-surface px-6 py-3.5 text-foreground font-medium shadow-sm transition-all hover:bg-surface-hover hover:border-border-hover focus:outline-none focus:ring-2 focus:ring-primary/20"
             >
               <GoogleIcon />
-              <span>Continue with Google</span>
+              <span>{t('login.continueWithGoogle')}</span>
             </button>
           </form>
 
           <div className="mt-6 flex items-center gap-3">
             <div className="h-px flex-1 bg-border" />
             <span className="text-xs text-foreground-faint uppercase tracking-wide">
-              Secure login
+              {t('login.secureLogin')}
             </span>
             <div className="h-px flex-1 bg-border" />
           </div>
@@ -80,7 +80,7 @@ export default async function LoginPage({
                   d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
                 />
               </svg>
-              <span className="text-xs">Encrypted</span>
+              <span className="text-xs">{t('login.encrypted')}</span>
             </div>
             <div className="flex items-center gap-1.5">
               <svg
@@ -96,21 +96,29 @@ export default async function LoginPage({
                   d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
                 />
               </svg>
-              <span className="text-xs">Private</span>
+              <span className="text-xs">{t('login.private')}</span>
             </div>
           </div>
         </div>
 
         <p className="text-center text-sm text-foreground-muted">
-          By continuing, you agree to our{' '}
-          <a href="/terms" className="text-primary-light hover:underline">
-            Terms of Service
-          </a>{' '}
-          and{' '}
-          <a href="/privacy" className="text-primary-light hover:underline">
-            Privacy Policy
-          </a>
-          .
+          {t('login.terms')
+            .replace(
+              '{termsLink}',
+              `<a href="/terms" class="text-primary-light hover:underline">${t('login.termsOfService')}</a>`
+            )
+            .replace(
+              '{privacyLink}',
+              `<a href="/privacy" class="text-primary-light hover:underline">${t('login.privacyPolicy')}</a>`
+            )
+            .split(/(<a[^>]*>.*?<\/a>)/)
+            .map((part, i) =>
+              part.startsWith('<a') ? (
+                <span key={i} dangerouslySetInnerHTML={{ __html: part }} />
+              ) : (
+                <span key={i}>{part}</span>
+              )
+            )}
         </p>
       </div>
     </div>

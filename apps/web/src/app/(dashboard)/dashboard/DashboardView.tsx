@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { DashboardContent } from './DashboardContent';
+import { useLocale } from '@/components/LanguageProvider';
 
 interface LinkCanonical {
   id: string;
@@ -36,6 +37,7 @@ interface DashboardData {
 }
 
 export function DashboardView() {
+  const { t } = useLocale();
   const [data, setData] = useState<DashboardData | null>(null);
 
   useEffect(() => {
@@ -94,7 +96,9 @@ export function DashboardView() {
     return (
       <div className="max-w-4xl mx-auto">
         <div className="mb-8">
-          <h1 className="text-2xl font-semibold text-foreground mb-2">Welcome back</h1>
+          <h1 className="text-2xl font-semibold text-foreground mb-2">
+            {t('dashboard.welcomeBack')}
+          </h1>
           <p className="text-foreground-muted">{data.email}</p>
         </div>
 
@@ -114,10 +118,8 @@ export function DashboardView() {
               />
             </svg>
           </div>
-          <h2 className="text-lg font-medium text-foreground mb-2">No links yet</h2>
-          <p className="text-foreground-muted mb-6 max-w-sm mx-auto">
-            Import your existing bookmarks or save links with the browser extension to get started.
-          </p>
+          <h2 className="text-lg font-medium text-foreground mb-2">{t('dashboard.empty.title')}</h2>
+          <p className="text-foreground-muted mb-6 max-w-sm mx-auto">{t('dashboard.empty.desc')}</p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
             <Link
               href="/import"
@@ -136,7 +138,7 @@ export function DashboardView() {
                   d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
                 />
               </svg>
-              Import Bookmarks
+              {t('dashboard.empty.import')}
             </Link>
           </div>
         </div>
@@ -158,10 +160,8 @@ export function DashboardView() {
                 />
               </svg>
             </div>
-            <h3 className="font-medium text-foreground mb-1">Organize with folders</h3>
-            <p className="text-sm text-foreground-muted">
-              Create folders to keep your links organized and easy to find.
-            </p>
+            <h3 className="font-medium text-foreground mb-1">{t('dashboard.empty.organize')}</h3>
+            <p className="text-sm text-foreground-muted">{t('dashboard.empty.organizeDesc')}</p>
           </div>
           <div className="p-5 rounded-xl border border-border bg-surface">
             <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center mb-3">
@@ -179,10 +179,8 @@ export function DashboardView() {
                 />
               </svg>
             </div>
-            <h3 className="font-medium text-foreground mb-1">Tag for quick access</h3>
-            <p className="text-sm text-foreground-muted">
-              Add tags to links for faster searching and filtering.
-            </p>
+            <h3 className="font-medium text-foreground mb-1">{t('dashboard.empty.tag')}</h3>
+            <p className="text-sm text-foreground-muted">{t('dashboard.empty.tagDesc')}</p>
           </div>
           <div className="p-5 rounded-xl border border-border bg-surface">
             <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center mb-3">
@@ -200,10 +198,8 @@ export function DashboardView() {
                 />
               </svg>
             </div>
-            <h3 className="font-medium text-foreground mb-1">Search everything</h3>
-            <p className="text-sm text-foreground-muted">
-              Find any link instantly with powerful search across all your content.
-            </p>
+            <h3 className="font-medium text-foreground mb-1">{t('dashboard.empty.search')}</h3>
+            <p className="text-sm text-foreground-muted">{t('dashboard.empty.searchDesc')}</p>
           </div>
         </div>
       </div>
@@ -213,7 +209,7 @@ export function DashboardView() {
   return (
     <div className="max-w-5xl mx-auto">
       <div className="mb-8">
-        <h1 className="text-2xl font-semibold text-foreground mb-2">Dashboard</h1>
+        <h1 className="text-2xl font-semibold text-foreground mb-2">{t('dashboard.title')}</h1>
         <p className="text-foreground-muted">{data.email}</p>
       </div>
 
@@ -240,7 +236,7 @@ export function DashboardView() {
             </div>
             <div>
               <p className="text-2xl font-semibold text-foreground">{data.totalLinks}</p>
-              <p className="text-sm text-foreground-muted">Total Links</p>
+              <p className="text-sm text-foreground-muted">{t('dashboard.totalLinks')}</p>
             </div>
           </div>
         </Link>
@@ -266,7 +262,7 @@ export function DashboardView() {
             </div>
             <div>
               <p className="text-2xl font-semibold text-foreground">{data.totalFolders}</p>
-              <p className="text-sm text-foreground-muted">Folders</p>
+              <p className="text-sm text-foreground-muted">{t('dashboard.folders')}</p>
             </div>
           </div>
         </Link>
@@ -282,7 +278,7 @@ export function DashboardView() {
             </div>
             <div>
               <p className="text-2xl font-semibold text-foreground">{data.totalFavorites}</p>
-              <p className="text-sm text-foreground-muted">Favorites</p>
+              <p className="text-sm text-foreground-muted">{t('dashboard.favorites')}</p>
             </div>
           </div>
         </Link>

@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react';
 import Image from 'next/image';
 import { Tag } from './ui/Tag';
 import { IconButton } from './ui/IconButton';
+import { useLocale } from '@/components/LanguageProvider';
 
 const FALLBACK_THUMBNAILS = [
   '/images/fallback-thumbnails/waves.png',
@@ -41,6 +42,7 @@ interface CardItemProps {
   isDragging?: boolean;
   dropPosition?: 'left' | 'right' | null;
   draggable?: boolean;
+  footer?: React.ReactNode;
   // Selection mode props
   selectionMode?: boolean;
   isSelected?: boolean;
@@ -68,6 +70,7 @@ export function CardItem({
   isDragging,
   dropPosition,
   draggable,
+  footer,
   selectionMode,
   isSelected,
   onSelect,
@@ -80,6 +83,7 @@ export function CardItem({
   onOpenExternal,
   onToggleFavorite,
 }: CardItemProps) {
+  const { t } = useLocale();
   const fallbackThumbnail = useMemo(() => getFallbackThumbnail(title + domain), [title, domain]);
   const [thumbnailSrc, setThumbnailSrc] = useState(thumbnail || fallbackThumbnail);
   const [faviconSrc, setFaviconSrc] = useState(
@@ -234,7 +238,7 @@ export function CardItem({
             <IconButton
               variant="ghost"
               size="sm"
-              label="Open in new tab"
+              label={t('link.openNewTab')}
               className="ml-auto -mr-1 opacity-0 group-hover:opacity-100"
               icon={
                 <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -280,6 +284,9 @@ export function CardItem({
             )}
           </div>
         )}
+
+        {/* Optional footer */}
+        {footer}
       </div>
     </div>
   );

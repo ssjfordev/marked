@@ -8,6 +8,7 @@ import { Input } from './ui/Input';
 import { TagInputField } from './ui/TagInputField';
 import { FolderSelectModal } from './FolderSelectModal';
 import { TEXT_LIMITS } from '@/lib/api/sanitize';
+import { useLocale } from './LanguageProvider';
 
 interface Folder {
   id: string;
@@ -42,6 +43,7 @@ export function AddLinkModal({
   folders,
   defaultFolderId,
 }: AddLinkModalProps) {
+  const { t } = useLocale();
   const [step, setStep] = useState<Step>('url');
   const [url, setUrl] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -126,9 +128,7 @@ export function AddLinkModal({
       setDescription(data.data.description || '');
       setStep('details');
     } catch (error) {
-      setAnalyzeError(
-        error instanceof Error ? error.message : 'Failed to analyze URL'
-      );
+      setAnalyzeError(error instanceof Error ? error.message : 'Failed to analyze URL');
     } finally {
       setIsAnalyzing(false);
     }
@@ -162,9 +162,7 @@ export function AddLinkModal({
       onSuccess();
       onClose();
     } catch (error) {
-      setSaveError(
-        error instanceof Error ? error.message : 'Failed to save link'
-      );
+      setSaveError(error instanceof Error ? error.message : 'Failed to save link');
     } finally {
       setIsSaving(false);
     }
@@ -179,7 +177,7 @@ export function AddLinkModal({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={step === 'url' ? 'Add New Link' : 'Link Details'}
+      title={step === 'url' ? t('addLink.title') : t('addLink.detailsTitle')}
       size="md"
     >
       {step === 'url' ? (
@@ -187,11 +185,11 @@ export function AddLinkModal({
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-foreground-secondary mb-2">
-              URL
+              {t('addLink.url')}
             </label>
             <Input
               type="url"
-              placeholder="https://example.com"
+              placeholder={t('addLink.urlPlaceholder')}
               value={url}
               onChange={(e) => {
                 setUrl(e.target.value);
@@ -205,14 +203,12 @@ export function AddLinkModal({
               }}
               autoFocus
             />
-            {analyzeError && (
-              <p className="mt-2 text-sm text-danger">{analyzeError}</p>
-            )}
+            {analyzeError && <p className="mt-2 text-sm text-danger">{analyzeError}</p>}
           </div>
 
           <ModalFooter>
             <Button variant="secondary" size="sm" onClick={onClose}>
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button
               variant="primary"
@@ -221,7 +217,7 @@ export function AddLinkModal({
               loading={isAnalyzing}
               disabled={!url.trim()}
             >
-              {isAnalyzing ? 'Analyzing...' : 'Next'}
+              {isAnalyzing ? t('addLink.analyzing') : t('common.next')}
             </Button>
           </ModalFooter>
         </div>
@@ -234,13 +230,7 @@ export function AddLinkModal({
               {/* OG Image */}
               {preview.ogImage && (
                 <div className="relative w-full h-40 bg-surface">
-                  <Image
-                    src={preview.ogImage}
-                    alt=""
-                    fill
-                    className="object-cover"
-                    unoptimized
-                  />
+                  <Image src={preview.ogImage} alt="" fill className="object-cover" unoptimized />
                 </div>
               )}
               {/* Info row */}
@@ -272,12 +262,8 @@ export function AddLinkModal({
                   </div>
                 )}
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-foreground truncate">
-                    {preview.domain}
-                  </p>
-                  <p className="text-xs text-foreground-muted truncate">
-                    {preview.url}
-                  </p>
+                  <p className="text-sm font-medium text-foreground truncate">{preview.domain}</p>
+                  <p className="text-xs text-foreground-muted truncate">{preview.url}</p>
                 </div>
               </div>
             </div>
@@ -286,12 +272,15 @@ export function AddLinkModal({
           {/* Title */}
           <div>
             <label className="flex items-center gap-1.5 text-sm font-medium text-foreground-secondary mb-2">
-              Title
-              <span className="w-1.5 h-1.5 rounded-full bg-danger" title="Required" />
+              {t('addLink.titleLabel')}
+              <span
+                className="w-1.5 h-1.5 rounded-full bg-danger"
+                title={t('addLink.titleRequired')}
+              />
             </label>
             <Input
               type="text"
-              placeholder="Enter title..."
+              placeholder={t('addLink.titlePlaceholder')}
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               maxLength={TEXT_LIMITS.TITLE}
@@ -301,8 +290,8 @@ export function AddLinkModal({
           {/* Description */}
           <div>
             <label className="block text-sm font-medium text-foreground-secondary mb-2">
-              Description
-              <span className="text-foreground-faint font-normal ml-1">(optional)</span>
+              {t('addLink.description')}
+              <span className="text-foreground-faint font-normal ml-1">{t('common.optional')}</span>
             </label>
             <textarea
               className="
@@ -313,7 +302,7 @@ export function AddLinkModal({
                 resize-none text-sm
               "
               rows={2}
-              placeholder="Add a note..."
+              placeholder={t('addLink.descPlaceholder')}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               maxLength={TEXT_LIMITS.DESCRIPTION}
@@ -323,8 +312,11 @@ export function AddLinkModal({
           {/* Folder */}
           <div>
             <label className="flex items-center gap-1.5 text-sm font-medium text-foreground-secondary mb-2">
-              Folder
-              <span className="w-1.5 h-1.5 rounded-full bg-danger" title="Required" />
+              {t('addLink.folder')}
+              <span
+                className="w-1.5 h-1.5 rounded-full bg-danger"
+                title={t('addLink.titleRequired')}
+              />
             </label>
             <button
               type="button"
@@ -357,7 +349,7 @@ export function AddLinkModal({
                     {selectedFolderName}
                   </>
                 ) : (
-                  'Select a folder...'
+                  t('addLink.selectFolder')
                 )}
               </span>
               <svg
@@ -377,34 +369,32 @@ export function AddLinkModal({
               onSelect={handleFolderSelect}
               folders={folders}
               selectedFolderId={selectedFolderId}
-              title="Select Folder"
+              title={t('addLink.selectFolderTitle')}
             />
           </div>
 
           {/* Tags */}
           <div>
             <label className="block text-sm font-medium text-foreground-secondary mb-2">
-              Tags
-              <span className="text-foreground-faint font-normal ml-1">(optional)</span>
+              {t('addLink.tags')}
+              <span className="text-foreground-faint font-normal ml-1">{t('common.optional')}</span>
             </label>
             <TagInputField
               tags={tags}
               onTagsChange={setTags}
-              placeholder="Type and press Enter to add tags..."
+              placeholder={t('addLink.tagsPlaceholder')}
             />
           </div>
 
-          {saveError && (
-            <p className="text-sm text-danger">{saveError}</p>
-          )}
+          {saveError && <p className="text-sm text-danger">{saveError}</p>}
 
           <ModalFooter>
             <Button variant="ghost" size="sm" onClick={handleBack}>
-              Back
+              {t('common.back')}
             </Button>
             <div className="flex-1" />
             <Button variant="secondary" size="sm" onClick={onClose}>
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button
               variant="primary"
@@ -413,7 +403,7 @@ export function AddLinkModal({
               loading={isSaving}
               disabled={!selectedFolderId || !title.trim()}
             >
-              Save Link
+              {t('addLink.save')}
             </Button>
           </ModalFooter>
         </div>

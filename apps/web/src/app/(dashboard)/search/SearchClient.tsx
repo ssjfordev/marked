@@ -9,6 +9,7 @@ import { SearchFilters, SearchFiltersState } from '@/components/search';
 import { RecentSearches } from '@/components/search/RecentSearches';
 import { SelectionProvider, useSelection, SelectionToolbar } from '@/components/selection';
 import { useRecentSearches } from '@/hooks/useRecentSearches';
+import { useLocale } from '@/components/LanguageProvider';
 import type { SortOption } from '@/components/search/SortDropdown';
 import type { TagMode } from '@/components/search/TagModeToggle';
 import type { DatePreset } from '@/components/search/DateRangeFilter';
@@ -77,10 +78,12 @@ interface Folder {
 function SearchClientContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { t } = useLocale();
   const { isSelectionMode, selectedIds, toggleSelect, enterSelectionMode } = useSelection();
 
   // Recent searches
-  const { recentSearches, addRecentSearch, removeRecentSearch, clearRecentSearches } = useRecentSearches();
+  const { recentSearches, addRecentSearch, removeRecentSearch, clearRecentSearches } =
+    useRecentSearches();
   const [showRecentSearches, setShowRecentSearches] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const searchContainerRef = useRef<HTMLDivElement>(null);
@@ -107,31 +110,34 @@ function SearchClientContent() {
   const [isLoading, setIsLoading] = useState(false);
 
   // Sync filters to URL for back/forward navigation
-  const syncFiltersToUrl = useCallback((newFilters: SearchFiltersState) => {
-    const params = new URLSearchParams();
+  const syncFiltersToUrl = useCallback(
+    (newFilters: SearchFiltersState) => {
+      const params = new URLSearchParams();
 
-    if (newFilters.query) params.set('q', newFilters.query);
-    if (newFilters.folders.length > 0) params.set('folders', newFilters.folders.join(','));
-    if (newFilters.tags.length > 0) {
-      params.set('tags', newFilters.tags.join(','));
-      params.set('tagMode', newFilters.tagMode);
-    }
-    if (newFilters.dateRange.from) {
-      params.set('dateFrom', newFilters.dateRange.from.toISOString());
-    }
-    if (newFilters.dateRange.to) {
-      params.set('dateTo', newFilters.dateRange.to.toISOString());
-    }
-    if (newFilters.dateRange.preset) {
-      params.set('datePreset', newFilters.dateRange.preset);
-    }
-    if (newFilters.favoriteOnly) params.set('favorite', 'true');
-    if (newFilters.sort !== 'newest') params.set('sort', newFilters.sort);
+      if (newFilters.query) params.set('q', newFilters.query);
+      if (newFilters.folders.length > 0) params.set('folders', newFilters.folders.join(','));
+      if (newFilters.tags.length > 0) {
+        params.set('tags', newFilters.tags.join(','));
+        params.set('tagMode', newFilters.tagMode);
+      }
+      if (newFilters.dateRange.from) {
+        params.set('dateFrom', newFilters.dateRange.from.toISOString());
+      }
+      if (newFilters.dateRange.to) {
+        params.set('dateTo', newFilters.dateRange.to.toISOString());
+      }
+      if (newFilters.dateRange.preset) {
+        params.set('datePreset', newFilters.dateRange.preset);
+      }
+      if (newFilters.favoriteOnly) params.set('favorite', 'true');
+      if (newFilters.sort !== 'newest') params.set('sort', newFilters.sort);
 
-    const queryString = params.toString();
-    const newUrl = queryString ? `/search?${queryString}` : '/search';
-    router.replace(newUrl, { scroll: false });
-  }, [router]);
+      const queryString = params.toString();
+      const newUrl = queryString ? `/search?${queryString}` : '/search';
+      router.replace(newUrl, { scroll: false });
+    },
+    [router]
+  );
 
   // Lazy-loaded filter options
   const [folders, setFolders] = useState<Folder[]>([]);
@@ -183,7 +189,6 @@ function SearchClientContent() {
     }
   }, [filterDataLoaded]);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   const debouncedSearch = useCallback(
     debounce(async (currentFilters: SearchFiltersState) => {
       setIsLoading(true);
@@ -191,7 +196,8 @@ function SearchClientContent() {
       try {
         const params = new URLSearchParams();
         if (currentFilters.query) params.set('q', currentFilters.query);
-        if (currentFilters.folders.length > 0) params.set('folders', currentFilters.folders.join(','));
+        if (currentFilters.folders.length > 0)
+          params.set('folders', currentFilters.folders.join(','));
         if (currentFilters.tags.length > 0) {
           params.set('tags', currentFilters.tags.join(','));
           params.set('tagMode', currentFilters.tagMode);
@@ -243,7 +249,6 @@ function SearchClientContent() {
   }, [filters, debouncedSearch]);
 
   // Debounced URL sync for query changes
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   const debouncedUrlSync = useCallback(
     debounce((newFilters: SearchFiltersState) => {
       syncFiltersToUrl(newFilters);
@@ -251,20 +256,26 @@ function SearchClientContent() {
     [syncFiltersToUrl]
   );
 
-  const handleFiltersChange = useCallback((newFilters: SearchFiltersState) => {
-    setFilters(newFilters);
-    // Immediate URL sync for filter changes (not query)
-    syncFiltersToUrl(newFilters);
-  }, [syncFiltersToUrl]);
+  const handleFiltersChange = useCallback(
+    (newFilters: SearchFiltersState) => {
+      setFilters(newFilters);
+      // Immediate URL sync for filter changes (not query)
+      syncFiltersToUrl(newFilters);
+    },
+    [syncFiltersToUrl]
+  );
 
-  const handleQueryChange = useCallback((query: string) => {
-    setFilters((prev) => {
-      const newFilters = { ...prev, query };
-      // Debounced URL sync for query to avoid too many history entries
-      debouncedUrlSync(newFilters);
-      return newFilters;
-    });
-  }, [debouncedUrlSync]);
+  const handleQueryChange = useCallback(
+    (query: string) => {
+      setFilters((prev) => {
+        const newFilters = { ...prev, query };
+        // Debounced URL sync for query to avoid too many history entries
+        debouncedUrlSync(newFilters);
+        return newFilters;
+      });
+    },
+    [debouncedUrlSync]
+  );
 
   const getDisplayTitle = (result: SearchResult) => {
     return result.user_title || result.canonical.title || result.canonical.domain;
@@ -281,116 +292,129 @@ function SearchClientContent() {
     filters.favoriteOnly;
 
   // Bulk operation handlers
-  const handleBulkDelete = useCallback(async (ids: string[]) => {
-    const previousResults = results;
-    setResults((current) => current.filter((r) => !ids.includes(r.id)));
+  const handleBulkDelete = useCallback(
+    async (ids: string[]) => {
+      const previousResults = results;
+      setResults((current) => current.filter((r) => !ids.includes(r.id)));
 
-    try {
-      const response = await fetch('/api/v1/links/bulk', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'delete', linkIds: ids }),
-      });
+      try {
+        const response = await fetch('/api/v1/links/bulk', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'delete', linkIds: ids }),
+        });
 
-      if (!response.ok) {
+        if (!response.ok) {
+          setResults(previousResults);
+          throw new Error('Bulk delete failed');
+        }
+      } catch (error) {
+        console.error('Bulk delete failed:', error);
         setResults(previousResults);
-        throw new Error('Bulk delete failed');
+        throw error;
       }
-    } catch (error) {
-      console.error('Bulk delete failed:', error);
-      setResults(previousResults);
-      throw error;
-    }
-  }, [results]);
+    },
+    [results]
+  );
 
-  const handleBulkTag = useCallback(async (ids: string[], tagName: string) => {
-    const tempId = `temp-${Date.now()}`;
-    const previousResults = results;
+  const handleBulkTag = useCallback(
+    async (ids: string[], tagName: string) => {
+      const tempId = `temp-${Date.now()}`;
+      const previousResults = results;
 
-    setResults((current) =>
-      current.map((result) =>
-        ids.includes(result.id)
-          ? { ...result, tags: [...result.tags, { id: tempId, name: tagName }] }
-          : result
-      )
-    );
+      setResults((current) =>
+        current.map((result) =>
+          ids.includes(result.id)
+            ? { ...result, tags: [...result.tags, { id: tempId, name: tagName }] }
+            : result
+        )
+      );
 
-    try {
-      const response = await fetch('/api/v1/links/bulk', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'addTag', linkIds: ids, tagName }),
-      });
+      try {
+        const response = await fetch('/api/v1/links/bulk', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'addTag', linkIds: ids, tagName }),
+        });
 
-      if (!response.ok) {
+        if (!response.ok) {
+          setResults(previousResults);
+          throw new Error('Bulk tag failed');
+        }
+      } catch (error) {
+        console.error('Bulk tag failed:', error);
         setResults(previousResults);
-        throw new Error('Bulk tag failed');
+        throw error;
       }
-    } catch (error) {
-      console.error('Bulk tag failed:', error);
-      setResults(previousResults);
-      throw error;
-    }
-  }, [results]);
+    },
+    [results]
+  );
 
-  const handleBulkMove = useCallback(async (ids: string[], folderId: string) => {
-    const targetFolder = folders.find((f) => f.id === folderId);
-    const previousResults = results;
+  const handleBulkMove = useCallback(
+    async (ids: string[], folderId: string) => {
+      const targetFolder = folders.find((f) => f.id === folderId);
+      const previousResults = results;
 
-    setResults((current) =>
-      current.map((result) =>
-        ids.includes(result.id)
-          ? { ...result, folder: targetFolder ? { id: folderId, name: targetFolder.name } : result.folder }
-          : result
-      )
-    );
+      setResults((current) =>
+        current.map((result) =>
+          ids.includes(result.id)
+            ? {
+                ...result,
+                folder: targetFolder ? { id: folderId, name: targetFolder.name } : result.folder,
+              }
+            : result
+        )
+      );
 
-    try {
-      const response = await fetch('/api/v1/links/bulk', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'move', linkIds: ids, folderId }),
-      });
+      try {
+        const response = await fetch('/api/v1/links/bulk', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'move', linkIds: ids, folderId }),
+        });
 
-      if (!response.ok) {
+        if (!response.ok) {
+          setResults(previousResults);
+          throw new Error('Bulk move failed');
+        }
+      } catch (error) {
+        console.error('Bulk move failed:', error);
         setResults(previousResults);
-        throw new Error('Bulk move failed');
+        throw error;
       }
-    } catch (error) {
-      console.error('Bulk move failed:', error);
-      setResults(previousResults);
-      throw error;
-    }
-  }, [results, folders]);
+    },
+    [results, folders]
+  );
 
-  const handleBulkFavorite = useCallback(async (ids: string[], favorite: boolean) => {
-    const previousResults = results;
+  const handleBulkFavorite = useCallback(
+    async (ids: string[], favorite: boolean) => {
+      const previousResults = results;
 
-    setResults((current) =>
-      current.map((result) =>
-        ids.includes(result.id)
-          ? { ...result, is_favorite: favorite }
-          : result
-      )
-    );
+      setResults((current) =>
+        current.map((result) =>
+          ids.includes(result.id) ? { ...result, is_favorite: favorite } : result
+        )
+      );
 
-    try {
-      const response = await fetch('/api/v1/links/bulk', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: favorite ? 'favorite' : 'unfavorite', linkIds: ids }),
-      });
+      try {
+        const response = await fetch('/api/v1/links/bulk', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: favorite ? 'favorite' : 'unfavorite', linkIds: ids }),
+        });
 
-      if (!response.ok) {
+        if (!response.ok) {
+          setResults(previousResults);
+          throw new Error('Bulk favorite failed');
+        }
+      } catch (error) {
+        console.error('Bulk favorite failed:', error);
         setResults(previousResults);
-        throw new Error('Bulk favorite failed');
+        throw error;
       }
-    } catch (error) {
-      console.error('Bulk favorite failed:', error);
-      setResults(previousResults);
-      throw error;
-    }
-  }, [results]);
+    },
+    [results]
+  );
 
   const allResultIds = results.map((r) => r.id);
 
@@ -409,10 +433,20 @@ function SearchClientContent() {
               transition-colors
             "
           >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+              />
             </svg>
-            선택
+            {t('search.select')}
           </button>
         )}
         {/* Search input */}
@@ -436,7 +470,7 @@ function SearchClientContent() {
                 setShowRecentSearches(false);
               }
             }}
-            placeholder="Search links..."
+            placeholder={t('search.placeholder')}
             className="w-full h-12 rounded-xl border border-border bg-surface px-4 pl-12 text-foreground placeholder:text-foreground-faint focus:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
           />
           <svg
@@ -490,25 +524,47 @@ function SearchClientContent() {
         {results.length === 0 && !isLoading && (filters.query || hasActiveFilters) && (
           <div className="py-16 text-center">
             <div className="w-14 h-14 rounded-2xl bg-surface flex items-center justify-center mx-auto mb-4">
-              <svg className="w-7 h-7 text-foreground-faint" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              <svg
+                className="w-7 h-7 text-foreground-faint"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={1.5}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
               </svg>
             </div>
             <p className="text-foreground-muted font-medium">
-              {filters.query ? `No results found for "${filters.query}"` : 'No results found'}
+              {filters.query
+                ? t('search.noResults', { query: filters.query })
+                : t('search.noResultsGeneral')}
             </p>
-            <p className="mt-1 text-sm text-foreground-faint">Try different keywords or filters</p>
+            <p className="mt-1 text-sm text-foreground-faint">{t('search.tryDifferent')}</p>
           </div>
         )}
 
         {results.length === 0 && !isLoading && !filters.query && !hasActiveFilters && (
           <div className="py-16 text-center">
             <div className="w-14 h-14 rounded-2xl bg-surface flex items-center justify-center mx-auto mb-4">
-              <svg className="w-7 h-7 text-foreground-faint" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              <svg
+                className="w-7 h-7 text-foreground-faint"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={1.5}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
               </svg>
             </div>
-            <p className="text-foreground-muted">Start typing or use filters to search your links</p>
+            <p className="text-foreground-muted">{t('search.startTyping')}</p>
           </div>
         )}
 
@@ -518,7 +574,9 @@ function SearchClientContent() {
             group flex gap-4 rounded-xl border bg-surface p-4 transition-all cursor-pointer
             hover:bg-surface-hover hover:border-border-hover hover:shadow-sm
             ${isSelected ? 'border-primary ring-2 ring-primary/20' : 'border-border'}
-          `.trim().replace(/\s+/g, ' ');
+          `
+            .trim()
+            .replace(/\s+/g, ' ');
 
           const content = (
             <>
@@ -534,14 +592,21 @@ function SearchClientContent() {
                     className={`
                       w-5 h-5 rounded border-2 flex items-center justify-center
                       transition-all duration-150
-                      ${isSelected
-                        ? 'bg-primary border-primary'
-                        : 'border-foreground-muted hover:border-primary'
+                      ${
+                        isSelected
+                          ? 'bg-primary border-primary'
+                          : 'border-foreground-muted hover:border-primary'
                       }
                     `}
                   >
                     {isSelected && (
-                      <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                      <svg
+                        className="w-3 h-3 text-white"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth={3}
+                      >
                         <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                       </svg>
                     )}
@@ -551,127 +616,178 @@ function SearchClientContent() {
 
               {/* Favicon */}
               <div className="flex-shrink-0 pt-0.5">
-              {result.canonical.favicon ? (
-                <Image
-                  src={result.canonical.favicon}
-                  alt=""
-                  width={24}
-                  height={24}
-                  className="rounded"
-                  unoptimized
-                />
-              ) : (
-                <div className="flex h-6 w-6 items-center justify-center rounded bg-surface-hover">
-                  <svg className="h-4 w-4 text-foreground-faint" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
-                    />
-                  </svg>
-                </div>
-              )}
-            </div>
-
-            {/* Content */}
-            <div className="min-w-0 flex-1">
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex items-center gap-2 min-w-0">
-                  <h3 className="font-medium text-foreground group-hover:text-primary-light transition-colors line-clamp-1">
-                    {getDisplayTitle(result)}
-                  </h3>
-                  {result.is_favorite && (
-                    <svg className="w-4 h-4 flex-shrink-0 text-yellow-500" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                {result.canonical.favicon ? (
+                  <Image
+                    src={result.canonical.favicon}
+                    alt=""
+                    width={24}
+                    height={24}
+                    className="rounded"
+                    unoptimized
+                  />
+                ) : (
+                  <div className="flex h-6 w-6 items-center justify-center rounded bg-surface-hover">
+                    <svg
+                      className="h-4 w-4 text-foreground-faint"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
+                      />
                     </svg>
-                  )}
-                </div>
-                <span className="flex-shrink-0 text-xs text-foreground-faint">{result.canonical.domain}</span>
+                  </div>
+                )}
               </div>
 
-              {getDisplayDescription(result) && (
-                <p className="mt-1.5 line-clamp-2 text-sm text-foreground-muted">{getDisplayDescription(result)}</p>
-              )}
-
-              <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5">
-                {/* Search match type - only show in NL mode */}
-                {searchMeta?.mode === 'nl' && result.similarity !== undefined && (
-                  <span
-                    className={`inline-flex items-center gap-1 text-xs font-medium ${
-                      result.keyword_match
-                        ? 'text-blue-600 dark:text-blue-400'
-                        : 'text-purple-600 dark:text-purple-400'
-                    }`}
-                  >
-                    {result.keyword_match ? (
-                      <>
-                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                        </svg>
-                        키워드 매칭
-                      </>
-                    ) : (
-                      <>
-                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                        </svg>
-                        AI 매칭 {(result.similarity * 100).toFixed(0)}%
-                      </>
+              {/* Content */}
+              <div className="min-w-0 flex-1">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <h3 className="font-medium text-foreground group-hover:text-primary-light transition-colors line-clamp-1">
+                      {getDisplayTitle(result)}
+                    </h3>
+                    {result.is_favorite && (
+                      <svg
+                        className="w-4 h-4 flex-shrink-0 text-yellow-500"
+                        fill="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                      </svg>
                     )}
+                  </div>
+                  <span className="flex-shrink-0 text-xs text-foreground-faint">
+                    {result.canonical.domain}
                   </span>
+                </div>
+
+                {getDisplayDescription(result) && (
+                  <p className="mt-1.5 line-clamp-2 text-sm text-foreground-muted">
+                    {getDisplayDescription(result)}
+                  </p>
                 )}
 
-                {/* Separator */}
-                {searchMeta?.mode === 'nl' && result.similarity !== undefined && (result.folder || result.tags.length > 0) && (
-                  <span className="text-foreground-faint">·</span>
-                )}
-
-                {/* Folder with icon - clickable */}
-                {result.folder && (
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      router.push(`/folders/${result.folder!.id}`);
-                    }}
-                    className="inline-flex items-center gap-1 text-xs text-foreground-muted hover:text-primary hover:bg-primary/10 px-1.5 py-0.5 -mx-1.5 -my-0.5 rounded transition-colors"
-                  >
-                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z" />
-                    </svg>
-                    {result.folder.name}
-                  </button>
-                )}
-
-                {/* Tags with # prefix */}
-                {result.tags.length > 0 && (
-                  <span className="inline-flex items-center gap-1 text-xs text-foreground-muted">
-                    {result.tags.map((tag, idx) => (
-                      <span key={tag.id} className="text-primary-light">
-                        #{tag.name}{idx < result.tags.length - 1 ? '' : ''}
-                      </span>
-                    ))}
-                  </span>
-                )}
-
-                {/* Dates - created and updated */}
-                <span className="inline-flex items-center gap-1.5 text-xs text-foreground-faint">
-                  <span title="생성일">
-                    {new Date(result.created_at).toLocaleDateString()}
-                  </span>
-                  {result.updated_at && new Date(result.updated_at).getTime() - new Date(result.created_at).getTime() > 60000 && (
-                    <>
-                      <span className="text-foreground-faint/50">→</span>
-                      <span title="수정일" className="text-foreground-muted">
-                        {new Date(result.updated_at).toLocaleDateString()}
-                      </span>
-                    </>
+                <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5">
+                  {/* Search match type - only show in NL mode */}
+                  {searchMeta?.mode === 'nl' && result.similarity !== undefined && (
+                    <span
+                      className={`inline-flex items-center gap-1 text-xs font-medium ${
+                        result.keyword_match
+                          ? 'text-blue-600 dark:text-blue-400'
+                          : 'text-purple-600 dark:text-purple-400'
+                      }`}
+                    >
+                      {result.keyword_match ? (
+                        <>
+                          <svg
+                            className="w-3.5 h-3.5"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                            strokeWidth={2}
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                            />
+                          </svg>
+                          {t('search.keywordMatch')}
+                        </>
+                      ) : (
+                        <>
+                          <svg
+                            className="w-3.5 h-3.5"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                            strokeWidth={2}
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+                            />
+                          </svg>
+                          {t('search.aiMatch', {
+                            similarity: (result.similarity * 100).toFixed(0),
+                          })}
+                        </>
+                      )}
+                    </span>
                   )}
-                </span>
+
+                  {/* Separator */}
+                  {searchMeta?.mode === 'nl' &&
+                    result.similarity !== undefined &&
+                    (result.folder || result.tags.length > 0) && (
+                      <span className="text-foreground-faint">·</span>
+                    )}
+
+                  {/* Folder with icon - clickable */}
+                  {result.folder && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        router.push(`/folders/${result.folder!.id}`);
+                      }}
+                      className="inline-flex items-center gap-1 text-xs text-foreground-muted hover:text-primary hover:bg-primary/10 px-1.5 py-0.5 -mx-1.5 -my-0.5 rounded transition-colors"
+                    >
+                      <svg
+                        className="w-3.5 h-3.5"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth={1.5}
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z"
+                        />
+                      </svg>
+                      {result.folder.name}
+                    </button>
+                  )}
+
+                  {/* Tags with # prefix */}
+                  {result.tags.length > 0 && (
+                    <span className="inline-flex items-center gap-1 text-xs text-foreground-muted">
+                      {result.tags.map((tag, idx) => (
+                        <span key={tag.id} className="text-primary-light">
+                          #{tag.name}
+                          {idx < result.tags.length - 1 ? '' : ''}
+                        </span>
+                      ))}
+                    </span>
+                  )}
+
+                  {/* Dates - created and updated */}
+                  <span className="inline-flex items-center gap-1.5 text-xs text-foreground-faint">
+                    <span title={t('search.createdDate')}>
+                      {new Date(result.created_at).toLocaleDateString()}
+                    </span>
+                    {result.updated_at &&
+                      new Date(result.updated_at).getTime() -
+                        new Date(result.created_at).getTime() >
+                        60000 && (
+                        <>
+                          <span className="text-foreground-faint/50">&rarr;</span>
+                          <span title={t('search.modifiedDate')} className="text-foreground-muted">
+                            {new Date(result.updated_at).toLocaleDateString()}
+                          </span>
+                        </>
+                      )}
+                  </span>
+                </div>
               </div>
-            </div>
             </>
           );
 
@@ -695,11 +811,7 @@ function SearchClientContent() {
           }
 
           return (
-            <Link
-              key={result.id}
-              href={`/links/${result.canonical.id}`}
-              className={baseClassName}
-            >
+            <Link key={result.id} href={`/links/${result.canonical.id}`} className={baseClassName}>
               {content}
             </Link>
           );
@@ -709,7 +821,11 @@ function SearchClientContent() {
       {/* Results count & search mode */}
       {results.length > 0 && (
         <div className="flex items-center justify-center gap-3 text-sm text-foreground-muted pt-2">
-          <span>Found {results.length} {results.length === 1 ? 'result' : 'results'}</span>
+          <span>
+            {results.length === 1
+              ? t('search.foundResultOne', { count: results.length })
+              : t('search.foundResults', { count: results.length })}
+          </span>
           {searchMeta && (
             <span
               className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
@@ -720,25 +836,43 @@ function SearchClientContent() {
             >
               {searchMeta.mode === 'nl' ? (
                 <>
-                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                  <svg
+                    className="w-3 h-3"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+                    />
                   </svg>
-                  AI Search
+                  {t('search.aiSearch')}
                 </>
               ) : (
                 <>
-                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  <svg
+                    className="w-3 h-3"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                    />
                   </svg>
-                  Exact
+                  {t('search.exact')}
                 </>
               )}
             </span>
           )}
           {searchMeta?.latencyMs && (
-            <span className="text-xs text-foreground-faint">
-              {searchMeta.latencyMs}ms
-            </span>
+            <span className="text-xs text-foreground-faint">{searchMeta.latencyMs}ms</span>
           )}
         </div>
       )}

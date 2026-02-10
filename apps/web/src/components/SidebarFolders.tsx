@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useLocale } from '@/components/LanguageProvider';
 
 interface Folder {
   id: string;
@@ -19,6 +20,7 @@ interface SidebarFoldersProps {
 }
 
 export function SidebarFolders({ folders, linkCounts = {} }: SidebarFoldersProps) {
+  const { t } = useLocale();
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
   const pathname = usePathname();
 
@@ -49,11 +51,14 @@ export function SidebarFolders({ folders, linkCounts = {} }: SidebarFoldersProps
             group flex items-center gap-1
             rounded-md px-1.5 py-1
             text-[13px] transition-colors duration-150
-            ${isSelected
-              ? 'bg-primary/15 text-primary-light'
-              : 'text-foreground-secondary hover:bg-hover hover:text-foreground'
+            ${
+              isSelected
+                ? 'bg-primary/15 text-primary-light'
+                : 'text-foreground-secondary hover:bg-hover hover:text-foreground'
             }
-          `.trim().replace(/\s+/g, ' ')}
+          `
+            .trim()
+            .replace(/\s+/g, ' ')}
           style={{ paddingLeft: `${paddingLeft}px` }}
         >
           {/* Expand/Collapse button - only render if has children */}
@@ -110,10 +115,7 @@ export function SidebarFolders({ folders, linkCounts = {} }: SidebarFoldersProps
           )}
 
           {/* Folder name as link */}
-          <Link
-            href={`/folders/${folder.id}`}
-            className="flex-1 truncate"
-          >
+          <Link href={`/folders/${folder.id}`} className="flex-1 truncate">
             {folder.name}
           </Link>
 
@@ -138,20 +140,16 @@ export function SidebarFolders({ folders, linkCounts = {} }: SidebarFoldersProps
   if (folders.length === 0) {
     return (
       <div className="px-2 py-4 text-center">
-        <p className="text-xs text-foreground-faint mb-1">No folders yet.</p>
+        <p className="text-xs text-foreground-faint mb-1">{t('sidebar.noFolders')}</p>
         <Link
           href="/import"
           className="text-xs text-primary-light hover:text-primary transition-colors"
         >
-          Import bookmarks
+          {t('sidebar.importBookmarks')}
         </Link>
       </div>
     );
   }
 
-  return (
-    <div className="space-y-0.5">
-      {folders.map((folder) => renderFolder(folder, 0))}
-    </div>
-  );
+  return <div className="space-y-0.5">{folders.map((folder) => renderFolder(folder, 0))}</div>;
 }

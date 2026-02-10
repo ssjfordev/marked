@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { AllLinks } from './AllLinks';
+import { useLocale } from '@/components/LanguageProvider';
 
 interface LinkCanonical {
   id: string;
@@ -26,6 +27,7 @@ interface LinkInstance {
 }
 
 export function AllLinksView() {
+  const { t } = useLocale();
   const [links, setLinks] = useState<LinkInstance[] | null>(null);
 
   useEffect(() => {
@@ -93,16 +95,14 @@ export function AllLinksView() {
               </svg>
             </div>
             <div>
-              <h1 className="text-2xl font-semibold text-foreground">All Links</h1>
-              <p className="text-sm text-foreground-muted">0 links</p>
+              <h1 className="text-2xl font-semibold text-foreground">{t('allLinks.title')}</h1>
+              <p className="text-sm text-foreground-muted">{t('allLinks.count', { count: 0 })}</p>
             </div>
           </div>
         </div>
         <div className="rounded-xl border border-border bg-surface p-12 text-center">
-          <h2 className="text-lg font-medium text-foreground mb-2">No links yet</h2>
-          <p className="text-foreground-muted max-w-sm mx-auto">
-            Import bookmarks or add links to get started.
-          </p>
+          <h2 className="text-lg font-medium text-foreground mb-2">{t('allLinks.empty')}</h2>
+          <p className="text-foreground-muted max-w-sm mx-auto">{t('allLinks.emptyDesc')}</p>
         </div>
       </div>
     );
@@ -128,9 +128,11 @@ export function AllLinksView() {
             </svg>
           </div>
           <div>
-            <h1 className="text-2xl font-semibold text-foreground">All Links</h1>
+            <h1 className="text-2xl font-semibold text-foreground">{t('allLinks.title')}</h1>
             <p className="text-sm text-foreground-muted">
-              {links.length} {links.length === 1 ? 'link' : 'links'}
+              {links.length === 1
+                ? t('allLinks.countOne', { count: links.length })
+                : t('allLinks.count', { count: links.length })}
             </p>
           </div>
         </div>

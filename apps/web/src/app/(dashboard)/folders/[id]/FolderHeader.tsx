@@ -3,6 +3,7 @@
 import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { IconPicker } from '@/components/ui/IconPicker';
+import { useLocale } from '@/components/LanguageProvider';
 
 interface FolderHeaderProps {
   folderId: string;
@@ -13,6 +14,7 @@ interface FolderHeaderProps {
 
 export function FolderHeader({ folderId, name, icon, linkCount }: FolderHeaderProps) {
   const router = useRouter();
+  const { t } = useLocale();
   const [isPickerOpen, setIsPickerOpen] = useState(false);
   const [currentIcon, setCurrentIcon] = useState(icon);
 
@@ -43,7 +45,7 @@ export function FolderHeader({ folderId, name, icon, linkCount }: FolderHeaderPr
         <button
           onClick={() => setIsPickerOpen(!isPickerOpen)}
           className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center hover:bg-primary/20 transition-colors"
-          title="Change icon"
+          title={t('folder.changeIcon')}
         >
           {currentIcon ? (
             <span className="text-2xl">{currentIcon}</span>
@@ -79,7 +81,9 @@ export function FolderHeader({ folderId, name, icon, linkCount }: FolderHeaderPr
         <h1 className="text-2xl font-semibold text-foreground">{name}</h1>
         {linkCount !== undefined && (
           <p className="text-sm text-foreground-muted">
-            {linkCount} {linkCount === 1 ? 'link' : 'links'}
+            {linkCount === 1
+              ? t('folder.linkCountOne', { count: linkCount })
+              : t('folder.linkCount', { count: linkCount })}
           </p>
         )}
       </div>

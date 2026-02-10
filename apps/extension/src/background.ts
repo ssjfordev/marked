@@ -15,6 +15,7 @@ import type {
   DeleteLinkPayload,
   UpdateMarkPayload,
   DeleteMarkPayload,
+  GetMarksPayload,
   ExistingLinkInfo,
 } from '@marked/shared';
 
@@ -78,7 +79,12 @@ chrome.runtime.onMessage.addListener((message: ExtensionMessage, _sender, sendRe
 // Handle external messages from web app (externally_connectable)
 chrome.runtime.onMessageExternal.addListener((message, sender, sendResponse) => {
   // Verify sender origin
-  const allowedOrigins = ['http://localhost', 'https://localhost', 'https://marked.app'];
+  const allowedOrigins = [
+    'http://localhost',
+    'https://localhost',
+    'https://www.marked-app.com',
+    'https://marked-app.com',
+  ];
 
   const senderOrigin = sender.origin || '';
   const isAllowed = allowedOrigins.some((origin) => senderOrigin.startsWith(origin));
@@ -161,11 +167,17 @@ async function handleMessage(message: ExtensionMessage): Promise<unknown> {
     case 'DELETE_MARK':
       return deleteMark(message.payload as DeleteMarkPayload);
 
+    case 'GET_MARKS':
+      return getMarks(message.payload as GetMarksPayload);
+
     case 'GET_CURRENT_TAB':
       return getCurrentTab();
 
     case 'GET_FOLDERS':
       return getFolders();
+
+    case 'GET_TAGS':
+      return getTags();
 
     case 'AUTH_STATUS':
       return getAuthStatus();
@@ -234,7 +246,7 @@ async function createMark(
     if (linkResponse.ok) {
       const data = await linkResponse.json();
       const linkData = 'data' in data ? data.data : data;
-      canonicalId = linkData.link_canonical_id || linkData.canonical_id;
+      canonicalId = linkData.link_canonical_id;
     } else {
       // Create the link first
       const createResponse = await fetch(`${API_BASE_URL}/api/v1/links`, {
@@ -252,7 +264,7 @@ async function createMark(
 
       const createData = await createResponse.json();
       const created = 'data' in createData ? createData.data : createData;
-      canonicalId = created.link_canonical_id || created.canonical_id;
+      canonicalId = created.link_canonical_id;
     }
 
     // Create the mark
@@ -548,17 +560,106 @@ async function getCurrentTab(): Promise<{
       },
     });
 
-    const metadata = results?.[0]?.result || {};
+    const metadata = results?.[0]?.result as
+      | { description?: string; ogImage?: string; favicon?: string }
+      | undefined;
     return {
       url: tab.url,
       title: tab.title,
-      description: metadata.description,
-      ogImage: metadata.ogImage,
-      favicon: metadata.favicon,
+      description: metadata?.description,
+      ogImage: metadata?.ogImage,
+      favicon: metadata?.favicon,
     };
   } catch {
     // If script injection fails, return basic info
     return { url: tab.url, title: tab.title };
+  }
+}
+
+async function getMarks(
+  payload: GetMarksPayload
+): Promise<{
+  success: boolean;
+  marks?: Array<{ id: string; text: string; color: string; note: string | null }>;
+  error?: string;
+}> {
+  try {
+    const token = await getAuthToken();
+    if (!token) {
+      return { success: false, error: 'Not authenticated' };
+    }
+
+    // First find the canonical for this URL
+    const linkResponse = await fetch(
+      `${API_BASE_URL}/api/v1/links/by-url?url=${encodeURIComponent(payload.url)}`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    );
+
+    if (!linkResponse.ok) {
+      return { success: true, marks: [] };
+    }
+
+    const data = await linkResponse.json();
+    const linkData = 'data' in data ? data.data : data;
+    if (!linkData) {
+      return { success: true, marks: [] };
+    }
+
+    const canonicalId = linkData.link_canonical_id;
+    if (!canonicalId) {
+      return { success: true, marks: [] };
+    }
+
+    // Fetch marks for this canonical
+    const marksResponse = await fetch(`${API_BASE_URL}/api/v1/links/${canonicalId}/marks`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    if (!marksResponse.ok) {
+      return { success: true, marks: [] };
+    }
+
+    const marksData = await marksResponse.json();
+    const marks = marksData.marks || [];
+    return {
+      success: true,
+      marks: marks.map((m: { id: string; text: string; color: string; note: string | null }) => ({
+        id: m.id,
+        text: m.text,
+        color: m.color,
+        note: m.note,
+      })),
+    };
+  } catch {
+    return { success: false, error: 'Failed to load marks' };
+  }
+}
+
+async function getTags(): Promise<{ success: boolean; tags?: string[]; error?: string }> {
+  try {
+    const token = await getAuthToken();
+    if (!token) {
+      return { success: false, error: 'Not authenticated' };
+    }
+
+    const response = await fetch(`${API_BASE_URL}/api/v1/tags`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    if (!response.ok) {
+      return { success: false, error: 'Failed to load tags' };
+    }
+
+    const data = await response.json();
+    const tags = 'data' in data ? data.data : data;
+    return {
+      success: true,
+      tags: (tags || []).map((t: { name: string }) => t.name),
+    };
+  } catch {
+    return { success: false, error: 'Failed to load tags' };
   }
 }
 

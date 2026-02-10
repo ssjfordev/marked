@@ -1,7 +1,10 @@
 import type { Metadata } from 'next';
+import { cookies } from 'next/headers';
 import { DM_Sans, Geist_Mono } from 'next/font/google';
 import { GoogleAnalytics } from '@/components/analytics/GoogleAnalytics';
 import { ThemeProvider } from '@/components/ThemeProvider';
+import { LanguageProvider } from '@/components/LanguageProvider';
+import { COOKIE_NAME, DEFAULT_LOCALE, type Locale } from '@/i18n/types';
 import './globals.css';
 
 const dmSans = DM_Sans({
@@ -36,24 +39,40 @@ const themeScript = `
   })();
 `;
 
+// Script to prevent flash of wrong locale (reads cookie before hydration)
+const localeScript = `
+  (function() {
+    var m = document.cookie.match(/NEXT_LOCALE=([^;]+)/);
+    if (m && m[1]) document.documentElement.lang = m[1];
+  })();
+`;
+
 const buildInfoScript =
   process.env.ENV === 'development'
     ? `console.log('%c[Marked] commit: ${process.env.NEXT_PUBLIC_COMMIT_HASH} | built: ${process.env.NEXT_PUBLIC_BUILD_TIME}', 'color: #059669; font-weight: bold;');`
     : '';
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const cookieStore = await cookies();
+  const localeCookie = cookieStore.get(COOKIE_NAME)?.value;
+  const locale: Locale =
+    localeCookie === 'en' ? 'en' : localeCookie === 'ko' ? 'ko' : DEFAULT_LOCALE;
+
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang={locale} suppressHydrationWarning>
       <head>
+        <script dangerouslySetInnerHTML={{ __html: localeScript }} />
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
         {buildInfoScript && <script dangerouslySetInnerHTML={{ __html: buildInfoScript }} />}
       </head>
       <body className={`${dmSans.variable} ${geistMono.variable} antialiased`}>
-        <ThemeProvider>{children}</ThemeProvider>
+        <LanguageProvider initialLocale={locale}>
+          <ThemeProvider>{children}</ThemeProvider>
+        </LanguageProvider>
         <GoogleAnalytics />
       </body>
     </html>

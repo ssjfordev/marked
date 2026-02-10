@@ -8,6 +8,7 @@ import { debounce } from '@/lib/utils/debounce';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { TagInput } from '@/components/ui/TagInput';
 import { TEXT_LIMITS } from '@/lib/api/sanitize';
+import { useLocale } from '@/components/LanguageProvider';
 
 interface LinkCanonical {
   id: string;
@@ -61,6 +62,7 @@ export function AssetPageClient({
   hasMemoAccess,
 }: AssetPageClientProps) {
   const router = useRouter();
+  const { t } = useLocale();
   const [memoContent, setMemoContent] = useState(memo?.content ?? '');
   const [isSavingMemo, setIsSavingMemo] = useState(false);
   const [addingTag, setAddingTag] = useState(false);
@@ -242,7 +244,7 @@ export function AssetPageClient({
                   setAddingTag(false);
                   setNewTagName('');
                 }}
-                placeholder="Search or create tag..."
+                placeholder={t('asset.searchOrCreateTag')}
                 autoFocus
               />
             </div>
@@ -251,7 +253,7 @@ export function AssetPageClient({
               onClick={() => setAddingTag(true)}
               className="rounded-full border border-dashed border-border px-3 py-1.5 text-sm text-foreground-muted hover:border-border-hover hover:text-foreground transition-colors"
             >
-              + Add tag
+              {t('asset.addTag')}
             </button>
           )}
         </div>
@@ -288,17 +290,15 @@ export function AssetPageClient({
             </div>
             <div className="flex-1">
               <span className="font-medium" style={{ color: 'var(--status-warning-text)' }}>
-                Upgrade to unlock full features
+                {t('asset.upgradeTitle')}
               </span>
-              <p className="mt-0.5 text-sm text-foreground-muted">
-                Memo editing and advanced mark features are available with a Pro subscription.
-              </p>
+              <p className="mt-0.5 text-sm text-foreground-muted">{t('asset.upgradeDesc')}</p>
             </div>
             <Link
               href="/settings/billing"
               className="flex-shrink-0 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary-dark transition-colors"
             >
-              Upgrade to Pro
+              {t('asset.upgradeToPro')}
             </Link>
           </div>
         </div>
@@ -313,7 +313,7 @@ export function AssetPageClient({
                 <path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" />
               </svg>
             </div>
-            Marks
+            {t('asset.marks')}
             <span className="text-sm font-normal text-foreground-muted">({marks.length})</span>
           </h2>
 
@@ -334,10 +334,8 @@ export function AssetPageClient({
                   />
                 </svg>
               </div>
-              <p className="text-foreground-muted">No marks yet</p>
-              <p className="mt-1 text-sm text-foreground-faint">
-                Highlight text while browsing to add marks
-              </p>
+              <p className="text-foreground-muted">{t('asset.noMarks')}</p>
+              <p className="mt-1 text-sm text-foreground-faint">{t('asset.noMarksDesc')}</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -358,7 +356,7 @@ export function AssetPageClient({
                         onClick={() => setDeleteMarkId(mark.id)}
                         className="opacity-0 group-hover:opacity-100 text-danger hover:text-danger/80 transition-all"
                       >
-                        Delete
+                        {t('common.delete')}
                       </button>
                     )}
                   </div>
@@ -386,9 +384,11 @@ export function AssetPageClient({
                 />
               </svg>
             </div>
-            Memo
+            {t('asset.memo')}
             {hasMemoAccess && isSavingMemo && (
-              <span className="text-xs font-normal text-foreground-faint ml-auto">Saving...</span>
+              <span className="text-xs font-normal text-foreground-faint ml-auto">
+                {t('common.saving')}
+              </span>
             )}
           </h2>
 
@@ -396,7 +396,7 @@ export function AssetPageClient({
             <textarea
               value={memoContent}
               onChange={handleMemoChange}
-              placeholder="Add your notes about this page..."
+              placeholder={t('asset.memoPlaceholder')}
               className="min-h-[200px] w-full resize-y rounded-xl border border-border bg-surface-hover p-4 text-foreground placeholder:text-foreground-faint focus:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
               maxLength={TEXT_LIMITS.LONG_TEXT}
             />
@@ -417,12 +417,12 @@ export function AssetPageClient({
                   />
                 </svg>
               </div>
-              <p className="text-foreground-muted">Memos are a Pro feature</p>
+              <p className="text-foreground-muted">{t('asset.memoProFeature')}</p>
               <Link
                 href="/settings/billing"
                 className="mt-2 inline-block text-sm text-primary-light hover:text-primary-dark transition-colors"
               >
-                Upgrade to unlock
+                {t('asset.unlockUpgrade')}
               </Link>
             </div>
           )}
@@ -436,10 +436,10 @@ export function AssetPageClient({
         onConfirm={() => {
           if (deleteMarkId) handleDeleteMark(deleteMarkId);
         }}
-        title="Delete mark"
-        message="Delete this mark?"
-        confirmText="Delete"
-        cancelText="Cancel"
+        title={t('asset.deleteMark')}
+        message={t('asset.deleteMarkConfirm')}
+        confirmText={t('common.delete')}
+        cancelText={t('common.cancel')}
         confirmVariant="danger"
       />
     </div>

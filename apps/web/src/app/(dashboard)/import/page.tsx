@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ExportGuideModal } from '@/components/import/ExportGuideModal';
 import { getFormatDisplayName, type ImportFormat } from '@/domain/import';
+import { useLocale } from '@/components/LanguageProvider';
 
 interface ImportJob {
   id: string;
@@ -21,6 +22,7 @@ interface ImportJob {
 
 export default function ImportPage() {
   const router = useRouter();
+  const { t } = useLocale();
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [currentJob, setCurrentJob] = useState<ImportJob | null>(null);
@@ -83,33 +85,39 @@ export default function ImportPage() {
     return ext === 'html' || ext === 'htm' || ext === 'csv';
   };
 
-  const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = e.target.files?.[0];
-    if (selectedFile) {
-      if (!isValidExtension(selectedFile.name)) {
-        setError('HTML 또는 CSV 파일만 업로드할 수 있습니다.');
-        return;
+  const handleFileChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const selectedFile = e.target.files?.[0];
+      if (selectedFile) {
+        if (!isValidExtension(selectedFile.name)) {
+          setError(t('import.onlyHtmlCsv'));
+          return;
+        }
+        setFile(selectedFile);
+        setError(null);
+        setDetectedFormat(null); // Will be detected on upload
       }
-      setFile(selectedFile);
-      setError(null);
-      setDetectedFormat(null); // Will be detected on upload
-    }
-  }, []);
+    },
+    [t]
+  );
 
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragOver(false);
-    const droppedFile = e.dataTransfer.files?.[0];
-    if (droppedFile) {
-      if (!isValidExtension(droppedFile.name)) {
-        setError('HTML 또는 CSV 파일만 업로드할 수 있습니다.');
-        return;
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      setIsDragOver(false);
+      const droppedFile = e.dataTransfer.files?.[0];
+      if (droppedFile) {
+        if (!isValidExtension(droppedFile.name)) {
+          setError(t('import.onlyHtmlCsv'));
+          return;
+        }
+        setFile(droppedFile);
+        setError(null);
+        setDetectedFormat(null);
       }
-      setFile(droppedFile);
-      setError(null);
-      setDetectedFormat(null);
-    }
-  }, []);
+    },
+    [t]
+  );
 
   const handleUpload = async () => {
     if (!file) return;
@@ -210,10 +218,8 @@ export default function ImportPage() {
   return (
     <div className="max-w-3xl mx-auto">
       <div className="mb-8">
-        <h1 className="text-2xl font-semibold text-foreground mb-2">Import Bookmarks</h1>
-        <p className="text-foreground-muted">
-          Chrome, Firefox, Safari, Edge, Raindrop 또는 CSV 파일에서 북마크를 가져올 수 있습니다.
-        </p>
+        <h1 className="text-2xl font-semibold text-foreground mb-2">{t('import.title')}</h1>
+        <p className="text-foreground-muted">{t('import.desc')}</p>
       </div>
 
       {/* Main Section - Upload or Progress */}
@@ -244,13 +250,18 @@ export default function ImportPage() {
                     />
                   </svg>
                 </div>
-                <h2 className="text-lg font-medium text-foreground mb-2">Importing...</h2>
+                <h2 className="text-lg font-medium text-foreground mb-2">
+                  {t('import.importing')}
+                </h2>
                 <p className="text-sm text-foreground-muted mb-1">
-                  {currentJob.processed_items} / {currentJob.total_items} items processed
+                  {t('import.processed', {
+                    processed: currentJob.processed_items,
+                    total: currentJob.total_items,
+                  })}
                 </p>
                 {detectedFormat && (
                   <p className="text-xs text-foreground-muted mb-4">
-                    감지된 형식: {getFormatDisplayName(detectedFormat)}
+                    {t('import.detectedFormat', { format: getFormatDisplayName(detectedFormat) })}
                   </p>
                 )}
                 <div className="max-w-md mx-auto h-2 overflow-hidden rounded-full bg-surface-hover">
@@ -278,14 +289,15 @@ export default function ImportPage() {
                     <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                   </svg>
                 </div>
-                <h2 className="text-lg font-medium text-foreground mb-2">Import Complete</h2>
+                <h2 className="text-lg font-medium text-foreground mb-2">{t('import.complete')}</h2>
                 <p className="text-sm mb-6" style={{ color: 'var(--status-success-text)' }}>
-                  Successfully imported {currentJob.processed_items - currentJob.failed_items}{' '}
-                  bookmarks
+                  {t('import.successCount', {
+                    count: currentJob.processed_items - currentJob.failed_items,
+                  })}
                   {currentJob.failed_items > 0 && (
                     <span className="text-foreground-muted">
                       {' '}
-                      ({currentJob.failed_items} failed)
+                      {t('import.failedCount', { count: currentJob.failed_items })}
                     </span>
                   )}
                 </p>
@@ -294,7 +306,7 @@ export default function ImportPage() {
                     onClick={() => router.push('/dashboard')}
                     className="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-primary-dark"
                   >
-                    View Dashboard
+                    {t('import.viewDashboard')}
                     <svg
                       className="w-4 h-4"
                       fill="none"
@@ -309,7 +321,7 @@ export default function ImportPage() {
                     onClick={() => setCurrentJob(null)}
                     className="inline-flex items-center gap-2 rounded-lg border border-border px-5 py-2.5 text-sm font-medium text-foreground-secondary transition-colors hover:bg-hover"
                   >
-                    Import More
+                    {t('import.importMore')}
                   </button>
                 </div>
               </>
@@ -330,7 +342,7 @@ export default function ImportPage() {
                     <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </div>
-                <h2 className="text-lg font-medium text-foreground mb-2">Import Failed</h2>
+                <h2 className="text-lg font-medium text-foreground mb-2">{t('import.failed')}</h2>
                 <p className="text-sm mb-6" style={{ color: 'var(--status-error-text)' }}>
                   {currentJob.last_error || 'An error occurred during import'}
                 </p>
@@ -338,7 +350,7 @@ export default function ImportPage() {
                   onClick={() => setCurrentJob(null)}
                   className="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-primary-dark"
                 >
-                  Try Again
+                  {t('import.tryAgain')}
                 </button>
               </>
             )}
@@ -378,11 +390,11 @@ export default function ImportPage() {
                   htmlFor="file-input"
                   className="cursor-pointer font-medium text-primary-light hover:text-primary-dark transition-colors"
                 >
-                  Click to upload
+                  {t('import.clickUpload')}
                 </label>{' '}
-                or drag and drop
+                {t('import.orDragDrop')}
               </p>
-              <p className="text-sm text-foreground-muted">HTML 또는 CSV 파일 (최대 10MB)</p>
+              <p className="text-sm text-foreground-muted">{t('import.fileTypes')}</p>
 
               <input
                 id="file-input"
@@ -469,7 +481,7 @@ export default function ImportPage() {
                             d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                           />
                         </svg>
-                        Starting...
+                        {t('import.starting')}
                       </>
                     ) : (
                       <>
@@ -486,7 +498,7 @@ export default function ImportPage() {
                             d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
                           />
                         </svg>
-                        Start Import
+                        {t('import.startImport')}
                       </>
                     )}
                   </button>
@@ -510,7 +522,7 @@ export default function ImportPage() {
                         d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
                       />
                     </svg>
-                    Select File
+                    {t('import.selectFile')}
                   </button>
                   <button
                     onClick={() => setShowGuideModal(true)}
@@ -529,7 +541,7 @@ export default function ImportPage() {
                         d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                       />
                     </svg>
-                    도움말
+                    {t('import.help')}
                   </button>
                 </div>
               )}
@@ -543,11 +555,13 @@ export default function ImportPage() {
                     onChange={(e) => setWrapInFolder(e.target.checked)}
                     className="w-4 h-4 rounded border-border text-primary focus:ring-primary"
                   />
-                  <span className="text-xs text-foreground-secondary">상위 폴더로 묶기</span>
+                  <span className="text-xs text-foreground-secondary">
+                    {t('import.wrapInFolder')}
+                  </span>
                 </label>
                 <div className="flex items-center gap-2">
                   <span className="text-[11px] text-foreground-muted whitespace-nowrap">
-                    상위폴더명:
+                    {t('import.parentFolderName')}
                   </span>
                   <input
                     type="text"
@@ -555,7 +569,7 @@ export default function ImportPage() {
                     onChange={(e) => setWrapFolderName(e.target.value)}
                     disabled={!wrapInFolder}
                     className="flex-1 px-2 py-1 text-[11px] border border-border rounded bg-transparent text-foreground-secondary focus:outline-none focus:ring-1 focus:ring-primary/50 disabled:opacity-40 disabled:cursor-not-allowed"
-                    placeholder="폴더명"
+                    placeholder={t('import.folderName')}
                   />
                 </div>
               </div>
@@ -567,12 +581,12 @@ export default function ImportPage() {
       {/* Supported Formats */}
       <div className="mb-8 rounded-xl border border-border bg-surface p-6">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="font-semibold text-foreground">지원 형식</h2>
+          <h2 className="font-semibold text-foreground">{t('import.supportedFormats')}</h2>
           <button
             onClick={() => setShowGuideModal(true)}
             className="text-xs text-primary-light hover:text-primary-dark transition-colors"
           >
-            내보내기 가이드 보기
+            {t('import.viewExportGuide')}
           </button>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -598,7 +612,7 @@ export default function ImportPage() {
       {/* Recent Jobs */}
       {recentJobs.length > 0 && !currentJob && (
         <div>
-          <h2 className="font-semibold text-foreground mb-4">Recent Imports</h2>
+          <h2 className="font-semibold text-foreground mb-4">{t('import.recentImports')}</h2>
           <div className="space-y-2">
             {recentJobs.slice(0, 5).map((job) => (
               <div
@@ -607,7 +621,9 @@ export default function ImportPage() {
               >
                 <div>
                   <p className="text-sm font-medium text-foreground">
-                    {job.processed_items - job.failed_items} bookmarks imported
+                    {t('import.bookmarksImported', {
+                      count: job.processed_items - job.failed_items,
+                    })}
                   </p>
                   <p className="text-xs text-foreground-muted mt-0.5">
                     {getSourceDisplayName(job.source_type)} · {formatDate(job.created_at)}

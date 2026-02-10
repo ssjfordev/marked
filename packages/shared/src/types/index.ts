@@ -97,8 +97,10 @@ export type ExtensionMessageType =
   | 'CREATE_MARK'
   | 'UPDATE_MARK'
   | 'DELETE_MARK'
+  | 'GET_MARKS'
   | 'GET_CURRENT_TAB'
   | 'GET_FOLDERS'
+  | 'GET_TAGS'
   | 'AUTH_STATUS'
   | 'OPEN_POPUP';
 
@@ -161,4 +163,8 @@ export interface UpdateMarkPayload {
 
 export interface DeleteMarkPayload {
   markId: string;
+}
+
+export interface GetMarksPayload {
+  url: string;
 }

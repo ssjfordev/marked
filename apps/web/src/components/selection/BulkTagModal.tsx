@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Modal, ModalFooter } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { TagInput } from '../ui/TagInput';
+import { useLocale } from '@/components/LanguageProvider';
 
 interface BulkTagModalProps {
   isOpen: boolean;
@@ -20,6 +21,7 @@ export function BulkTagModal({
   selectedCount,
   isLoading = false,
 }: BulkTagModalProps) {
+  const { t } = useLocale();
   const [tagName, setTagName] = useState('');
 
   // Reset on close
@@ -35,34 +37,24 @@ export function BulkTagModal({
   };
 
   return (
-    <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      title="태그 추가"
-      size="sm"
-    >
+    <Modal isOpen={isOpen} onClose={onClose} title={t('bulkTag.title')} size="sm">
       <div className="space-y-4">
         <p className="text-foreground-muted text-sm">
-          <span className="font-semibold text-foreground">{selectedCount}개</span>의 링크에 태그를 추가합니다.
+          {t('bulkTag.desc', { count: selectedCount })}
         </p>
         <TagInput
           value={tagName}
           onChange={setTagName}
           onSubmit={handleSubmit}
           onCancel={onClose}
-          placeholder="태그 검색 또는 새로 만들기..."
+          placeholder={t('bulkTag.placeholder')}
           autoFocus
           disabled={isLoading}
         />
       </div>
       <ModalFooter>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onClose}
-          disabled={isLoading}
-        >
-          취소
+        <Button variant="ghost" size="sm" onClick={onClose} disabled={isLoading}>
+          {t('common.cancel')}
         </Button>
         <Button
           variant="primary"
@@ -71,7 +63,7 @@ export function BulkTagModal({
           disabled={!tagName.trim() || isLoading}
           loading={isLoading}
         >
-          태그 추가
+          {t('bulkTag.add')}
         </Button>
       </ModalFooter>
     </Modal>

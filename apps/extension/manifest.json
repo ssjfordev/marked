@@ -51,6 +51,6 @@
     }
   },
   "externally_connectable": {
-    "matches": ["http://localhost:*/*", "https://localhost:*/*", "https://*.marked.app/*"]
+    "matches": ["http://localhost:*/*", "https://localhost:*/*", "https://*.marked-app.com/*"]
   }
 }

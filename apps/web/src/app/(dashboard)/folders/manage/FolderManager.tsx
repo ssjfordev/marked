@@ -8,6 +8,7 @@ import { IconButton } from '@/components/ui/IconButton';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { IconPicker, FolderIcon } from '@/components/ui/IconPicker';
 import { Toast } from '@/components/ui/Toast';
+import { useLocale } from '@/components/LanguageProvider';
 
 interface Folder {
   id: string;
@@ -24,6 +25,7 @@ interface FolderManagerProps {
 
 export function FolderManager({ initialFolders }: FolderManagerProps) {
   const router = useRouter();
+  const { t } = useLocale();
   const [folders, setFolders] = useState(initialFolders);
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
   const [hasReorderChanges, setHasReorderChanges] = useState(false);
@@ -664,7 +666,7 @@ export function FolderManager({ initialFolders }: FolderManagerProps) {
                 setIconPickerFolderId(iconPickerFolderId === folder.id ? null : folder.id)
               }
               className="flex items-center justify-center w-6 h-6 rounded hover:bg-hover transition-colors"
-              title="아이콘 변경"
+              title={t('folderManager.changeIcon')}
             >
               <FolderIcon icon={folder.icon} isExpanded={isExpanded} editable />
             </button>
@@ -706,7 +708,7 @@ export function FolderManager({ initialFolders }: FolderManagerProps) {
             <IconButton
               variant="ghost"
               size="sm"
-              label="New subfolder"
+              label={t('folderManager.newSubfolder')}
               icon={
                 <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
@@ -717,7 +719,7 @@ export function FolderManager({ initialFolders }: FolderManagerProps) {
             <IconButton
               variant="ghost"
               size="sm"
-              label="Rename"
+              label={t('folderManager.rename')}
               icon={
                 <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path
@@ -732,7 +734,7 @@ export function FolderManager({ initialFolders }: FolderManagerProps) {
             <IconButton
               variant="danger"
               size="sm"
-              label="Delete folder"
+              label={t('folderManager.deleteFolder')}
               icon={
                 <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path
@@ -792,7 +794,7 @@ export function FolderManager({ initialFolders }: FolderManagerProps) {
                 if (e.key === 'Enter') handleSaveCreate();
                 if (e.key === 'Escape') setCreatingInFolderId(undefined);
               }}
-              placeholder="New folder name"
+              placeholder={t('folderManager.newFolderPlaceholder')}
               className="flex-1 h-8"
               autoFocus
             />
@@ -823,7 +825,7 @@ export function FolderManager({ initialFolders }: FolderManagerProps) {
               </svg>
             }
           >
-            New Folder
+            {t('folderManager.newFolder')}
           </Button>
           {selectMode && (
             <Button
@@ -846,7 +848,7 @@ export function FolderManager({ initialFolders }: FolderManagerProps) {
                 </svg>
               }
             >
-              Delete {selectedFolders.size} folder{selectedFolders.size > 1 ? 's' : ''}
+              {t('folderManager.deleteFolders', { count: selectedFolders.size })}
             </Button>
           )}
         </div>
@@ -854,16 +856,16 @@ export function FolderManager({ initialFolders }: FolderManagerProps) {
         <div className="flex items-center gap-2">
           {selectMode && (
             <Button variant="secondary" size="sm" onClick={() => setSelectedFolders(new Set())}>
-              Cancel
+              {t('common.cancel')}
             </Button>
           )}
           {hasReorderChanges && (
             <>
               <Button variant="secondary" size="sm" onClick={handleDiscardReorder}>
-                되돌리기
+                {t('common.undo')}
               </Button>
               <Button variant="primary" size="sm" onClick={handleSaveReorder}>
-                순서 저장
+                {t('folderManager.saveOrder')}
               </Button>
             </>
           )}
@@ -899,7 +901,7 @@ export function FolderManager({ initialFolders }: FolderManagerProps) {
               if (e.key === 'Enter') handleSaveCreate();
               if (e.key === 'Escape') setCreatingInFolderId(undefined);
             }}
-            placeholder="New folder name"
+            placeholder={t('folderManager.newFolderPlaceholder')}
             className="flex-1 h-8"
             autoFocus
           />
@@ -926,7 +928,7 @@ export function FolderManager({ initialFolders }: FolderManagerProps) {
                   d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                 />
               </svg>
-              Saving...
+              {t('common.saving')}
             </div>
           </div>
         )}
@@ -949,18 +951,16 @@ export function FolderManager({ initialFolders }: FolderManagerProps) {
                 />
               </svg>
             </div>
-            <p className="text-foreground-muted mb-1">No folders yet</p>
-            <p className="text-sm text-foreground-muted/60">
-              Create your first folder to organize your links.
-            </p>
+            <p className="text-foreground-muted mb-1">{t('folderManager.noFolders')}</p>
+            <p className="text-sm text-foreground-muted/60">{t('folderManager.noFoldersDesc')}</p>
           </div>
         )}
       </div>
 
       {/* Help text */}
       <div className="mt-4 text-sm text-foreground-muted">
-        <p>• Drag folders to reorder or nest them</p>
-        <p>• Double-click a folder name to rename it</p>
+        <p>{t('folderManager.dragTip')}</p>
+        <p>{t('folderManager.renameTip')}</p>
       </div>
 
       {/* Delete confirmation modal */}
@@ -970,10 +970,10 @@ export function FolderManager({ initialFolders }: FolderManagerProps) {
         onConfirm={() => {
           if (deleteConfirmId) handleDelete(deleteConfirmId);
         }}
-        title="Delete folder"
-        message="Delete this folder and all its contents?"
-        confirmText="Delete"
-        cancelText="Cancel"
+        title={t('folderManager.deleteFolder')}
+        message={t('folderManager.deleteConfirm')}
+        confirmText={t('common.delete')}
+        cancelText={t('common.cancel')}
         confirmVariant="danger"
       />
 
@@ -982,10 +982,10 @@ export function FolderManager({ initialFolders }: FolderManagerProps) {
         isOpen={bulkDeleteConfirm}
         onClose={() => setBulkDeleteConfirm(false)}
         onConfirm={handleBulkDelete}
-        title={`Delete ${selectedFolders.size} folder${selectedFolders.size > 1 ? 's' : ''}`}
-        message={`Delete ${selectedFolders.size} selected folder${selectedFolders.size > 1 ? 's' : ''} and all their contents?`}
-        confirmText="Delete All"
-        cancelText="Cancel"
+        title={t('folderManager.deleteFolders', { count: selectedFolders.size })}
+        message={t('folderManager.deleteFoldersConfirm', { count: selectedFolders.size })}
+        confirmText={t('folderManager.deleteAll')}
+        cancelText={t('common.cancel')}
         confirmVariant="danger"
       />
 
@@ -994,10 +994,10 @@ export function FolderManager({ initialFolders }: FolderManagerProps) {
         <Toast
           message={
             pendingDelete.folderIds.length === 1
-              ? 'Folder deleted.'
-              : `${pendingDelete.folderIds.length} folders deleted.`
+              ? t('folderManager.folderDeleted')
+              : t('folderManager.foldersDeleted', { count: pendingDelete.folderIds.length })
           }
-          action={{ label: 'Undo', onClick: handleUndoDelete }}
+          action={{ label: t('common.undo'), onClick: handleUndoDelete }}
           onDismiss={() => setPendingDelete(null)}
         />
       )}

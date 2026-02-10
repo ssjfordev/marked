@@ -62,6 +62,7 @@ export async function GET(request: Request) {
       folder_id: folderShortId,
       user_title: instance.user_title,
       user_description: instance.user_description,
+      link_canonical_id: canonical.id,
       canonical: {
         id: canonical.short_id,
         title: canonical.title,

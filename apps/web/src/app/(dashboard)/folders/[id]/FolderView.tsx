@@ -6,6 +6,7 @@ import { FolderLinks } from './FolderLinks';
 import { FolderHeader } from './FolderHeader';
 import { FolderDescription } from './FolderDescription';
 import { ShareButton } from './ShareButton';
+import { useLocale } from '@/components/LanguageProvider';
 
 interface FolderData {
   id: string;
@@ -39,6 +40,7 @@ interface LinkInstance {
 
 export function FolderView() {
   const { id: folderId } = useParams<{ id: string }>();
+  const { t } = useLocale();
   const [folder, setFolder] = useState<FolderData | null>(null);
   const [links, setLinks] = useState<LinkInstance[] | null>(null);
   const [notFound, setNotFound] = useState(false);
@@ -85,10 +87,8 @@ export function FolderView() {
   if (notFound) {
     return (
       <div className="max-w-5xl mx-auto text-center py-20">
-        <h1 className="text-2xl font-semibold text-foreground mb-2">Folder not found</h1>
-        <p className="text-foreground-muted">
-          This folder doesn&apos;t exist or you don&apos;t have access.
-        </p>
+        <h1 className="text-2xl font-semibold text-foreground mb-2">{t('folder.notFound')}</h1>
+        <p className="text-foreground-muted">{t('folder.notFoundDesc')}</p>
       </div>
     );
   }
@@ -100,18 +100,23 @@ export function FolderView() {
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-lg bg-muted" />
-              <div className="h-8 w-48 bg-muted rounded" />
+              <div className="h-7 w-40 bg-muted rounded" />
             </div>
+            <div className="h-8 w-20 bg-muted rounded-lg" />
           </div>
-          <div className="h-4 w-32 bg-muted rounded" />
+          <div className="h-4 w-48 bg-muted rounded" />
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {Array.from({ length: 8 }).map((_, i) => (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {Array.from({ length: 6 }).map((_, i) => (
             <div key={i} className="animate-pulse rounded-xl border border-border overflow-hidden">
-              <div className="h-36 bg-muted" />
-              <div className="p-3 space-y-2">
-                <div className="h-3 w-24 bg-muted rounded" />
-                <div className="h-4 w-full bg-muted rounded" />
+              <div className="aspect-[16/9] bg-muted" />
+              <div className="p-4">
+                <div className="flex items-center gap-2 mb-2.5">
+                  <div className="w-3.5 h-3.5 rounded-sm bg-muted" />
+                  <div className="h-3 w-20 bg-muted rounded" />
+                </div>
+                <div className="h-4 w-3/4 bg-muted rounded mb-1.5" />
+                <div className="h-3 w-full bg-muted rounded" />
               </div>
             </div>
           ))}
