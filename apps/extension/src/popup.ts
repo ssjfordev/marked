@@ -620,6 +620,7 @@ async function handleSave() {
           tags: state.tags,
           memo: state.memo,
           ogImage: state.page.ogImage,
+          pageTitle: state.page.title,
         } as SaveLinkPayload,
       });
     }

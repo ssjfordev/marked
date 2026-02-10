@@ -130,23 +130,39 @@ export async function POST(request: Request) {
     if (existingCanonical) {
       canonicalId = existingCanonical.id;
 
-      // Fill og_image if missing and provided by client (e.g. extension)
-      if (body.ogImage) {
-        await supabase
-          .from('link_canonicals')
-          .update({ og_image: body.ogImage })
-          .eq('id', canonicalId)
-          .is('og_image', null);
+      // Fill og_image/title if missing and provided by client (e.g. extension)
+      const updateFields: Record<string, string> = {};
+      if (body.ogImage) updateFields.og_image = body.ogImage;
+      if (body.pageTitle) updateFields.title = body.pageTitle;
+
+      if (Object.keys(updateFields).length > 0) {
+        // Only update fields that are currently null
+        for (const [field, value] of Object.entries(updateFields)) {
+          await supabase
+            .from('link_canonicals')
+            .update({ [field]: value })
+            .eq('id', canonicalId)
+            .is(field as 'og_image' | 'title', null);
+        }
       }
     } else {
       // Create new canonical (include og_image if provided by extension)
-      const insertData: Record<string, unknown> = {
+      const insertData: {
+        url_key: string;
+        original_url: string;
+        domain: string;
+        og_image?: string;
+        title?: string;
+      } = {
         url_key: urlKey,
         original_url: body.url,
         domain,
       };
       if (body.ogImage) {
         insertData.og_image = body.ogImage;
+      }
+      if (body.pageTitle) {
+        insertData.title = body.pageTitle;
       }
       const { data: newCanonical, error: canonicalError } = await supabase
         .from('link_canonicals')

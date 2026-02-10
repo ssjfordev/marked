@@ -202,6 +202,7 @@ async function saveLink(payload: SaveLinkPayload): Promise<{ success: boolean; e
     if (payload.description) body.userDescription = payload.description;
     if (payload.tags) body.tags = payload.tags;
     if (payload.ogImage) body.ogImage = payload.ogImage;
+    if (payload.pageTitle) body.pageTitle = payload.pageTitle;
 
     const response = await fetch(`${API_BASE_URL}/api/v1/links`, {
       method: 'POST',

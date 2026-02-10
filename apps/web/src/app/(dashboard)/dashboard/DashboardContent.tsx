@@ -219,6 +219,7 @@ interface LinkCardProps {
 }
 
 function LinkCard({ link, onToggleFavorite, onDelete, formatDate }: LinkCardProps) {
+  const router = useRouter();
   const [showActions, setShowActions] = useState(false);
   const title = link.user_title || link.canonical.title || link.canonical.domain;
   const description = link.user_description || link.canonical.description;
@@ -305,11 +306,9 @@ function LinkCard({ link, onToggleFavorite, onDelete, formatDate }: LinkCardProp
       </div>
 
       {/* Content */}
-      <a
-        href={link.canonical.original_url}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="block p-4"
+      <div
+        className="block p-4 cursor-pointer"
+        onClick={() => router.push(`/links/${link.canonical.id}`)}
       >
         <div className="flex items-start gap-2 mb-2">
           <img
@@ -348,7 +347,7 @@ function LinkCard({ link, onToggleFavorite, onDelete, formatDate }: LinkCardProp
             )}
           </div>
         )}
-      </a>
+      </div>
     </div>
   );
 }

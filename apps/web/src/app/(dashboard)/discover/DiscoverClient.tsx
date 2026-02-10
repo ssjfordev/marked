@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { CardItem } from '@/components/CardItem';
 import { useLocale } from '@/components/LanguageProvider';
 
@@ -27,6 +28,7 @@ interface RandomLink {
 
 export function DiscoverClient() {
   const { t } = useLocale();
+  const router = useRouter();
   const [links, setLinks] = useState<RandomLink[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -172,9 +174,7 @@ export function DiscoverClient() {
               tags={link.tags}
               url={link.canonical.original_url}
               isFavorite={link.is_favorite}
-              onClick={() =>
-                window.open(link.canonical.original_url, '_blank', 'noopener,noreferrer')
-              }
+              onClick={() => router.push(`/links/${link.canonical.id}`)}
               footer={
                 <div className="mt-3 pt-3 border-t border-border flex items-center justify-between">
                   <div className="flex items-center gap-2">
