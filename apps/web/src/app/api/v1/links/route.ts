@@ -129,6 +129,15 @@ export async function POST(request: Request) {
 
     if (existingCanonical) {
       canonicalId = existingCanonical.id;
+
+      // Fill og_image if missing and provided by client (e.g. extension)
+      if (body.ogImage) {
+        await supabase
+          .from('link_canonicals')
+          .update({ og_image: body.ogImage })
+          .eq('id', canonicalId)
+          .is('og_image', null);
+      }
     } else {
       // Create new canonical (include og_image if provided by extension)
       const insertData: Record<string, unknown> = {
