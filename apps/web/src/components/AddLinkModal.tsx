@@ -150,6 +150,8 @@ export function AddLinkModal({
           userTitle: title.trim() || null,
           userDescription: description.trim() || null,
           tags: tags.length > 0 ? tags : undefined,
+          pageTitle: preview.title || undefined,
+          ogImage: preview.ogImage || undefined,
         }),
       });
 

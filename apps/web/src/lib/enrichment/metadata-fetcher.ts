@@ -21,8 +21,15 @@ const USER_AGENT = 'Mozilla/5.0 (compatible; Marked/1.0; +https://marked.app)';
 
 /**
  * Fetch metadata from a URL
+ * Uses oEmbed for YouTube (bot User-Agent gets minimal HTML from YouTube)
  */
 export async function fetchMetadata(url: string): Promise<PageMetadata> {
+  // YouTube: use oEmbed API for reliable title + thumbnail
+  const ytVideoId = extractYouTubeVideoId(url);
+  if (ytVideoId) {
+    return fetchYouTubeMetadata(ytVideoId, url);
+  }
+
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
 
@@ -63,6 +70,67 @@ export async function fetchMetadata(url: string): Promise<PageMetadata> {
       throw new Error('Request timeout');
     }
     throw err;
+  }
+}
+
+/**
+ * Extract YouTube video ID from various URL formats
+ */
+function extractYouTubeVideoId(url: string): string | null {
+  try {
+    const parsed = new URL(url);
+    const host = parsed.hostname.replace('www.', '');
+    if (host !== 'youtube.com' && host !== 'youtu.be' && host !== 'm.youtube.com') return null;
+
+    // youtube.com/watch?v=ID
+    if (parsed.pathname === '/watch') return parsed.searchParams.get('v');
+    // youtube.com/shorts/ID
+    const shortsMatch = parsed.pathname.match(/^\/shorts\/([a-zA-Z0-9_-]+)/);
+    if (shortsMatch) return shortsMatch[1]!;
+    // youtu.be/ID
+    if (host === 'youtu.be') return parsed.pathname.slice(1).split('/')[0] || null;
+    // youtube.com/embed/ID
+    const embedMatch = parsed.pathname.match(/^\/embed\/([a-zA-Z0-9_-]+)/);
+    if (embedMatch) return embedMatch[1]!;
+
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Fetch YouTube metadata via oEmbed API (reliable, no bot blocking)
+ */
+async function fetchYouTubeMetadata(videoId: string, originalUrl: string): Promise<PageMetadata> {
+  const oembedUrl = `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`;
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
+
+  try {
+    const response = await fetch(oembedUrl, { signal: controller.signal });
+    clearTimeout(timeoutId);
+
+    if (!response.ok) throw new Error(`oEmbed HTTP ${response.status}`);
+
+    const data = (await response.json()) as { title?: string; thumbnail_url?: string };
+    return {
+      title: data.title || null,
+      description: null,
+      ogImage: `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
+      favicon: 'https://www.youtube.com/s/desktop/2a3cb36e/img/favicon_144x144.png',
+      pageText: null,
+    };
+  } catch {
+    clearTimeout(timeoutId);
+    // Fallback: use predictable thumbnail, no title
+    return {
+      title: null,
+      description: null,
+      ogImage: `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
+      favicon: getGoogleFaviconUrl(originalUrl),
+      pageText: null,
+    };
   }
 }
 
