@@ -138,6 +138,7 @@ export interface UpdateLinkPayload {
   userDescription?: string;
   tags?: string[];
   memo?: string;
+  pageTitle?: string;
 }
 
 export interface DeleteLinkPayload {

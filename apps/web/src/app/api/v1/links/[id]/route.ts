@@ -66,13 +66,22 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     // Check link exists and belongs to user
     const { data: existing, error: fetchError } = await supabase
       .from('link_instances')
-      .select('id')
+      .select('id, link_canonical_id')
       .eq('id', id)
       .eq('user_id', user.id)
       .single();
 
     if (fetchError || !existing) {
       throw new NotFoundError('Link not found');
+    }
+
+    // Fill canonical.title if provided and currently null
+    if (body.pageTitle && existing.link_canonical_id) {
+      await supabase
+        .from('link_canonicals')
+        .update({ title: body.pageTitle })
+        .eq('id', existing.link_canonical_id)
+        .is('title', null);
     }
 
     // If moving to new folder, verify folder exists (by short_id)

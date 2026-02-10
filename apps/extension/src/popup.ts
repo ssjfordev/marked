@@ -606,6 +606,7 @@ async function handleSave() {
           userDescription: state.description,
           tags: state.tags,
           memo: state.memo,
+          pageTitle: state.page.title,
         },
       });
     } else {
