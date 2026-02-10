@@ -425,6 +425,7 @@ async function updateLink(
     if (payload.tags !== undefined) body.tags = payload.tags;
     if (payload.memo !== undefined) body.memo = payload.memo;
     if (payload.pageTitle) body.pageTitle = payload.pageTitle;
+    if (payload.ogImage) body.ogImage = payload.ogImage;
 
     const response = await fetch(`${API_BASE_URL}/api/v1/links/${payload.linkId}`, {
       method: 'PATCH',

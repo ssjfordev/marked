@@ -136,10 +136,10 @@ async function processJobWithThrottling(
   supabase: SupabaseClient,
   job: EnrichmentJob
 ): Promise<void> {
-  // Get the URL from the canonical (include favicon to preserve base64)
+  // Get the URL from the canonical (include existing data to preserve)
   const { data: canonical } = await supabase
     .from('link_canonicals')
-    .select('original_url, domain, favicon')
+    .select('original_url, domain, favicon, title, og_image, description')
     .eq('id', job.link_canonical_id)
     .single();
 
@@ -154,7 +154,12 @@ async function processJobWithThrottling(
   await acquireDomainSlot(domain);
 
   try {
-    await processJob(supabase, job, canonical.original_url, canonical.favicon);
+    await processJob(supabase, job, canonical.original_url, {
+      favicon: canonical.favicon,
+      title: canonical.title,
+      ogImage: canonical.og_image,
+      description: canonical.description,
+    });
   } finally {
     releaseDomainSlot(domain);
   }
@@ -194,7 +199,12 @@ async function processJob(
   supabase: SupabaseClient,
   job: EnrichmentJob,
   url: string,
-  existingFavicon: string | null
+  existing: {
+    favicon: string | null;
+    title: string | null;
+    ogImage: string | null;
+    description: string | null;
+  }
 ): Promise<void> {
   try {
     // Fetch metadata from the actual URL
@@ -208,18 +218,30 @@ async function processJob(
     });
 
     // Preserve base64 favicons from import — only update if not already a data URI
-    const shouldUpdateFavicon = !existingFavicon?.startsWith('data:image/');
+    const shouldUpdateFavicon = !existing.favicon?.startsWith('data:image/');
+
+    // Only fill in fields that are currently null — preserve data from extension/import
+    const updateFields: Record<string, string | null> = {
+      updated_at: new Date().toISOString(),
+    };
+
+    if (!existing.title && metadata.title) {
+      updateFields.title = metadata.title;
+    }
+    if (!existing.description && description) {
+      updateFields.description = description;
+    }
+    if (!existing.ogImage && metadata.ogImage) {
+      updateFields.og_image = metadata.ogImage;
+    }
+    if (shouldUpdateFavicon && metadata.favicon) {
+      updateFields.favicon = metadata.favicon;
+    }
 
     // Update canonical with enriched data
     const { error: updateError } = await supabase
       .from('link_canonicals')
-      .update({
-        title: metadata.title,
-        description: description || null,
-        og_image: metadata.ogImage,
-        ...(shouldUpdateFavicon ? { favicon: metadata.favicon } : {}),
-        updated_at: new Date().toISOString(),
-      })
+      .update(updateFields)
       .eq('id', job.link_canonical_id);
 
     if (updateError) throw updateError;

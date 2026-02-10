@@ -56,6 +56,7 @@ export const updateLinkSchema = z.object({
   userDescription: sanitized.pipe(z.string().max(TEXT_LIMITS.DESCRIPTION)).nullable().optional(),
   position: z.number().int().min(0).optional(),
   pageTitle: sanitized.pipe(z.string().max(TEXT_LIMITS.TITLE)).optional(),
+  ogImage: z.string().max(TEXT_LIMITS.URL).optional(),
 });
 
 // ============ Tags ============

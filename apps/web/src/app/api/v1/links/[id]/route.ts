@@ -75,13 +75,22 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       throw new NotFoundError('Link not found');
     }
 
-    // Fill canonical.title if provided and currently null
-    if (body.pageTitle && existing.link_canonical_id) {
-      await supabase
-        .from('link_canonicals')
-        .update({ title: body.pageTitle })
-        .eq('id', existing.link_canonical_id)
-        .is('title', null);
+    // Fill canonical title/og_image if provided and currently null
+    if (existing.link_canonical_id) {
+      if (body.pageTitle) {
+        await supabase
+          .from('link_canonicals')
+          .update({ title: body.pageTitle })
+          .eq('id', existing.link_canonical_id)
+          .is('title', null);
+      }
+      if (body.ogImage) {
+        await supabase
+          .from('link_canonicals')
+          .update({ og_image: body.ogImage })
+          .eq('id', existing.link_canonical_id)
+          .is('og_image', null);
+      }
     }
 
     // If moving to new folder, verify folder exists (by short_id)
