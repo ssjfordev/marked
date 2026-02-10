@@ -201,6 +201,7 @@ async function saveLink(payload: SaveLinkPayload): Promise<{ success: boolean; e
     if (payload.title) body.userTitle = payload.title;
     if (payload.description) body.userDescription = payload.description;
     if (payload.tags) body.tags = payload.tags;
+    if (payload.ogImage) body.ogImage = payload.ogImage;
 
     const response = await fetch(`${API_BASE_URL}/api/v1/links`, {
       method: 'POST',
@@ -212,13 +213,20 @@ async function saveLink(payload: SaveLinkPayload): Promise<{ success: boolean; e
     });
 
     if (!response.ok) {
-      const error = await response.json();
-      return { success: false, error: error.message || 'Failed to save link' };
+      const text = await response.text();
+      let msg = `${response.status}: `;
+      try {
+        const err = JSON.parse(text);
+        msg += JSON.stringify(err);
+      } catch {
+        msg += text.slice(0, 200);
+      }
+      return { success: false, error: msg };
     }
 
     return { success: true };
   } catch (error) {
-    return { success: false, error: String(error) };
+    return { success: false, error: `[catch] ${String(error)}` };
   }
 }
 

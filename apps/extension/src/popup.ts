@@ -191,9 +191,7 @@ function renderHeader(): string {
     <header class="header">
       <div class="header-left">
         <div class="logo">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
-          </svg>
+          <img src="icons/icon32.png" width="20" height="20" alt="Marked" />
         </div>
         <span class="header-title">Marked</span>
         ${isEdit ? '<span class="badge badge-saved">Saved</span>' : ''}
@@ -476,9 +474,7 @@ function renderLoginView() {
     <div class="popup login-popup">
       <div class="login-content">
         <div class="login-logo">
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="1.5">
-            <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
-          </svg>
+          <img src="icons/icon128.png" width="48" height="48" alt="Marked" />
         </div>
         <h1 class="login-title">Marked</h1>
         <p class="login-subtitle">Smart Bookmark Manager</p>
@@ -516,30 +512,22 @@ function attachEventListeners() {
     state.description = (e.target as HTMLTextAreaElement).value;
   });
 
-  // Folder trigger
+  // Folder trigger — toggle dropdown without full re-render
   document.getElementById('folder-trigger')?.addEventListener('click', (e) => {
     e.stopPropagation();
     state.folderTreeOpen = !state.folderTreeOpen;
-    render();
+    toggleFolderDropdown();
   });
 
-  // Folder items
-  document.querySelectorAll('.folder-item').forEach((item) => {
-    item.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const folderId = (e.currentTarget as HTMLElement).dataset.folderId || '';
-      state.selectedFolderId = folderId;
-      state.folderTreeOpen = false;
-      render();
-    });
-  });
+  // Folder items (if dropdown is already open on initial render)
+  attachFolderItemListeners();
 
   // Close folder dropdown when clicking outside
   document.addEventListener('click', (e) => {
     const folderSelect = document.getElementById('folder-select');
     if (folderSelect && !folderSelect.contains(e.target as Node) && state.folderTreeOpen) {
       state.folderTreeOpen = false;
-      render();
+      toggleFolderDropdown();
     }
   });
 
@@ -550,34 +538,10 @@ function attachEventListeners() {
     input?.focus();
   });
 
-  // Tag input
+  // Tag input — use patching instead of full re-render
   const tagInput = document.getElementById('tag-input') as HTMLInputElement;
-  tagInput?.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' || e.key === ',') {
-      e.preventDefault();
-      const tag = tagInput.value.trim().replace(/,/g, '');
-      if (tag && !state.tags.includes(tag)) {
-        state.tags.push(tag);
-        state.tagInput = '';
-        render();
-      }
-    } else if (e.key === 'Backspace' && !tagInput.value && state.tags.length) {
-      state.tags.pop();
-      render();
-    }
-  });
-
-  tagInput?.addEventListener('input', (e) => {
-    state.tagInput = (e.target as HTMLInputElement).value;
-    // Re-render to update suggestions dropdown
-    render();
-    // Re-focus the tag input after render
-    const newInput = document.getElementById('tag-input') as HTMLInputElement;
-    if (newInput) {
-      newInput.focus();
-      newInput.setSelectionRange(newInput.value.length, newInput.value.length);
-    }
-  });
+  tagInput?.addEventListener('keydown', handleTagKeydown);
+  tagInput?.addEventListener('input', handleTagInput);
 
   // Tag suggestion clicks
   document.querySelectorAll('.tag-suggestion').forEach((el) => {
@@ -587,7 +551,7 @@ function attachEventListeners() {
       if (tag && !state.tags.includes(tag)) {
         state.tags.push(tag);
         state.tagInput = '';
-        render();
+        patchTagsContainer();
       }
     });
   });
@@ -598,7 +562,7 @@ function attachEventListeners() {
       e.stopPropagation();
       const tag = (e.currentTarget as HTMLElement).dataset.tag;
       state.tags = state.tags.filter((t) => t !== tag);
-      render();
+      patchTagsContainer();
     });
   });
 
@@ -655,6 +619,7 @@ async function handleSave() {
           folderId: state.selectedFolderId,
           tags: state.tags,
           memo: state.memo,
+          ogImage: state.page.ogImage,
         } as SaveLinkPayload,
       });
     }
@@ -701,6 +666,136 @@ async function handleDelete() {
     state.phase = 'error';
     state.errorMessage = 'Something went wrong';
     render();
+  }
+}
+
+// ============================================================================
+// DOM PATCHING HELPERS (avoid full re-render)
+// ============================================================================
+
+/** Toggle folder dropdown open/close without re-rendering the whole page */
+function toggleFolderDropdown() {
+  const folderSelect = document.getElementById('folder-select');
+  if (!folderSelect) return;
+
+  const existing = folderSelect.querySelector('.folder-dropdown');
+  const icon = folderSelect.querySelector('.folder-trigger-icon');
+
+  if (state.folderTreeOpen) {
+    // Open: insert dropdown
+    if (!existing) {
+      const wrapper = document.createElement('div');
+      wrapper.innerHTML = renderFolderTree();
+      const dropdown = wrapper.firstElementChild;
+      if (dropdown) {
+        folderSelect.appendChild(dropdown);
+        attachFolderItemListeners();
+      }
+    }
+    icon?.classList.add('open');
+  } else {
+    // Close: remove dropdown
+    existing?.remove();
+    icon?.classList.remove('open');
+  }
+}
+
+/** Attach click listeners to folder items currently in the DOM */
+function attachFolderItemListeners() {
+  document.querySelectorAll('.folder-item').forEach((item) => {
+    item.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const folderId = (e.currentTarget as HTMLElement).dataset.folderId || '';
+      state.selectedFolderId = folderId;
+      state.folderTreeOpen = false;
+
+      // Update trigger text
+      const triggerText = document.querySelector('.folder-trigger-text');
+      if (triggerText) {
+        const selectedFolder = findFolderById(state.folders, folderId);
+        triggerText.textContent = selectedFolder ? selectedFolder.name : 'Select folder...';
+      }
+
+      // Remove dropdown
+      toggleFolderDropdown();
+
+      // Enable/disable save button
+      const saveBtn = document.getElementById('save-btn') as HTMLButtonElement;
+      if (saveBtn && !state.existingLink) {
+        saveBtn.disabled = !folderId;
+      }
+    });
+  });
+}
+
+/** Update tags container without full re-render */
+function patchTagsContainer() {
+  const wrapper = document.querySelector('.tags-wrapper');
+  if (!wrapper) return;
+
+  const temp = document.createElement('div');
+  temp.innerHTML = renderTagsInput();
+  const newField = temp.querySelector('.tags-wrapper');
+  if (newField) {
+    wrapper.innerHTML = newField.innerHTML;
+  }
+
+  // Re-attach tag-specific listeners
+  const tagsContainer = document.querySelector('.tags-container');
+  tagsContainer?.addEventListener('click', () => {
+    const input = document.getElementById('tag-input') as HTMLInputElement;
+    input?.focus();
+  });
+
+  const tagInput = document.getElementById('tag-input') as HTMLInputElement;
+  tagInput?.addEventListener('keydown', handleTagKeydown);
+  tagInput?.addEventListener('input', handleTagInput);
+
+  document.querySelectorAll('.tag-remove').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const tag = (e.currentTarget as HTMLElement).dataset.tag;
+      state.tags = state.tags.filter((t) => t !== tag);
+      patchTagsContainer();
+    });
+  });
+
+  document.querySelectorAll('.tag-suggestion').forEach((el) => {
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const tag = (e.currentTarget as HTMLElement).dataset.tag;
+      if (tag && !state.tags.includes(tag)) {
+        state.tags.push(tag);
+        state.tagInput = '';
+        patchTagsContainer();
+      }
+    });
+  });
+}
+
+function handleTagKeydown(e: KeyboardEvent) {
+  const tagInput = e.target as HTMLInputElement;
+  if (e.key === 'Enter' || e.key === ',') {
+    e.preventDefault();
+    const tag = tagInput.value.trim().replace(/,/g, '');
+    if (tag && !state.tags.includes(tag)) {
+      state.tags.push(tag);
+      state.tagInput = '';
+      patchTagsContainer();
+    }
+  } else if (e.key === 'Backspace' && !tagInput.value && state.tags.length) {
+    state.tags.pop();
+    patchTagsContainer();
+  }
+}
+
+function handleTagInput(e: Event) {
+  state.tagInput = (e.target as HTMLInputElement).value;
+  patchTagsContainer();
+  const newInput = document.getElementById('tag-input') as HTMLInputElement;
+  if (newInput) {
+    newInput.focus();
+    newInput.setSelectionRange(newInput.value.length, newInput.value.length);
   }
 }
 

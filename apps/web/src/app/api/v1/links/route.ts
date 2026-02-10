@@ -130,14 +130,18 @@ export async function POST(request: Request) {
     if (existingCanonical) {
       canonicalId = existingCanonical.id;
     } else {
-      // Create new canonical
+      // Create new canonical (include og_image if provided by extension)
+      const insertData: Record<string, unknown> = {
+        url_key: urlKey,
+        original_url: body.url,
+        domain,
+      };
+      if (body.ogImage) {
+        insertData.og_image = body.ogImage;
+      }
       const { data: newCanonical, error: canonicalError } = await supabase
         .from('link_canonicals')
-        .insert({
-          url_key: urlKey,
-          original_url: body.url,
-          domain,
-        })
+        .insert(insertData)
         .select('id')
         .single();
 

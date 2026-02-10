@@ -46,6 +46,7 @@ export const createLinkSchema = z.object({
     .optional(),
   userTitle: sanitized.pipe(z.string().max(TEXT_LIMITS.TITLE)).optional(),
   userDescription: sanitized.pipe(z.string().max(TEXT_LIMITS.DESCRIPTION)).optional(),
+  ogImage: z.string().max(TEXT_LIMITS.URL).optional(),
 });
 
 export const updateLinkSchema = z.object({
