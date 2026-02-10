@@ -4,7 +4,7 @@
  * GET /api/v1/folders/[id]/links - Get all links in a folder (id = short_id)
  */
 
-import { createServerClient } from '@/lib/supabase/server';
+import { createApiClient } from '@/lib/supabase/server';
 import { requireAuth, cachedSuccess, handleError, NotFoundError } from '@/lib/api';
 import type { Tag } from '@/types/api';
 import type { Database } from '@/types/database';
@@ -40,7 +40,7 @@ export async function GET(_request: Request, { params }: RouteParams) {
     const user = await requireAuth();
     const { id: shortId } = await params;
 
-    const supabase = await createServerClient();
+    const supabase = await createApiClient();
 
     // Verify folder exists and belongs to user (by short_id)
     const { data: folder, error: folderError } = await supabase

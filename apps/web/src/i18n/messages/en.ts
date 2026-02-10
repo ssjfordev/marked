@@ -203,6 +203,8 @@ const en: Record<MessageKeys, string | string[]> = {
     'Columns: url (required), title, description, folder (slash for hierarchy), tags (pipe-separated)',
 
   // Discover
+  'discover.title': 'Rediscover',
+  'discover.desc': 'Rediscover bookmarks you may have forgotten',
   'discover.shuffle': 'Shuffle',
   'discover.empty': 'No bookmarks yet',
   'discover.emptyDesc': 'Add bookmarks and rediscover them randomly here.',
@@ -253,6 +255,13 @@ const en: Record<MessageKeys, string | string[]> = {
   'import.recentImports': 'Recent Imports',
   'import.bookmarksImported': '{count} bookmarks imported',
 
+  // Export folder select
+  'export.selectFolders': 'Select folders',
+  'export.selectAll': 'Select all',
+  'export.deselectAll': 'Deselect all',
+  'export.noFoldersFound': 'No folders found',
+  'export.selectedSummary': 'Selected: {links} links from {folders} folders (total: {total} links)',
+
   // Export
   'export.title': 'Export Bookmarks',
   'export.desc': 'Export your bookmarks to HTML, CSV, or JSON format.',
@@ -281,8 +290,13 @@ const en: Record<MessageKeys, string | string[]> = {
   'folder.changeIcon': 'Change icon',
   'folder.linkCount': '{count} links',
   'folder.linkCountOne': '{count} link',
+  'folder.addDescription': '+ Add description',
+  'folder.descriptionPlaceholder': 'Add a description...',
 
   // Folder Manager
+  'folderManager.title': 'Manage Folders',
+  'folderManager.desc': 'Create, rename, reorder, and organize your folders.',
+  'folderManager.backToDashboard': 'Dashboard',
   'folderManager.newFolder': 'New Folder',
   'folderManager.newSubfolder': 'New subfolder',
   'folderManager.rename': 'Rename',
@@ -324,7 +338,7 @@ const en: Record<MessageKeys, string | string[]> = {
   'settings.desc': 'Manage your account and preferences',
   'settings.account': 'Account',
   'settings.billing': 'Plans & Billing',
-  'settings.legal': 'Legal',
+  'settings.legal': 'Terms & Policies',
 
   // Account Settings
   'account.info': 'Account Information',
@@ -333,7 +347,7 @@ const en: Record<MessageKeys, string | string[]> = {
   'account.session': 'Session',
   'account.sessionDesc': 'Sign out from your current session on this device.',
   'account.signOut': 'Sign out',
-  'account.dangerZone': 'Danger Zone',
+  'account.dangerZone': 'Delete Account',
   'account.dangerDesc':
     'Permanently delete your account and all associated data. This action cannot be undone.',
   'account.deleteAccount': 'Delete account',
@@ -382,7 +396,7 @@ const en: Record<MessageKeys, string | string[]> = {
   'billing.pro.feature5': 'Priority support',
 
   // Legal
-  'legal.title': 'Legal Documents',
+  'legal.title': 'Terms & Policies',
   'legal.terms': 'Terms of Service',
   'legal.termsDesc': 'Read our terms and conditions for using Marked.',
   'legal.privacy': 'Privacy Policy',
@@ -390,7 +404,7 @@ const en: Record<MessageKeys, string | string[]> = {
   'legal.cookies': 'Cookie Policy',
   'legal.cookiesDesc': 'Information about how we use cookies.',
   'legal.contact': 'Contact',
-  'legal.contactDesc': 'For legal inquiries or questions about our policies, please contact us.',
+  'legal.contactDesc': 'For questions about our policies, please contact us below.',
 
   // Landing page
   'landing.goToDashboard': 'Go to Dashboard',

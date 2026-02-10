@@ -4,7 +4,7 @@
  * DELETE /api/v1/links/[id]/tags/[tagId] - Remove a tag from a link
  */
 
-import { createServerClient } from '@/lib/supabase/server';
+import { createApiClient } from '@/lib/supabase/server';
 import { requireAuth, success, handleError, validateUuid, NotFoundError } from '@/lib/api';
 
 interface RouteParams {
@@ -18,7 +18,7 @@ export async function DELETE(_request: Request, { params }: RouteParams) {
     validateUuid(linkId, 'link id');
     validateUuid(tagId, 'tag id');
 
-    const supabase = await createServerClient();
+    const supabase = await createApiClient();
 
     // Check link exists and belongs to user
     const { data: link, error: linkError } = await supabase

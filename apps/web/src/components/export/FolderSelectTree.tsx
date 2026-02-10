@@ -1,12 +1,13 @@
 'use client';
 
 import { useState, useCallback } from 'react';
+import { useLocale } from '@/components/LanguageProvider';
 
 export interface FolderWithCount {
   id: string;
   name: string;
-  linkCount: number;        // Direct links in this folder
-  totalLinkCount: number;   // Including children
+  linkCount: number; // Direct links in this folder
+  totalLinkCount: number; // Including children
   children: FolderWithCount[];
 }
 
@@ -21,6 +22,7 @@ export function FolderSelectTree({
   selectedIds,
   onSelectionChange,
 }: FolderSelectTreeProps) {
+  const { t } = useLocale();
   // Track expanded folders
   const [expandedIds, setExpandedIds] = useState<Set<string>>(() => {
     // Initially expand all root folders
@@ -159,14 +161,14 @@ export function FolderSelectTree({
     <div className="rounded-lg border border-border bg-surface">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-        <span className="text-sm font-medium text-foreground">Select folders</span>
+        <span className="text-sm font-medium text-foreground">{t('export.selectFolders')}</span>
         <div className="flex items-center gap-2">
           <button
             onClick={handleSelectAll}
             disabled={allSelected}
             className="text-xs text-primary-light hover:text-primary-dark disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Select all
+            {t('export.selectAll')}
           </button>
           <span className="text-foreground-muted">|</span>
           <button
@@ -174,7 +176,7 @@ export function FolderSelectTree({
             disabled={noneSelected}
             className="text-xs text-primary-light hover:text-primary-dark disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Deselect all
+            {t('export.deselectAll')}
           </button>
         </div>
       </div>
@@ -183,7 +185,7 @@ export function FolderSelectTree({
       <div className="max-h-80 overflow-y-auto p-2">
         {folders.length === 0 ? (
           <div className="text-center py-8 text-foreground-muted text-sm">
-            No folders found
+            {t('export.noFoldersFound')}
           </div>
         ) : (
           <div className="space-y-0.5">
@@ -207,9 +209,11 @@ export function FolderSelectTree({
       {/* Footer */}
       <div className="px-4 py-3 border-t border-border bg-surface-hover/50">
         <p className="text-xs text-foreground-muted">
-          Selected: <span className="font-medium text-foreground">{totalSelectedLinks()}</span> links
-          from <span className="font-medium text-foreground">{selectedIds.size}</span> folders
-          <span className="text-foreground-muted/50"> (total: {totalLinks()} links)</span>
+          {t('export.selectedSummary', {
+            links: totalSelectedLinks(),
+            folders: selectedIds.size,
+            total: totalLinks(),
+          })}
         </p>
       </div>
     </div>

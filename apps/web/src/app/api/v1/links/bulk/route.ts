@@ -13,7 +13,7 @@
  */
 
 import { z } from 'zod';
-import { createServerClient } from '@/lib/supabase/server';
+import { createApiClient } from '@/lib/supabase/server';
 import {
   requireAuth,
   success,
@@ -41,7 +41,7 @@ export async function POST(request: Request) {
   try {
     const user = await requireAuth();
     const body = await validateRequest(request, bulkOperationSchema);
-    const supabase = await createServerClient();
+    const supabase = await createApiClient();
 
     const { action, linkIds } = body;
     const results: BulkResult[] = [];

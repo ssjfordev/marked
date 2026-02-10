@@ -1,5 +1,5 @@
 import { createServerClient as createSSRClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import type { Database } from '@/types/database';
 import type { User } from '@supabase/supabase-js';
 
@@ -78,6 +78,7 @@ export function createServiceClient() {
  * Get the current authenticated user.
  * In local dev mode (ENV=local), returns a mock user (dev@localhost).
  * In other environments, uses real Supabase authentication.
+ * Supports both cookie-based auth (web app) and Bearer token auth (extension).
  */
 export async function getCurrentUser(): Promise<User | null> {
   // Local dev mode - use mock user
@@ -85,11 +86,38 @@ export async function getCurrentUser(): Promise<User | null> {
     return LOCAL_DEV_MOCK_USER;
   }
 
+  // Check for Bearer token (used by Chrome extension)
+  const headerStore = await headers();
+  const authHeader = headerStore.get('authorization');
+  if (authHeader?.startsWith('Bearer ')) {
+    const token = authHeader.slice(7);
+    const supabase = createServiceClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser(token);
+    return user;
+  }
+
+  // Fall back to cookie-based auth (web app)
   const supabase = await createServerClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   return user;
+}
+
+/**
+ * Create a Supabase client for API routes.
+ * Uses service client for Bearer token auth (extension), cookie client otherwise.
+ * Call this AFTER requireAuth() to ensure the user is authenticated.
+ */
+export async function createApiClient() {
+  const headerStore = await headers();
+  const authHeader = headerStore.get('authorization');
+  if (authHeader?.startsWith('Bearer ')) {
+    return createServiceClient();
+  }
+  return createServerClient();
 }
 
 /**

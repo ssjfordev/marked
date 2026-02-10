@@ -5,7 +5,7 @@
  * POST /api/v1/links - Create a new link
  */
 
-import { createServerClient } from '@/lib/supabase/server';
+import { createApiClient } from '@/lib/supabase/server';
 import {
   requireAuth,
   success,
@@ -42,7 +42,7 @@ interface LinkInstanceWithCanonical {
 export async function GET(request: Request) {
   try {
     const user = await requireAuth();
-    const supabase = await createServerClient();
+    const supabase = await createApiClient();
     const { searchParams } = new URL(request.url);
     const favoritesOnly = searchParams.get('favorites') === 'true';
 
@@ -101,7 +101,7 @@ export async function POST(request: Request) {
   try {
     const user = await requireAuth();
     const body = await validateRequest(request, createLinkSchema);
-    const supabase = await createServerClient();
+    const supabase = await createApiClient();
 
     // Verify folder exists and belongs to user (by short_id)
     const { data: folder, error: folderError } = await supabase
@@ -241,7 +241,7 @@ export async function POST(request: Request) {
  * Handle tag creation and linking
  */
 async function handleTags(
-  supabase: Awaited<ReturnType<typeof createServerClient>>,
+  supabase: Awaited<ReturnType<typeof createApiClient>>,
   userId: string,
   linkInstanceId: string,
   tagNames: string[]

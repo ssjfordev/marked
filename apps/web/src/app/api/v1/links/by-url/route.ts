@@ -4,7 +4,7 @@
  * GET /api/v1/links/by-url?url=... - Check if link exists for current user
  */
 
-import { createServerClient } from '@/lib/supabase/server';
+import { createApiClient } from '@/lib/supabase/server';
 import { requireAuth, success, handleError } from '@/lib/api';
 import { canonicalizeUrl } from '@/domain/url';
 
@@ -18,7 +18,7 @@ export async function GET(request: Request) {
       return success(null);
     }
 
-    const supabase = await createServerClient();
+    const supabase = await createApiClient();
 
     // Canonicalize the URL to find the matching canonical
     const { urlKey } = canonicalizeUrl(url);

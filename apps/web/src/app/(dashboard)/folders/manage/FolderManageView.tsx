@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { FolderManager } from './FolderManager';
+import { useLocale } from '@/components/LanguageProvider';
 
 interface Folder {
   id: string;
@@ -14,6 +15,7 @@ interface Folder {
 }
 
 export function FolderManageView() {
+  const { t } = useLocale();
   const [folders, setFolders] = useState<Folder[] | null>(null);
 
   useEffect(() => {
@@ -49,10 +51,10 @@ export function FolderManageView() {
           >
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
           </svg>
-          대시보드
+          {t('folderManager.backToDashboard')}
         </Link>
-        <h1 className="text-2xl font-semibold text-foreground mb-2">Manage Folders</h1>
-        <p className="text-foreground-muted">Create, rename, reorder, and organize your folders.</p>
+        <h1 className="text-2xl font-semibold text-foreground mb-2">{t('folderManager.title')}</h1>
+        <p className="text-foreground-muted">{t('folderManager.desc')}</p>
       </div>
 
       {folders === null ? (

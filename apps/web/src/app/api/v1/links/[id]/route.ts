@@ -6,7 +6,7 @@
  * DELETE /api/v1/links/[id] - Delete link instance
  */
 
-import { createServerClient } from '@/lib/supabase/server';
+import { createApiClient } from '@/lib/supabase/server';
 import {
   requireAuth,
   success,
@@ -27,7 +27,7 @@ export async function GET(_request: Request, { params }: RouteParams) {
     const { id } = await params;
     validateUuid(id, 'link id');
 
-    const supabase = await createServerClient();
+    const supabase = await createApiClient();
 
     const { data: link, error } = await supabase
       .from('link_instances')
@@ -61,7 +61,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     validateUuid(id, 'link id');
 
     const body = await validateRequest(request, updateLinkSchema);
-    const supabase = await createServerClient();
+    const supabase = await createApiClient();
 
     // Check link exists and belongs to user
     const { data: existing, error: fetchError } = await supabase
@@ -153,7 +153,7 @@ export async function DELETE(_request: Request, { params }: RouteParams) {
     const { id } = await params;
     validateUuid(id, 'link id');
 
-    const supabase = await createServerClient();
+    const supabase = await createApiClient();
 
     // Check link exists and belongs to user
     const { data: existing, error: fetchError } = await supabase

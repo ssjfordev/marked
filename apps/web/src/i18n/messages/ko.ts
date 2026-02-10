@@ -198,6 +198,8 @@ const ko = {
     '컬럼: url (필수), title, description, folder (슬래시로 계층 구분), tags (파이프로 구분)',
 
   // Discover
+  'discover.title': '다시 발견',
+  'discover.desc': '잊고 있던 북마크를 다시 만나보세요',
   'discover.shuffle': '셔플',
   'discover.empty': '아직 북마크가 없습니다',
   'discover.emptyDesc': '북마크를 추가하면 여기서 랜덤하게 다시 만나볼 수 있어요.',
@@ -249,6 +251,13 @@ const ko = {
   'import.recentImports': '최근 가져오기',
   'import.bookmarksImported': '{count}개 북마크 가져옴',
 
+  // Export folder select
+  'export.selectFolders': '폴더 선택',
+  'export.selectAll': '전체 선택',
+  'export.deselectAll': '전체 해제',
+  'export.noFoldersFound': '폴더가 없습니다',
+  'export.selectedSummary': '선택: {links}개 링크, {folders}개 폴더 (전체: {total}개 링크)',
+
   // Export
   'export.title': '북마크 내보내기',
   'export.desc': 'HTML, CSV 또는 JSON 형식으로 북마크를 내보내세요.',
@@ -277,8 +286,13 @@ const ko = {
   'folder.changeIcon': '아이콘 변경',
   'folder.linkCount': '{count}개 링크',
   'folder.linkCountOne': '{count}개 링크',
+  'folder.addDescription': '+ 설명 추가',
+  'folder.descriptionPlaceholder': '설명을 입력하세요...',
 
   // Folder Manager
+  'folderManager.title': '폴더 관리',
+  'folderManager.desc': '폴더를 생성, 이름 변경, 정렬, 정리하세요.',
+  'folderManager.backToDashboard': '대시보드',
   'folderManager.newFolder': '새 폴더',
   'folderManager.newSubfolder': '새 하위 폴더',
   'folderManager.rename': '이름 변경',
@@ -319,7 +333,7 @@ const ko = {
   'settings.desc': '계정과 환경 설정을 관리하세요',
   'settings.account': '계정',
   'settings.billing': '플랜 & 결제',
-  'settings.legal': '법적 문서',
+  'settings.legal': '약관 및 정책',
 
   // Account Settings
   'account.info': '계정 정보',
@@ -328,7 +342,7 @@ const ko = {
   'account.session': '세션',
   'account.sessionDesc': '이 기기에서 현재 세션을 로그아웃합니다.',
   'account.signOut': '로그아웃',
-  'account.dangerZone': '위험 구역',
+  'account.dangerZone': '계정 삭제',
   'account.dangerDesc':
     '계정과 모든 관련 데이터를 영구적으로 삭제합니다. 이 작업은 되돌릴 수 없습니다.',
   'account.deleteAccount': '계정 삭제',
@@ -377,7 +391,7 @@ const ko = {
   'billing.pro.feature5': '우선 지원',
 
   // Legal
-  'legal.title': '법적 문서',
+  'legal.title': '약관 및 정책',
   'legal.terms': '이용약관',
   'legal.termsDesc': 'Marked 사용에 관한 이용약관을 확인하세요.',
   'legal.privacy': '개인정보처리방침',
@@ -385,7 +399,7 @@ const ko = {
   'legal.cookies': '쿠키 정책',
   'legal.cookiesDesc': '쿠키 사용에 관한 정보입니다.',
   'legal.contact': '문의',
-  'legal.contactDesc': '법적 문의나 정책에 대한 질문은 연락해 주세요.',
+  'legal.contactDesc': '정책 관련 질문이 있으시면 아래로 연락해 주세요.',
 
   // Landing page
   'landing.goToDashboard': '대시보드로 이동',

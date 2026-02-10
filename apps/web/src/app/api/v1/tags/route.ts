@@ -4,13 +4,13 @@
  * GET /api/v1/tags - Get all tags for authenticated user
  */
 
-import { createServerClient } from '@/lib/supabase/server';
+import { createApiClient } from '@/lib/supabase/server';
 import { requireAuth, success, handleError } from '@/lib/api';
 
 export async function GET() {
   try {
     const user = await requireAuth();
-    const supabase = await createServerClient();
+    const supabase = await createApiClient();
 
     const { data: tags, error } = await supabase
       .from('tags')
