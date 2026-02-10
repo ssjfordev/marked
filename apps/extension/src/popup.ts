@@ -589,8 +589,9 @@ async function handleSave() {
   if (state.phase === 'saving') return;
   if (!state.existingLink && !state.selectedFolderId) return;
 
+  hideErrorMessage();
   state.phase = 'saving';
-  render();
+  patchSaveArea();
 
   try {
     let response;
@@ -628,17 +629,19 @@ async function handleSave() {
 
     if (response.success) {
       state.phase = 'saved';
-      render();
-      setTimeout(() => window.close(), 1000);
+      patchSaveArea();
+      setTimeout(() => window.close(), 1200);
     } else {
       state.phase = 'error';
       state.errorMessage = response.error || 'Failed to save';
-      render();
+      patchSaveArea();
+      showErrorMessage();
     }
   } catch {
     state.phase = 'error';
     state.errorMessage = 'Something went wrong';
-    render();
+    patchSaveArea();
+    showErrorMessage();
   }
 }
 
@@ -646,8 +649,9 @@ async function handleDelete() {
   if (!state.existingLink) return;
   if (!confirm('Remove this bookmark?')) return;
 
+  hideErrorMessage();
   state.phase = 'saving';
-  render();
+  patchSaveArea();
 
   try {
     const response = await chrome.runtime.sendMessage({
@@ -662,12 +666,14 @@ async function handleDelete() {
     } else {
       state.phase = 'error';
       state.errorMessage = response.error || 'Failed to delete';
-      render();
+      patchSaveArea();
+      showErrorMessage();
     }
   } catch {
     state.phase = 'error';
     state.errorMessage = 'Something went wrong';
-    render();
+    patchSaveArea();
+    showErrorMessage();
   }
 }
 
@@ -799,6 +805,53 @@ function handleTagInput(e: Event) {
     newInput.focus();
     newInput.setSelectionRange(newInput.value.length, newInput.value.length);
   }
+}
+
+/** Patch only the save/actions area without full re-render */
+function patchSaveArea() {
+  const actionsEl = document.querySelector('.actions');
+  if (!actionsEl) return;
+
+  if (state.phase === 'saved') {
+    actionsEl.className = 'actions';
+    actionsEl.innerHTML = `
+      <div class="save-success">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+          <polyline class="checkmark-draw" points="6 12 10 16 18 8" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Saved!
+      </div>
+    `;
+    return;
+  }
+
+  const temp = document.createElement('div');
+  temp.innerHTML = renderActions();
+  const newActions = temp.querySelector('.actions');
+  if (newActions) {
+    actionsEl.className = newActions.className;
+    actionsEl.innerHTML = newActions.innerHTML;
+  }
+  document.getElementById('save-btn')?.addEventListener('click', handleSave);
+  document.getElementById('delete-btn')?.addEventListener('click', handleDelete);
+}
+
+/** Show error message above form without full re-render */
+function showErrorMessage() {
+  hideErrorMessage();
+  if (!state.errorMessage) return;
+  const form = document.querySelector('.form');
+  if (form && form.parentElement) {
+    const errorDiv = document.createElement('div');
+    errorDiv.className = 'error-message';
+    errorDiv.textContent = state.errorMessage;
+    form.parentElement.insertBefore(errorDiv, form);
+  }
+}
+
+/** Remove error message */
+function hideErrorMessage() {
+  document.querySelector('.error-message')?.remove();
 }
 
 // ============================================================================
