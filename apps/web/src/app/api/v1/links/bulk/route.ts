@@ -22,11 +22,14 @@ import {
   ValidationError,
   NotFoundError,
 } from '@/lib/api';
+import { sanitizeText, TEXT_LIMITS } from '@/lib/api/sanitize';
+
+const sanitized = z.string().transform((val) => sanitizeText(val));
 
 const bulkOperationSchema = z.object({
   action: z.enum(['delete', 'addTag', 'removeTag', 'move', 'favorite', 'unfavorite']),
   linkIds: z.array(z.string().uuid()).min(1).max(100),
-  tagName: z.string().min(1).max(50).optional(),
+  tagName: sanitized.pipe(z.string().min(1).max(TEXT_LIMITS.NAME)).optional(),
   tagId: z.string().uuid().optional(),
   folderId: z.string().min(1).max(16).optional(), // short_id (not UUID)
 });

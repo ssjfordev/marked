@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
 import { requireUser } from '@/lib/auth/actions';
 import { canAccessMemo } from '@/domain/entitlement/checker';
+import { sanitizeText, TEXT_LIMITS } from '@/lib/api/sanitize';
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -52,11 +53,13 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
   }
 
   const body = await request.json();
-  const { content } = body;
+  const rawContent = body?.content;
 
-  if (typeof content !== 'string') {
+  if (typeof rawContent !== 'string') {
     return NextResponse.json({ error: 'Content is required' }, { status: 400 });
   }
+
+  const content = sanitizeText(rawContent).slice(0, TEXT_LIMITS.LONG_TEXT);
 
   // Upsert memo
   const { data: existingMemo } = await supabase

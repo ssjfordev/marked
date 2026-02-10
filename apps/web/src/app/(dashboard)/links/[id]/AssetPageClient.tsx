@@ -391,7 +391,7 @@ export function AssetPageClient({
             onKeyDown={handleDescriptionKeyDown}
             className="mt-5 w-full text-foreground-secondary leading-relaxed bg-transparent border-b-2 border-primary/50 outline-none resize-none min-h-[60px]"
             rows={3}
-            maxLength={TEXT_LIMITS.LONG_TEXT}
+            maxLength={TEXT_LIMITS.DESCRIPTION}
           />
         ) : displayDescription ? (
           <p

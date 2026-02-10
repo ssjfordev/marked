@@ -471,6 +471,7 @@ function SearchClientContent() {
               }
             }}
             placeholder={t('search.placeholder')}
+            maxLength={200}
             className="w-full h-12 rounded-xl border border-border bg-surface px-4 pl-12 text-foreground placeholder:text-foreground-faint focus:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
           />
           <svg

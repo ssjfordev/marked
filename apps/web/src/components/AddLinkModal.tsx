@@ -195,6 +195,7 @@ export function AddLinkModal({
                 setUrl(e.target.value);
                 setAnalyzeError(null);
               }}
+              maxLength={TEXT_LIMITS.URL}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && url.trim()) {
                   e.preventDefault();

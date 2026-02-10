@@ -9,6 +9,7 @@ import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { IconPicker, FolderIcon } from '@/components/ui/IconPicker';
 import { Toast } from '@/components/ui/Toast';
 import { useLocale } from '@/components/LanguageProvider';
+import { TEXT_LIMITS } from '@/lib/api/sanitize';
 
 interface Folder {
   id: string;
@@ -694,6 +695,7 @@ export function FolderManager({ initialFolders }: FolderManagerProps) {
                   setEditingName('');
                 }
               }}
+              maxLength={TEXT_LIMITS.NAME}
               className="flex-1 h-8"
               autoFocus
             />
@@ -795,6 +797,7 @@ export function FolderManager({ initialFolders }: FolderManagerProps) {
                 if (e.key === 'Escape') setCreatingInFolderId(undefined);
               }}
               placeholder={t('folderManager.newFolderPlaceholder')}
+              maxLength={TEXT_LIMITS.NAME}
               className="flex-1 h-8"
               autoFocus
             />

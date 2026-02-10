@@ -568,6 +568,7 @@ export default function ImportPage() {
                     value={wrapFolderName}
                     onChange={(e) => setWrapFolderName(e.target.value)}
                     disabled={!wrapInFolder}
+                    maxLength={100}
                     className="flex-1 px-2 py-1 text-[11px] border border-border rounded bg-transparent text-foreground-secondary focus:outline-none focus:ring-1 focus:ring-primary/50 disabled:opacity-40 disabled:cursor-not-allowed"
                     placeholder={t('import.folderName')}
                   />

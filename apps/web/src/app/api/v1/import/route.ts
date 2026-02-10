@@ -8,6 +8,7 @@
 import { after } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
 import { requireAuth, success, handleError, ValidationError } from '@/lib/api';
+import { sanitizeText, TEXT_LIMITS } from '@/lib/api/sanitize';
 import { processImportJob } from '@/lib/import/import-processor';
 import { detectFormat, isValidImportExtension, type ImportFormat } from '@/domain/import';
 import type { Database } from '@/types/database';
@@ -40,7 +41,10 @@ export async function POST(request: Request) {
     const formData = await request.formData();
     const file = formData.get('file') as File | null;
     const wrapInFolder = formData.get('wrapInFolder') === 'true';
-    const wrapFolderName = (formData.get('wrapFolderName') as string) || null;
+    const rawWrapFolderName = (formData.get('wrapFolderName') as string) || null;
+    const wrapFolderName = rawWrapFolderName
+      ? sanitizeText(rawWrapFolderName).slice(0, TEXT_LIMITS.NAME)
+      : null;
 
     if (!file) {
       throw new ValidationError('No file uploaded');
