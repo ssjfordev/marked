@@ -198,10 +198,9 @@ async function saveLink(payload: SaveLinkPayload): Promise<{ success: boolean; e
       url: payload.url,
       folderId: payload.folderId,
     };
-    if (payload.title) body.title = payload.title;
-    if (payload.description) body.description = payload.description;
+    if (payload.title) body.userTitle = payload.title;
+    if (payload.description) body.userDescription = payload.description;
     if (payload.tags) body.tags = payload.tags;
-    if (payload.memo) body.memo = payload.memo;
 
     const response = await fetch(`${API_BASE_URL}/api/v1/links`, {
       method: 'POST',
@@ -576,9 +575,7 @@ async function getCurrentTab(): Promise<{
   }
 }
 
-async function getMarks(
-  payload: GetMarksPayload
-): Promise<{
+async function getMarks(payload: GetMarksPayload): Promise<{
   success: boolean;
   marks?: Array<{ id: string; text: string; color: string; note: string | null }>;
   error?: string;

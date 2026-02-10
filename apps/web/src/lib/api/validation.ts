@@ -12,6 +12,7 @@ import { sanitizeText, TEXT_LIMITS } from './sanitize';
 // ============ Common Validators ============
 
 const uuidSchema = z.string().uuid();
+const shortIdSchema = z.string().min(1).max(50);
 
 // Sanitized string transformer
 const sanitized = z.string().transform((val) => sanitizeText(val));
@@ -23,7 +24,7 @@ const urlSchema = z.string().min(1).max(TEXT_LIMITS.URL);
 
 export const createFolderSchema = z.object({
   name: sanitized.pipe(z.string().min(1).max(TEXT_LIMITS.NAME)),
-  parentId: z.string().uuid().nullable().optional(),
+  parentId: shortIdSchema.nullable().optional(),
 });
 
 export const updateFolderSchema = z.object({
@@ -38,7 +39,7 @@ export const updateFolderSchema = z.object({
 
 export const createLinkSchema = z.object({
   url: urlSchema,
-  folderId: uuidSchema,
+  folderId: shortIdSchema,
   tags: z
     .array(sanitized.pipe(z.string().min(1).max(TEXT_LIMITS.NAME)))
     .max(20)
@@ -48,7 +49,7 @@ export const createLinkSchema = z.object({
 });
 
 export const updateLinkSchema = z.object({
-  folderId: uuidSchema.optional(),
+  folderId: shortIdSchema.optional(),
   userTitle: sanitized.pipe(z.string().max(TEXT_LIMITS.TITLE)).nullable().optional(),
   userDescription: sanitized.pipe(z.string().max(TEXT_LIMITS.DESCRIPTION)).nullable().optional(),
   position: z.number().int().min(0).optional(),
