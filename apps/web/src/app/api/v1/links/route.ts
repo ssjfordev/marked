@@ -130,20 +130,15 @@ export async function POST(request: Request) {
     if (existingCanonical) {
       canonicalId = existingCanonical.id;
 
-      // Fill og_image/title if missing and provided by client (e.g. extension)
+      // Always overwrite canonical title/og_image with client-provided data
+      // (extension reads from actual page DOM — more accurate than enrichment)
       const updateFields: Record<string, string> = {};
       if (body.ogImage) updateFields.og_image = body.ogImage;
       if (body.pageTitle) updateFields.title = body.pageTitle;
 
       if (Object.keys(updateFields).length > 0) {
-        // Only update fields that are currently null
-        for (const [field, value] of Object.entries(updateFields)) {
-          await supabase
-            .from('link_canonicals')
-            .update({ [field]: value })
-            .eq('id', canonicalId)
-            .is(field as 'og_image' | 'title', null);
-        }
+        updateFields.updated_at = new Date().toISOString();
+        await supabase.from('link_canonicals').update(updateFields).eq('id', canonicalId);
       }
     } else {
       // Create new canonical (include og_image if provided by extension)

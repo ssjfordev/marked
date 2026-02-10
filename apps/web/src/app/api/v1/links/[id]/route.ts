@@ -75,21 +75,18 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       throw new NotFoundError('Link not found');
     }
 
-    // Fill canonical title/og_image if provided and currently null
+    // Always overwrite canonical title/og_image with client-provided data
     if (existing.link_canonical_id) {
-      if (body.pageTitle) {
+      const canonicalUpdate: Record<string, string> = {};
+      if (body.pageTitle) canonicalUpdate.title = body.pageTitle;
+      if (body.ogImage) canonicalUpdate.og_image = body.ogImage;
+
+      if (Object.keys(canonicalUpdate).length > 0) {
+        canonicalUpdate.updated_at = new Date().toISOString();
         await supabase
           .from('link_canonicals')
-          .update({ title: body.pageTitle })
-          .eq('id', existing.link_canonical_id)
-          .is('title', null);
-      }
-      if (body.ogImage) {
-        await supabase
-          .from('link_canonicals')
-          .update({ og_image: body.ogImage })
-          .eq('id', existing.link_canonical_id)
-          .is('og_image', null);
+          .update(canonicalUpdate)
+          .eq('id', existing.link_canonical_id);
       }
     }
 
