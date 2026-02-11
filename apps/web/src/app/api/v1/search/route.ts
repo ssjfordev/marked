@@ -376,7 +376,8 @@ async function performHybridSearch(
 }
 
 /**
- * Perform exact (keyword) search
+ * Perform exact (keyword) search via PostgreSQL RPC
+ * ILIKE matching happens in the database — only matched rows are transferred.
  */
 async function performExactSearch(
   supabase: ReturnType<typeof createServiceClient>,
@@ -384,41 +385,6 @@ async function performExactSearch(
   params: SearchParams
 ) {
   const { query, folderIds, tagNames, tagMode, dateFrom, dateTo, favoriteOnly, sort } = params;
-
-  // Single query: fetch instances with canonical data joined
-  let queryBuilder = supabase
-    .from('link_instances')
-    .select(
-      `id, user_title, user_description, position, created_at, updated_at,
-       link_canonical_id, folder_id, is_favorite,
-       link_canonicals (id, short_id, url_key, original_url, domain, title, description, og_image, favicon)`
-    )
-    .eq('user_id', userId);
-
-  // Filter by folders if specified (OR logic)
-  if (folderIds.length > 0) {
-    queryBuilder = queryBuilder.in('folder_id', folderIds);
-  }
-
-  // Filter by date range
-  if (dateFrom) {
-    queryBuilder = queryBuilder.gte('created_at', dateFrom.toISOString());
-  }
-  if (dateTo) {
-    queryBuilder = queryBuilder.lte('created_at', dateTo.toISOString());
-  }
-
-  // Filter by favorite
-  if (favoriteOnly) {
-    queryBuilder = queryBuilder.eq('is_favorite', true);
-  }
-
-  // Apply sorting
-  if (sort === 'oldest') {
-    queryBuilder = queryBuilder.order('created_at', { ascending: true });
-  } else {
-    queryBuilder = queryBuilder.order('created_at', { ascending: false });
-  }
 
   const emptyResponse = {
     results: [],
@@ -436,41 +402,51 @@ async function performExactSearch(
     sort,
   };
 
-  // No limit — keyword matching happens in JS, then we slice to 50
-  const { data: instances } = await queryBuilder;
+  // Call PostgreSQL function — ILIKE matching + JOIN + sorting all in DB
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: rows, error } = await (supabase as any).rpc('search_links_keyword', {
+    user_id_input: userId,
+    query_text: query || '',
+    folder_ids: folderIds.length > 0 ? folderIds : null,
+    favorite_only: favoriteOnly,
+    date_from: dateFrom?.toISOString() ?? null,
+    date_to: dateTo?.toISOString() ?? null,
+    sort_by: sort,
+    match_count: 50,
+  });
 
-  if (!instances || instances.length === 0) {
+  if (error) {
+    console.error('[Search] Keyword search RPC error:', error.message);
     return NextResponse.json(emptyResponse);
   }
 
-  // Keyword matching on joined data
-  const queryLower = query ? query.toLowerCase() : '';
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let matched = instances.filter((instance: any) => {
-    const canonical = instance.link_canonicals;
-    if (!canonical) return false;
+  if (!rows || rows.length === 0) {
+    return NextResponse.json(emptyResponse);
+  }
 
-    // If no query, return all
-    if (!query) return true;
+  // Filter by tags if specified (post-filter since tag logic is complex)
+  let matchedRows = rows as Array<{
+    instance_id: string;
+    user_title: string | null;
+    user_description: string | null;
+    position: number;
+    created_at: string;
+    updated_at: string;
+    is_favorite: boolean;
+    folder_id: string | null;
+    canonical_id: string;
+    short_id: string;
+    url_key: string;
+    original_url: string;
+    domain: string;
+    title: string | null;
+    description: string | null;
+    og_image: string | null;
+    favicon: string | null;
+  }>;
 
-    const searchableText = [
-      instance.user_title,
-      instance.user_description,
-      canonical.title,
-      canonical.description,
-      canonical.domain,
-      canonical.original_url,
-    ]
-      .filter(Boolean)
-      .join(' ')
-      .toLowerCase();
-
-    return searchableText.includes(queryLower);
-  });
-
-  // Filter by tags if specified
   if (tagNames.length > 0) {
-    const matchedIds = matched.map((m: { id: string }) => m.id);
+    const instanceIds = matchedRows.map((r) => r.instance_id);
 
     const { data: matchingTags } = await supabase
       .from('tags')
@@ -484,7 +460,7 @@ async function performExactSearch(
       const { data: linkTags } = await supabase
         .from('link_tags')
         .select('link_instance_id, tag_id')
-        .in('link_instance_id', matchedIds)
+        .in('link_instance_id', instanceIds)
         .in('tag_id', [...tagIdSet]);
 
       const instanceTagCounts = new Map<string, Set<string>>();
@@ -495,37 +471,24 @@ async function performExactSearch(
       }
 
       if (tagMode === 'and') {
-        matched = matched.filter((m: { id: string }) => {
-          const tags = instanceTagCounts.get(m.id);
+        matchedRows = matchedRows.filter((r) => {
+          const tags = instanceTagCounts.get(r.instance_id);
           return tags && tags.size >= tagIdSet.size;
         });
       } else {
-        matched = matched.filter((m: { id: string }) => instanceTagCounts.has(m.id));
+        matchedRows = matchedRows.filter((r) => instanceTagCounts.has(r.instance_id));
       }
     } else {
       return NextResponse.json(emptyResponse);
     }
   }
 
-  // Sort by domain if needed (can't be done at DB level with text matching)
-  if (sort === 'domain') {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    matched.sort((a: any, b: any) =>
-      (a.link_canonicals?.domain ?? '').localeCompare(b.link_canonicals?.domain ?? '')
-    );
-  }
-
-  // Limit to 50 results
-  matched = matched.slice(0, 50);
-
-  // Fetch folders and tags only for final results
-  const matchedIds = matched.map((m: { id: string }) => m.id);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // Fetch folders and tags for results (parallel)
+  const matchedIds = matchedRows.map((r) => r.instance_id);
   const matchedFolderIds = [
-    ...new Set(matched.map((m: any) => m.folder_id).filter(Boolean)),
-  ] as string[];
+    ...new Set(matchedRows.map((r) => r.folder_id).filter((id): id is string => id !== null)),
+  ];
 
-  // Parallel fetch: folders + tags
   const [foldersResult, linkTagsResult] = await Promise.all([
     matchedFolderIds.length > 0
       ? supabase.from('folders').select('id, short_id, name').in('id', matchedFolderIds)
@@ -545,7 +508,6 @@ async function performExactSearch(
     ])
   );
 
-  // Fetch tag details
   const tagIds = [
     ...new Set((linkTagsResult.data ?? []).map((lt: { tag_id: string }) => lt.tag_id)),
   ];
@@ -567,35 +529,27 @@ async function performExactSearch(
   }
 
   // Format results
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const results = matched.map((instance: any) => {
-    const canonical = instance.link_canonicals;
-    const folder = instance.folder_id ? folderMap.get(instance.folder_id) : null;
-
-    return {
-      id: instance.id,
-      user_title: instance.user_title,
-      user_description: instance.user_description,
-      position: instance.position,
-      created_at: instance.created_at,
-      updated_at: instance.updated_at,
-      is_favorite: instance.is_favorite,
-      canonical: canonical
-        ? {
-            id: canonical.short_id,
-            url_key: canonical.url_key,
-            original_url: canonical.original_url,
-            domain: canonical.domain,
-            title: canonical.title,
-            description: canonical.description,
-            og_image: canonical.og_image,
-            favicon: canonical.favicon,
-          }
-        : null,
-      folder,
-      tags: instanceTagsMap.get(instance.id) ?? [],
-    };
-  });
+  const results = matchedRows.map((r) => ({
+    id: r.instance_id,
+    user_title: r.user_title,
+    user_description: r.user_description,
+    position: r.position,
+    created_at: r.created_at,
+    updated_at: r.updated_at,
+    is_favorite: r.is_favorite,
+    canonical: {
+      id: r.short_id,
+      url_key: r.url_key,
+      original_url: r.original_url,
+      domain: r.domain,
+      title: r.title,
+      description: r.description,
+      og_image: r.og_image,
+      favicon: r.favicon,
+    },
+    folder: r.folder_id ? (folderMap.get(r.folder_id) ?? null) : null,
+    tags: instanceTagsMap.get(r.instance_id) ?? [],
+  }));
 
   return NextResponse.json({
     results,
