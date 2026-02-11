@@ -203,6 +203,7 @@ async function saveLink(payload: SaveLinkPayload): Promise<{ success: boolean; e
     if (payload.tags) body.tags = payload.tags;
     if (payload.ogImage) body.ogImage = payload.ogImage;
     if (payload.pageTitle) body.pageTitle = payload.pageTitle;
+    if (payload.description) body.pageDescription = payload.description;
 
     const response = await fetch(`${API_BASE_URL}/api/v1/links`, {
       method: 'POST',
@@ -425,6 +426,7 @@ async function updateLink(
     if (payload.tags !== undefined) body.tags = payload.tags;
     if (payload.memo !== undefined) body.memo = payload.memo;
     if (payload.pageTitle) body.pageTitle = payload.pageTitle;
+    if (payload.pageDescription) body.pageDescription = payload.pageDescription;
     if (payload.ogImage) body.ogImage = payload.ogImage;
 
     const response = await fetch(`${API_BASE_URL}/api/v1/links/${payload.linkId}`, {
@@ -532,6 +534,27 @@ function buildFolderTree(
   }));
 }
 
+/**
+ * Extract YouTube video ID from URL.
+ * Supports youtube.com/watch?v=, youtu.be/, youtube.com/shorts/, youtube.com/embed/
+ */
+function getYouTubeVideoId(url: string): string | null {
+  try {
+    const u = new URL(url);
+    if (u.hostname.includes('youtube.com')) {
+      if (u.pathname === '/watch') return u.searchParams.get('v');
+      const shortMatch = u.pathname.match(/^\/(shorts|embed)\/([^/?]+)/);
+      if (shortMatch) return shortMatch[2];
+    }
+    if (u.hostname === 'youtu.be') {
+      return u.pathname.slice(1).split('/')[0] || null;
+    }
+  } catch {
+    /* ignore */
+  }
+  return null;
+}
+
 async function getCurrentTab(): Promise<{
   url?: string;
   title?: string;
@@ -573,16 +596,31 @@ async function getCurrentTab(): Promise<{
     const metadata = results?.[0]?.result as
       | { description?: string; ogImage?: string; favicon?: string }
       | undefined;
+
+    let ogImage = metadata?.ogImage || '';
+
+    // For YouTube: construct thumbnail URL from video ID (DOM meta tags can be stale on SPA navigation)
+    const ytVideoId = getYouTubeVideoId(tab.url);
+    if (ytVideoId) {
+      ogImage = `https://i.ytimg.com/vi/${ytVideoId}/hqdefault.jpg`;
+    }
+
     return {
       url: tab.url,
       title: tab.title,
       description: metadata?.description,
-      ogImage: metadata?.ogImage,
+      ogImage,
       favicon: metadata?.favicon,
     };
   } catch {
     // If script injection fails, return basic info
-    return { url: tab.url, title: tab.title };
+    // Still try YouTube thumbnail from URL
+    const ytVideoId = getYouTubeVideoId(tab.url);
+    return {
+      url: tab.url,
+      title: tab.title,
+      ogImage: ytVideoId ? `https://i.ytimg.com/vi/${ytVideoId}/hqdefault.jpg` : undefined,
+    };
   }
 }
 

@@ -130,24 +130,26 @@ export async function POST(request: Request) {
     if (existingCanonical) {
       canonicalId = existingCanonical.id;
 
-      // Always overwrite canonical title/og_image with client-provided data
+      // Always overwrite canonical metadata with client-provided data
       // (extension reads from actual page DOM — more accurate than enrichment)
       const updateFields: Record<string, string> = {};
       if (body.ogImage) updateFields.og_image = body.ogImage;
       if (body.pageTitle) updateFields.title = body.pageTitle;
+      if (body.pageDescription) updateFields.description = body.pageDescription;
 
       if (Object.keys(updateFields).length > 0) {
         updateFields.updated_at = new Date().toISOString();
         await supabase.from('link_canonicals').update(updateFields).eq('id', canonicalId);
       }
     } else {
-      // Create new canonical (include og_image if provided by extension)
+      // Create new canonical (include metadata if provided by extension)
       const insertData: {
         url_key: string;
         original_url: string;
         domain: string;
         og_image?: string;
         title?: string;
+        description?: string;
       } = {
         url_key: urlKey,
         original_url: body.url,
@@ -158,6 +160,9 @@ export async function POST(request: Request) {
       }
       if (body.pageTitle) {
         insertData.title = body.pageTitle;
+      }
+      if (body.pageDescription) {
+        insertData.description = body.pageDescription;
       }
       const { data: newCanonical, error: canonicalError } = await supabase
         .from('link_canonicals')

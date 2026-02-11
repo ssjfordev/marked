@@ -608,6 +608,7 @@ async function handleSave() {
           tags: state.tags,
           memo: state.memo,
           pageTitle: state.page.title,
+          pageDescription: state.page.description,
           ogImage: state.page.ogImage,
         },
       });

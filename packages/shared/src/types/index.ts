@@ -139,6 +139,7 @@ export interface UpdateLinkPayload {
   tags?: string[];
   memo?: string;
   pageTitle?: string;
+  pageDescription?: string;
   ogImage?: string;
 }
 

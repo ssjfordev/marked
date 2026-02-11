@@ -75,10 +75,11 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       throw new NotFoundError('Link not found');
     }
 
-    // Always overwrite canonical title/og_image with client-provided data
+    // Always overwrite canonical metadata with client-provided data
     if (existing.link_canonical_id) {
       const canonicalUpdate: Record<string, string> = {};
       if (body.pageTitle) canonicalUpdate.title = body.pageTitle;
+      if (body.pageDescription) canonicalUpdate.description = body.pageDescription;
       if (body.ogImage) canonicalUpdate.og_image = body.ogImage;
 
       if (Object.keys(canonicalUpdate).length > 0) {

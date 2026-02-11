@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import { FolderLinks } from './FolderLinks';
 import { FolderHeader } from './FolderHeader';
@@ -45,44 +45,52 @@ export function FolderView() {
   const [links, setLinks] = useState<LinkInstance[] | null>(null);
   const [notFound, setNotFound] = useState(false);
 
+  const fetchData = useCallback(
+    (showLoading = true) => {
+      if (showLoading) {
+        setFolder(null);
+        setLinks(null);
+        setNotFound(false);
+      }
+
+      fetch(`/api/v1/folders/${folderId}`)
+        .then((res) => {
+          if (res.status === 404) throw new Error('not-found');
+          return res.json();
+        })
+        .then((json) => {
+          if (json?.data) setFolder(json.data);
+        })
+        .catch((err) => {
+          if (err.message === 'not-found') setNotFound(true);
+          else {
+            console.error('Failed to fetch folder:', err);
+            setNotFound(true);
+          }
+        });
+
+      fetch(`/api/v1/folders/${folderId}/links`)
+        .then((res) => res.json())
+        .then((json) => {
+          if (json?.data) setLinks(json.data);
+        })
+        .catch((err) => console.error('Failed to fetch links:', err));
+    },
+    [folderId]
+  );
+
   useEffect(() => {
-    let cancelled = false;
-    setFolder(null);
-    setLinks(null);
-    setNotFound(false);
+    fetchData(true);
+  }, [fetchData]);
 
-    // Parallel fetch: folder header renders first (~1s), links follow (~2s)
-    // Progressive rendering — user sees something quickly
-    fetch(`/api/v1/folders/${folderId}`)
-      .then((res) => {
-        if (res.status === 404) throw new Error('not-found');
-        return res.json();
-      })
-      .then((json) => {
-        if (!cancelled && json?.data) setFolder(json.data);
-      })
-      .catch((err) => {
-        if (cancelled) return;
-        if (err.message === 'not-found') setNotFound(true);
-        else {
-          console.error('Failed to fetch folder:', err);
-          setNotFound(true);
-        }
-      });
-
-    fetch(`/api/v1/folders/${folderId}/links`)
-      .then((res) => res.json())
-      .then((json) => {
-        if (!cancelled && json?.data) setLinks(json.data);
-      })
-      .catch((err) => {
-        if (!cancelled) console.error('Failed to fetch links:', err);
-      });
-
-    return () => {
-      cancelled = true;
+  // Refetch when tab becomes visible (e.g., after saving from extension)
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') fetchData(false);
     };
-  }, [folderId]);
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, [fetchData]);
 
   if (notFound) {
     return (

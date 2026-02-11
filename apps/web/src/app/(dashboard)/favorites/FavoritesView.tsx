@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { FavoriteLinks } from './FavoriteLinks';
 import { useLocale } from '@/components/LanguageProvider';
 
@@ -30,22 +30,27 @@ export function FavoritesView() {
   const { t } = useLocale();
   const [links, setLinks] = useState<LinkInstance[] | null>(null);
 
-  useEffect(() => {
-    let cancelled = false;
-
+  const fetchFavorites = useCallback(() => {
     fetch('/api/v1/links?favorites=true')
       .then((res) => res.json())
       .then((json) => {
-        if (!cancelled && json.data) {
-          setLinks(json.data);
-        }
+        if (json.data) setLinks(json.data);
       })
       .catch((err) => console.error('Failed to fetch favorites:', err));
-
-    return () => {
-      cancelled = true;
-    };
   }, []);
+
+  useEffect(() => {
+    fetchFavorites();
+  }, [fetchFavorites]);
+
+  // Refetch when tab becomes visible (e.g., after saving from extension)
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') fetchFavorites();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, [fetchFavorites]);
 
   if (links === null) {
     return (

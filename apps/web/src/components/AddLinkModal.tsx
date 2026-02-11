@@ -147,10 +147,11 @@ export function AddLinkModal({
         body: JSON.stringify({
           url: preview.url,
           folderId: selectedFolderId,
-          userTitle: title.trim() || null,
-          userDescription: description.trim() || null,
+          userTitle: title.trim() || undefined,
+          userDescription: description.trim() || undefined,
           tags: tags.length > 0 ? tags : undefined,
           pageTitle: preview.title || undefined,
+          pageDescription: preview.description || undefined,
           ogImage: preview.ogImage || undefined,
         }),
       });
