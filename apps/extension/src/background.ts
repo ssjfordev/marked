@@ -555,6 +555,17 @@ function getYouTubeVideoId(url: string): string | null {
   return null;
 }
 
+function decodeHTMLEntities(text: string): string {
+  return text
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&#x27;/g, "'")
+    .replace(/&#x2F;/g, '/');
+}
+
 async function getCurrentTab(): Promise<{
   url?: string;
   title?: string;
@@ -573,8 +584,31 @@ async function getCurrentTab(): Promise<{
     return { url: tab.url, title: tab.title };
   }
 
+  // YouTube SPA: DOM/meta tags are stale after client-side navigation.
+  // title → tab.title (Chrome API, always current)
+  // thumbnail → derived from video ID in URL (always current)
+  // description → fetch page HTML directly (fresh HTTP request, not stale DOM)
+  const ytVideoId = getYouTubeVideoId(tab.url);
+  if (ytVideoId) {
+    let description = '';
+    try {
+      const resp = await fetch(tab.url);
+      const html = await resp.text();
+      const match = html.match(/<meta\s+name="description"\s+content="([^"]*)"/);
+      if (match) description = decodeHTMLEntities(match[1]);
+    } catch {
+      /* ignore — description stays empty */
+    }
+    return {
+      url: tab.url,
+      title: tab.title,
+      description,
+      ogImage: `https://i.ytimg.com/vi/${ytVideoId}/hqdefault.jpg`,
+    };
+  }
+
   try {
-    // Execute script to get page metadata
+    // Non-YouTube: execute script to get page metadata from DOM (reliable for normal pages)
     const results = await chrome.scripting.executeScript({
       target: { tabId: tab.id },
       func: () => {
@@ -583,27 +617,8 @@ async function getCurrentTab(): Promise<{
           return el?.getAttribute('content') || null;
         };
 
-        let description = getMeta('description') || getMeta('og:description') || '';
-
-        // YouTube SPA: meta tags are stale after client-side navigation.
-        // Read the actual rendered description from the page DOM instead.
-        if (
-          location.hostname.includes('youtube.com') &&
-          (location.pathname === '/watch' || location.pathname.startsWith('/shorts/'))
-        ) {
-          const domDesc =
-            document.querySelector('#description-inline-expander')?.textContent?.trim() ||
-            document
-              .querySelector('ytd-text-inline-expander #plain-snippet-text')
-              ?.textContent?.trim() ||
-            '';
-          if (domDesc.length > 10) {
-            description = domDesc.slice(0, 500);
-          }
-        }
-
         return {
-          description,
+          description: getMeta('description') || getMeta('og:description') || '',
           ogImage: getMeta('og:image') || '',
           favicon:
             document.querySelector<HTMLLinkElement>('link[rel="icon"], link[rel="shortcut icon"]')
@@ -616,19 +631,11 @@ async function getCurrentTab(): Promise<{
       | { description?: string; ogImage?: string; favicon?: string }
       | undefined;
 
-    let ogImage = metadata?.ogImage || '';
-
-    // For YouTube: construct thumbnail URL from video ID (DOM meta tags can be stale on SPA navigation)
-    const ytVideoId = getYouTubeVideoId(tab.url);
-    if (ytVideoId) {
-      ogImage = `https://i.ytimg.com/vi/${ytVideoId}/hqdefault.jpg`;
-    }
-
     return {
       url: tab.url,
       title: tab.title,
       description: metadata?.description,
-      ogImage,
+      ogImage: metadata?.ogImage || '',
       favicon: metadata?.favicon,
     };
   } catch {
