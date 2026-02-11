@@ -1,6 +1,7 @@
 packages:
-  - "apps/*"
-  - "packages/*"
+  - 'apps/*'
+  - '!apps/og-worker'
+  - 'packages/*'
 ignoredBuiltDependencies:
   - sharp
   - unrs-resolver
