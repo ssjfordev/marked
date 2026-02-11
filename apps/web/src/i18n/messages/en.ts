@@ -237,6 +237,7 @@ const en: Record<MessageKeys, string | string[]> = {
   'import.complete': 'Import Complete',
   'import.successCount': 'Successfully imported {count} bookmarks',
   'import.failedCount': '({count} failed)',
+  'import.enrichmentNote': 'Thumbnails and metadata will be loaded gradually in the background.',
   'import.viewDashboard': 'View Dashboard',
   'import.importMore': 'Import More',
   'import.failed': 'Import Failed',

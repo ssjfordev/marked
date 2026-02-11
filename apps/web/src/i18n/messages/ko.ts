@@ -233,6 +233,7 @@ const ko = {
   'import.complete': '가져오기 완료',
   'import.successCount': '{count}개 북마크를 성공적으로 가져왔습니다',
   'import.failedCount': '({count}개 실패)',
+  'import.enrichmentNote': '썸네일과 메타데이터는 백그라운드에서 점진적으로 반영됩니다.',
   'import.viewDashboard': '대시보드 보기',
   'import.importMore': '더 가져오기',
   'import.failed': '가져오기 실패',

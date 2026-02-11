@@ -59,12 +59,15 @@ interface CardItemProps {
   onDelete?: () => void;
 }
 
+const OG_WORKER_URL = process.env.NEXT_PUBLIC_OG_WORKER_URL;
+
 export function CardItem({
   title,
   domain,
   description,
   favicon,
   thumbnail,
+  url,
   tags = [],
   isFavorite,
   isDragging,
@@ -85,7 +88,13 @@ export function CardItem({
 }: CardItemProps) {
   const { t } = useLocale();
   const fallbackThumbnail = useMemo(() => getFallbackThumbnail(title + domain), [title, domain]);
-  const [thumbnailSrc, setThumbnailSrc] = useState(thumbnail || fallbackThumbnail);
+  const proxyThumbnail = useMemo(
+    () => (OG_WORKER_URL ? `${OG_WORKER_URL}/screenshot?url=${encodeURIComponent(url)}` : null),
+    [url]
+  );
+  const [thumbnailSrc, setThumbnailSrc] = useState(
+    thumbnail || proxyThumbnail || fallbackThumbnail
+  );
   const [faviconSrc, setFaviconSrc] = useState(
     favicon || `https://www.google.com/s2/favicons?domain=${domain}&sz=32`
   );
@@ -166,7 +175,10 @@ export function CardItem({
           className="object-cover transition-transform duration-300 group-hover:scale-105"
           unoptimized
           onError={() => {
-            if (thumbnailSrc !== fallbackThumbnail) {
+            if (thumbnailSrc === fallbackThumbnail) return;
+            if (proxyThumbnail && thumbnailSrc !== proxyThumbnail) {
+              setThumbnailSrc(proxyThumbnail);
+            } else {
               setThumbnailSrc(fallbackThumbnail);
             }
           }}

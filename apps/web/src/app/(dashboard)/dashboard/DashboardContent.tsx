@@ -218,6 +218,8 @@ interface LinkCardProps {
   formatDate: (date: string) => string;
 }
 
+const OG_WORKER_URL = process.env.NEXT_PUBLIC_OG_WORKER_URL;
+
 function LinkCard({ link, onToggleFavorite, onDelete, formatDate }: LinkCardProps) {
   const router = useRouter();
   const [showActions, setShowActions] = useState(false);
@@ -227,7 +229,16 @@ function LinkCard({ link, onToggleFavorite, onDelete, formatDate }: LinkCardProp
     () => getFallbackThumbnail(title + link.canonical.domain),
     [title, link.canonical.domain]
   );
-  const [thumbnailSrc, setThumbnailSrc] = useState(link.canonical.og_image || fallbackThumbnail);
+  const proxyThumbnail = useMemo(
+    () =>
+      OG_WORKER_URL
+        ? `${OG_WORKER_URL}/screenshot?url=${encodeURIComponent(link.canonical.original_url)}`
+        : null,
+    [link.canonical.original_url]
+  );
+  const [thumbnailSrc, setThumbnailSrc] = useState(
+    link.canonical.og_image || proxyThumbnail || fallbackThumbnail
+  );
 
   return (
     <div
@@ -242,7 +253,10 @@ function LinkCard({ link, onToggleFavorite, onDelete, formatDate }: LinkCardProp
           alt=""
           className="w-full h-full object-cover"
           onError={() => {
-            if (thumbnailSrc !== fallbackThumbnail) {
+            if (thumbnailSrc === fallbackThumbnail) return;
+            if (proxyThumbnail && thumbnailSrc !== proxyThumbnail) {
+              setThumbnailSrc(proxyThumbnail);
+            } else {
               setThumbnailSrc(fallbackThumbnail);
             }
           }}

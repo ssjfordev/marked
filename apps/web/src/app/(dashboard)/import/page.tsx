@@ -290,7 +290,7 @@ export default function ImportPage() {
                   </svg>
                 </div>
                 <h2 className="text-lg font-medium text-foreground mb-2">{t('import.complete')}</h2>
-                <p className="text-sm mb-6" style={{ color: 'var(--status-success-text)' }}>
+                <p className="text-sm mb-2" style={{ color: 'var(--status-success-text)' }}>
                   {t('import.successCount', {
                     count: currentJob.processed_items - currentJob.failed_items,
                   })}
@@ -301,6 +301,7 @@ export default function ImportPage() {
                     </span>
                   )}
                 </p>
+                <p className="text-xs text-foreground-muted mb-6">{t('import.enrichmentNote')}</p>
                 <div className="flex items-center justify-center gap-3">
                   <button
                     onClick={() => router.push('/dashboard')}
