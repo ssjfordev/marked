@@ -143,27 +143,21 @@ export async function POST(request: Request) {
       }
     } else {
       // Create new canonical (include metadata if provided by extension)
-      const insertData: {
-        url_key: string;
-        original_url: string;
-        domain: string;
-        og_image?: string;
-        title?: string;
-        description?: string;
-      } = {
+      const hasMetadata = !!(body.pageTitle && body.ogImage);
+      const insertData: Record<string, string> = {
         url_key: urlKey,
         original_url: body.url,
         domain,
       };
-      if (body.ogImage) {
-        insertData.og_image = body.ogImage;
+      if (body.ogImage) insertData.og_image = body.ogImage;
+      if (body.pageTitle) insertData.title = body.pageTitle;
+      if (body.pageDescription) insertData.description = body.pageDescription;
+      if (hasMetadata) {
+        // Extension provided metadata — use Google favicon as fallback
+        const hostname = new URL(body.url).hostname;
+        insertData.favicon = `https://www.google.com/s2/favicons?domain=${hostname}&sz=32`;
       }
-      if (body.pageTitle) {
-        insertData.title = body.pageTitle;
-      }
-      if (body.pageDescription) {
-        insertData.description = body.pageDescription;
-      }
+
       const { data: newCanonical, error: canonicalError } = await supabase
         .from('link_canonicals')
         .insert(insertData)
@@ -173,11 +167,14 @@ export async function POST(request: Request) {
       if (canonicalError) throw canonicalError;
       canonicalId = newCanonical.id;
 
-      // Queue enrichment job for new canonical
-      await supabase.from('enrichment_jobs').insert({
-        link_canonical_id: canonicalId,
-        status: 'queued',
-      });
+      // Only queue enrichment if metadata is missing (e.g. import, context menu)
+      // Extension provides title/ogImage/description — no need to re-fetch
+      if (!hasMetadata) {
+        await supabase.from('enrichment_jobs').insert({
+          link_canonical_id: canonicalId,
+          status: 'queued',
+        });
+      }
     }
 
     // Get max position in folder (use resolved folder UUID)
