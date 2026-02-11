@@ -576,6 +576,9 @@ async function getCurrentTab(): Promise<{
   }
 
   try {
+    // Read ALL data from the page DOM (not chrome.tabs API).
+    // On SPA sites (YouTube), chrome.tabs can lag behind — but
+    // location.href and document.title always reflect the current page.
     const results = await chrome.scripting.executeScript({
       target: { tabId: tab.id },
       func: () => {
@@ -589,7 +592,6 @@ async function getCurrentTab(): Promise<{
           (location.pathname === '/watch' || location.pathname.startsWith('/shorts/'));
 
         let description = '';
-
         if (isYouTubeVideo) {
           // YouTube SPA: <meta> tags are stale after navigation.
           // Read from actual rendered DOM elements (these DO update on SPA navigation).
@@ -603,6 +605,8 @@ async function getCurrentTab(): Promise<{
         }
 
         return {
+          url: location.href,
+          title: document.title,
           description,
           ogImage: isYouTubeVideo ? '' : getMeta('og:image') || '',
           favicon:
@@ -612,30 +616,31 @@ async function getCurrentTab(): Promise<{
       },
     });
 
-    const metadata = results?.[0]?.result as
-      | { description?: string; ogImage?: string; favicon?: string }
+    const page = results?.[0]?.result as
+      | { url: string; title: string; description: string; ogImage: string; favicon: string }
       | undefined;
 
+    const url = page?.url || tab.url || '';
+    const title = page?.title || tab.title || '';
+
     // For YouTube: derive thumbnail from URL video ID (meta og:image is stale on SPA)
-    let ogImage = metadata?.ogImage || '';
-    const ytVideoId = getYouTubeVideoId(tab.url);
+    let ogImage = page?.ogImage || '';
+    const ytVideoId = getYouTubeVideoId(url);
     if (ytVideoId) {
       ogImage = `https://i.ytimg.com/vi/${ytVideoId}/hqdefault.jpg`;
     }
 
     return {
-      url: tab.url,
-      title: tab.title,
-      description: metadata?.description,
+      url,
+      title,
+      description: page?.description,
       ogImage,
-      favicon: metadata?.favicon,
+      favicon: page?.favicon,
     };
   } catch {
-    const ytVideoId = getYouTubeVideoId(tab.url);
     return {
       url: tab.url,
       title: tab.title,
-      ogImage: ytVideoId ? `https://i.ytimg.com/vi/${ytVideoId}/hqdefault.jpg` : undefined,
     };
   }
 }
