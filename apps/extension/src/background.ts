@@ -72,7 +72,9 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
 
 // Handle messages from popup and content scripts
 chrome.runtime.onMessage.addListener((message: ExtensionMessage, _sender, sendResponse) => {
-  handleMessage(message).then(sendResponse);
+  handleMessage(message)
+    .then(sendResponse)
+    .catch((err) => sendResponse({ error: String(err) }));
   return true; // Keep channel open for async response
 });
 
