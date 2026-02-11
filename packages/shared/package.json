@@ -14,7 +14,7 @@
     "type-check": "tsc --noEmit"
   },
   "devDependencies": {
-    "@types/node": "^20",
+    "@types/node": "^25",
     "eslint": "^9",
     "typescript": "^5"
   }
