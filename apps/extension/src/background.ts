@@ -592,7 +592,7 @@ async function getCurrentTab(): Promise<{
   if (ytVideoId) {
     let description = '';
     try {
-      const resp = await fetch(tab.url);
+      const resp = await fetch(tab.url, { cache: 'no-store' });
       const html = await resp.text();
       const match = html.match(/<meta\s+name="description"\s+content="([^"]*)"/);
       if (match) description = decodeHTMLEntities(match[1]);
