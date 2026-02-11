@@ -85,18 +85,8 @@ export function AssetPageView() {
 
   if (!data) {
     return (
-      <div className="max-w-4xl mx-auto animate-pulse">
-        <div className="mb-6">
-          <div className="h-4 w-32 bg-muted rounded mb-4" />
-          <div className="h-8 w-3/4 bg-muted rounded mb-2" />
-          <div className="h-4 w-1/2 bg-muted rounded" />
-        </div>
-        <div className="h-64 bg-muted rounded-xl mb-6" />
-        <div className="space-y-3">
-          <div className="h-4 w-full bg-muted rounded" />
-          <div className="h-4 w-5/6 bg-muted rounded" />
-          <div className="h-4 w-4/6 bg-muted rounded" />
-        </div>
+      <div className="max-w-4xl mx-auto flex items-center justify-center py-20">
+        <div className="h-6 w-6 border-2 border-foreground-muted border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }

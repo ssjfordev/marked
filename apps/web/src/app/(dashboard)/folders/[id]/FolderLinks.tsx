@@ -382,21 +382,8 @@ function FolderLinksContent({ links: initialLinks, folderId, folders = [] }: Fol
 
   if (isLoading) {
     return (
-      <div>
-        <div className="mb-4 flex items-center justify-between">
-          <div className="h-4 w-16 bg-muted rounded animate-pulse" />
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} className="animate-pulse rounded-xl border border-border overflow-hidden">
-              <div className="h-36 bg-muted" />
-              <div className="p-3 space-y-2">
-                <div className="h-3 w-24 bg-muted rounded" />
-                <div className="h-4 w-full bg-muted rounded" />
-              </div>
-            </div>
-          ))}
-        </div>
+      <div className="flex items-center justify-center py-16">
+        <div className="h-6 w-6 border-2 border-foreground-muted border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }

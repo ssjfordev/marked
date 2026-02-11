@@ -58,13 +58,8 @@ export function FolderManageView() {
       </div>
 
       {folders === null ? (
-        <div className="animate-pulse space-y-3">
-          {[1, 2, 3, 4, 5].map((i) => (
-            <div key={i} className="flex items-center gap-3 p-3 rounded-lg border border-border">
-              <div className="w-8 h-8 rounded bg-muted" />
-              <div className="h-4 w-40 bg-muted rounded" />
-            </div>
-          ))}
+        <div className="flex items-center justify-center py-16">
+          <div className="h-6 w-6 border-2 border-foreground-muted border-t-transparent rounded-full animate-spin" />
         </div>
       ) : (
         <FolderManager initialFolders={folders} />

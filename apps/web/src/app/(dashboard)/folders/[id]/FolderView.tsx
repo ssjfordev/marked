@@ -103,32 +103,8 @@ export function FolderView() {
 
   if (!folder) {
     return (
-      <div className="max-w-5xl mx-auto">
-        <div className="mb-6 animate-pulse">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-muted" />
-              <div className="h-7 w-40 bg-muted rounded" />
-            </div>
-            <div className="h-8 w-20 bg-muted rounded-lg" />
-          </div>
-          <div className="h-4 w-48 bg-muted rounded" />
-        </div>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="animate-pulse rounded-xl border border-border overflow-hidden">
-              <div className="aspect-[16/9] bg-muted" />
-              <div className="p-4">
-                <div className="flex items-center gap-2 mb-2.5">
-                  <div className="w-3.5 h-3.5 rounded-sm bg-muted" />
-                  <div className="h-3 w-20 bg-muted rounded" />
-                </div>
-                <div className="h-4 w-3/4 bg-muted rounded mb-1.5" />
-                <div className="h-3 w-full bg-muted rounded" />
-              </div>
-            </div>
-          ))}
-        </div>
+      <div className="max-w-5xl mx-auto flex items-center justify-center py-20">
+        <div className="h-6 w-6 border-2 border-foreground-muted border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }

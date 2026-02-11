@@ -25,11 +25,8 @@ export function AccountView() {
 
   if (!data) {
     return (
-      <div className="animate-pulse space-y-6">
-        <div className="rounded-xl border border-border p-6">
-          <div className="h-5 w-24 bg-muted rounded mb-4" />
-          <div className="h-4 w-64 bg-muted rounded" />
-        </div>
+      <div className="flex items-center justify-center py-20">
+        <div className="h-6 w-6 border-2 border-foreground-muted border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }

@@ -32,15 +32,8 @@ export function BillingView() {
 
   if (!data) {
     return (
-      <div className="animate-pulse space-y-6">
-        <div className="rounded-xl border border-border p-6">
-          <div className="h-5 w-32 bg-muted rounded mb-4" />
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="h-48 bg-muted rounded-xl" />
-            ))}
-          </div>
-        </div>
+      <div className="flex items-center justify-center py-20">
+        <div className="h-6 w-6 border-2 border-foreground-muted border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
