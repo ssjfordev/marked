@@ -128,9 +128,15 @@ async function init() {
   state.title = tabInfo.title || '';
   state.description = tabInfo.description || '';
 
-  // YouTube: always derive thumbnail from video ID in URL (DOM og:image can be stale on SPA nav)
+  // YouTube SPA: meta tags (og:image, description) are stale after client-side navigation.
+  // - Thumbnail: derive from video ID in URL (always correct)
+  // - Description: discard stale meta description (enrichment will fill it later)
   const ytOgImage = getYouTubeThumbnail(state.page.url);
-  if (ytOgImage) state.page.ogImage = ytOgImage;
+  if (ytOgImage) {
+    state.page.ogImage = ytOgImage;
+    state.page.description = '';
+    state.description = '';
+  }
 
   // Render immediately with URL visible
   state.phase = 'loading';
