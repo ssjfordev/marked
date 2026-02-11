@@ -53,11 +53,7 @@ function parseSearchParams(searchParams: URLSearchParams): SearchParams {
   // Support both single tag (legacy) and multiple tags
   const tagName = searchParams.get('tag');
   const tagsParam = searchParams.get('tags');
-  const tagNames = tagsParam
-    ? tagsParam.split(',').filter(Boolean)
-    : tagName
-      ? [tagName]
-      : [];
+  const tagNames = tagsParam ? tagsParam.split(',').filter(Boolean) : tagName ? [tagName] : [];
 
   const tagMode = (searchParams.get('tagMode') || 'or') as TagMode;
 
@@ -276,10 +272,15 @@ async function performHybridSearch(
   }
 
   // Fetch folders for results (include short_id)
-  const resultFolderIds = [...new Set(results.map((r) => r.folder_id).filter((id): id is string => id !== null))];
+  const resultFolderIds = [
+    ...new Set(results.map((r) => r.folder_id).filter((id): id is string => id !== null)),
+  ];
   let folderMap = new Map<string, { id: string; name: string }>();
   if (resultFolderIds.length > 0) {
-    const { data: folders } = await supabase.from('folders').select('id, short_id, name').in('id', resultFolderIds);
+    const { data: folders } = await supabase
+      .from('folders')
+      .select('id, short_id, name')
+      .in('id', resultFolderIds);
     folderMap = new Map(folders?.map((f) => [f.id, { id: f.short_id, name: f.name }]) ?? []);
   }
 
@@ -287,7 +288,10 @@ async function performHybridSearch(
   const canonicalIds = [...new Set(results.map((r) => r.canonical_id))];
   let canonicalShortIdMap = new Map<string, string>();
   if (canonicalIds.length > 0) {
-    const { data: canonicals } = await supabase.from('link_canonicals').select('id, short_id').in('id', canonicalIds);
+    const { data: canonicals } = await supabase
+      .from('link_canonicals')
+      .select('id, short_id')
+      .in('id', canonicalIds);
     canonicalShortIdMap = new Map(canonicals?.map((c) => [c.id, c.short_id]) ?? []);
   }
 
@@ -362,7 +366,8 @@ async function performHybridSearch(
       folders: folderIds,
       tags: tagNames,
       tagMode,
-      dateRange: dateFrom || dateTo ? { from: dateFrom?.toISOString(), to: dateTo?.toISOString() } : null,
+      dateRange:
+        dateFrom || dateTo ? { from: dateFrom?.toISOString(), to: dateTo?.toISOString() } : null,
       favorite: favoriteOnly,
     },
     sort,
@@ -380,10 +385,14 @@ async function performExactSearch(
 ) {
   const { query, folderIds, tagNames, tagMode, dateFrom, dateTo, favoriteOnly, sort } = params;
 
-  // Build query
+  // Single query: fetch instances with canonical data joined
   let queryBuilder = supabase
     .from('link_instances')
-    .select('id, user_title, user_description, position, created_at, updated_at, link_canonical_id, folder_id, is_favorite')
+    .select(
+      `id, user_title, user_description, position, created_at, updated_at,
+       link_canonical_id, folder_id, is_favorite,
+       link_canonicals (id, short_id, url_key, original_url, domain, title, description, og_image, favicon)`
+    )
     .eq('user_id', userId);
 
   // Filter by folders if specified (OR logic)
@@ -404,56 +413,65 @@ async function performExactSearch(
     queryBuilder = queryBuilder.eq('is_favorite', true);
   }
 
-  // Apply sorting at query level when possible
-  if (sort === 'newest') {
-    queryBuilder = queryBuilder.order('created_at', { ascending: false });
-  } else if (sort === 'oldest') {
+  // Apply sorting
+  if (sort === 'oldest') {
     queryBuilder = queryBuilder.order('created_at', { ascending: true });
   } else {
     queryBuilder = queryBuilder.order('created_at', { ascending: false });
   }
 
-  const { data: instances } = await queryBuilder.limit(100);
+  const emptyResponse = {
+    results: [],
+    query,
+    mode: 'exact' as const,
+    total: 0,
+    filters: {
+      folders: folderIds,
+      tags: tagNames,
+      tagMode,
+      dateRange:
+        dateFrom || dateTo ? { from: dateFrom?.toISOString(), to: dateTo?.toISOString() } : null,
+      favorite: favoriteOnly,
+    },
+    sort,
+  };
+
+  // No limit — keyword matching happens in JS, then we slice to 50
+  const { data: instances } = await queryBuilder;
 
   if (!instances || instances.length === 0) {
-    return NextResponse.json({
-      results: [],
-      query,
-      mode: 'exact',
-      total: 0,
-      filters: {
-        folders: folderIds,
-        tags: tagNames,
-        tagMode,
-        dateRange: dateFrom || dateTo ? { from: dateFrom?.toISOString(), to: dateTo?.toISOString() } : null,
-        favorite: favoriteOnly,
-      },
-      sort,
-    });
+    return NextResponse.json(emptyResponse);
   }
 
-  // Fetch canonicals (include short_id)
-  const canonicalIds = instances.map((i) => i.link_canonical_id);
-  const { data: canonicals } = await supabase
-    .from('link_canonicals')
-    .select('id, short_id, url_key, original_url, domain, title, description, og_image, favicon')
-    .in('id', canonicalIds);
+  // Keyword matching on joined data
+  const queryLower = query ? query.toLowerCase() : '';
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let matched = instances.filter((instance: any) => {
+    const canonical = instance.link_canonicals;
+    if (!canonical) return false;
 
-  const canonicalMap = new Map(canonicals?.map((c) => [c.id, c]) ?? []);
+    // If no query, return all
+    if (!query) return true;
 
-  // Fetch folders (include short_id)
-  const resultFolderIds = [...new Set(instances.map((i) => i.folder_id).filter(Boolean))];
-  let folderMap = new Map<string, { id: string; name: string }>();
-  if (resultFolderIds.length > 0) {
-    const { data: folders } = await supabase.from('folders').select('id, short_id, name').in('id', resultFolderIds);
-    folderMap = new Map(folders?.map((f) => [f.id, { id: f.short_id, name: f.name }]) ?? []);
-  }
+    const searchableText = [
+      instance.user_title,
+      instance.user_description,
+      canonical.title,
+      canonical.description,
+      canonical.domain,
+      canonical.original_url,
+    ]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase();
 
-  // Fetch tags and filter by tag names if specified
-  let filteredInstanceIds = new Set<string>(instances.map((i) => i.id));
+    return searchableText.includes(queryLower);
+  });
 
+  // Filter by tags if specified
   if (tagNames.length > 0) {
-    // Get tag IDs for the specified tag names
+    const matchedIds = matched.map((m: { id: string }) => m.id);
+
     const { data: matchingTags } = await supabase
       .from('tags')
       .select('id, name')
@@ -466,10 +484,9 @@ async function performExactSearch(
       const { data: linkTags } = await supabase
         .from('link_tags')
         .select('link_instance_id, tag_id')
-        .in('link_instance_id', [...filteredInstanceIds])
+        .in('link_instance_id', matchedIds)
         .in('tag_id', [...tagIdSet]);
 
-      // Group tags by instance
       const instanceTagCounts = new Map<string, Set<string>>();
       for (const lt of linkTags ?? []) {
         const existing = instanceTagCounts.get(lt.link_instance_id) ?? new Set();
@@ -478,32 +495,60 @@ async function performExactSearch(
       }
 
       if (tagMode === 'and') {
-        // AND mode: instance must have ALL specified tags
-        filteredInstanceIds = new Set(
-          [...filteredInstanceIds].filter((id) => {
-            const instanceTags = instanceTagCounts.get(id);
-            return instanceTags && instanceTags.size >= tagIdSet.size;
-          })
-        );
+        matched = matched.filter((m: { id: string }) => {
+          const tags = instanceTagCounts.get(m.id);
+          return tags && tags.size >= tagIdSet.size;
+        });
       } else {
-        // OR mode: instance must have ANY of the specified tags
-        filteredInstanceIds = new Set(
-          [...filteredInstanceIds].filter((id) => instanceTagCounts.has(id))
-        );
+        matched = matched.filter((m: { id: string }) => instanceTagCounts.has(m.id));
       }
     } else {
-      filteredInstanceIds = new Set();
+      return NextResponse.json(emptyResponse);
     }
   }
 
-  // Fetch all tags for results
-  const instanceIds = [...filteredInstanceIds];
-  const { data: linkTags } = await supabase
-    .from('link_tags')
-    .select('link_instance_id, tag_id')
-    .in('link_instance_id', instanceIds);
+  // Sort by domain if needed (can't be done at DB level with text matching)
+  if (sort === 'domain') {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    matched.sort((a: any, b: any) =>
+      (a.link_canonicals?.domain ?? '').localeCompare(b.link_canonicals?.domain ?? '')
+    );
+  }
 
-  const tagIds = [...new Set(linkTags?.map((lt) => lt.tag_id) ?? [])];
+  // Limit to 50 results
+  matched = matched.slice(0, 50);
+
+  // Fetch folders and tags only for final results
+  const matchedIds = matched.map((m: { id: string }) => m.id);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const matchedFolderIds = [
+    ...new Set(matched.map((m: any) => m.folder_id).filter(Boolean)),
+  ] as string[];
+
+  // Parallel fetch: folders + tags
+  const [foldersResult, linkTagsResult] = await Promise.all([
+    matchedFolderIds.length > 0
+      ? supabase.from('folders').select('id, short_id, name').in('id', matchedFolderIds)
+      : Promise.resolve({ data: [] }),
+    matchedIds.length > 0
+      ? supabase
+          .from('link_tags')
+          .select('link_instance_id, tag_id')
+          .in('link_instance_id', matchedIds)
+      : Promise.resolve({ data: [] }),
+  ]);
+
+  const folderMap = new Map(
+    (foldersResult.data ?? []).map((f: { id: string; short_id: string; name: string }) => [
+      f.id,
+      { id: f.short_id, name: f.name },
+    ])
+  );
+
+  // Fetch tag details
+  const tagIds = [
+    ...new Set((linkTagsResult.data ?? []).map((lt: { tag_id: string }) => lt.tag_id)),
+  ];
   let tagMap = new Map<string, { id: string; name: string }>();
   if (tagIds.length > 0) {
     const { data: tags } = await supabase.from('tags').select('id, name').in('id', tagIds);
@@ -511,76 +556,46 @@ async function performExactSearch(
   }
 
   const instanceTagsMap = new Map<string, { id: string; name: string }[]>();
-  for (const lt of linkTags ?? []) {
-    const tag = tagMap.get(lt.tag_id);
+  for (const lt of linkTagsResult.data ?? []) {
+    const tag = tagMap.get((lt as { tag_id: string }).tag_id);
     if (tag) {
-      const existing = instanceTagsMap.get(lt.link_instance_id) ?? [];
+      const key = (lt as { link_instance_id: string }).link_instance_id;
+      const existing = instanceTagsMap.get(key) ?? [];
       existing.push(tag);
-      instanceTagsMap.set(lt.link_instance_id, existing);
+      instanceTagsMap.set(key, existing);
     }
   }
 
-  // Filter and format results
-  const queryLower = query.toLowerCase();
-  let results = instances
-    .filter((instance) => {
-      if (!filteredInstanceIds.has(instance.id)) return false;
+  // Format results
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const results = matched.map((instance: any) => {
+    const canonical = instance.link_canonicals;
+    const folder = instance.folder_id ? folderMap.get(instance.folder_id) : null;
 
-      const canonical = canonicalMap.get(instance.link_canonical_id);
-      if (!canonical) return false;
-
-      // If no query, return all
-      if (!query) return true;
-
-      // Exact search - match against title, description, domain, URL
-      const searchableText = [
-        instance.user_title,
-        instance.user_description,
-        canonical.title,
-        canonical.description,
-        canonical.domain,
-        canonical.original_url,
-      ]
-        .filter(Boolean)
-        .join(' ')
-        .toLowerCase();
-
-      return searchableText.includes(queryLower);
-    })
-    .map((instance) => {
-      const canonical = canonicalMap.get(instance.link_canonical_id)!;
-      const folder = instance.folder_id ? folderMap.get(instance.folder_id) : null;
-
-      return {
-        id: instance.id,
-        user_title: instance.user_title,
-        user_description: instance.user_description,
-        position: instance.position,
-        created_at: instance.created_at,
-        updated_at: instance.updated_at,
-        is_favorite: instance.is_favorite,
-        canonical: {
-          id: (canonical as { short_id: string }).short_id, // Use short_id
-          url_key: canonical.url_key,
-          original_url: canonical.original_url,
-          domain: canonical.domain,
-          title: canonical.title,
-          description: canonical.description,
-          og_image: canonical.og_image,
-          favicon: canonical.favicon,
-        },
-        folder,
-        tags: instanceTagsMap.get(instance.id) ?? [],
-      };
-    });
-
-  // Apply sort for domain (can't be done at DB level easily)
-  if (sort === 'domain') {
-    results = results.sort((a, b) => a.canonical.domain.localeCompare(b.canonical.domain));
-  }
-
-  // Limit final results
-  results = results.slice(0, 50);
+    return {
+      id: instance.id,
+      user_title: instance.user_title,
+      user_description: instance.user_description,
+      position: instance.position,
+      created_at: instance.created_at,
+      updated_at: instance.updated_at,
+      is_favorite: instance.is_favorite,
+      canonical: canonical
+        ? {
+            id: canonical.short_id,
+            url_key: canonical.url_key,
+            original_url: canonical.original_url,
+            domain: canonical.domain,
+            title: canonical.title,
+            description: canonical.description,
+            og_image: canonical.og_image,
+            favicon: canonical.favicon,
+          }
+        : null,
+      folder,
+      tags: instanceTagsMap.get(instance.id) ?? [],
+    };
+  });
 
   return NextResponse.json({
     results,
@@ -591,7 +606,8 @@ async function performExactSearch(
       folders: folderIds,
       tags: tagNames,
       tagMode,
-      dateRange: dateFrom || dateTo ? { from: dateFrom?.toISOString(), to: dateTo?.toISOString() } : null,
+      dateRange:
+        dateFrom || dateTo ? { from: dateFrom?.toISOString(), to: dateTo?.toISOString() } : null,
       favorite: favoriteOnly,
     },
     sort,
