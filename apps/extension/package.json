@@ -14,7 +14,7 @@
     "@marked/shared": "workspace:*"
   },
   "devDependencies": {
-    "@types/chrome": "^0.0.287",
+    "@types/chrome": "^0.1.36",
     "@types/node": "^20",
     "eslint": "^9",
     "typescript": "^5",
