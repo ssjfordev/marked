@@ -144,19 +144,17 @@ export async function POST(request: Request) {
     } else {
       // Create new canonical (include metadata if provided by extension)
       const hasMetadata = !!(body.pageTitle && body.ogImage);
-      const insertData: Record<string, string> = {
+      const insertData = {
         url_key: urlKey,
         original_url: body.url,
         domain,
+        og_image: body.ogImage || null,
+        title: body.pageTitle || null,
+        description: body.pageDescription || null,
+        favicon: hasMetadata
+          ? `https://www.google.com/s2/favicons?domain=${new URL(body.url).hostname}&sz=32`
+          : null,
       };
-      if (body.ogImage) insertData.og_image = body.ogImage;
-      if (body.pageTitle) insertData.title = body.pageTitle;
-      if (body.pageDescription) insertData.description = body.pageDescription;
-      if (hasMetadata) {
-        // Extension provided metadata — use Google favicon as fallback
-        const hostname = new URL(body.url).hostname;
-        insertData.favicon = `https://www.google.com/s2/favicons?domain=${hostname}&sz=32`;
-      }
 
       const { data: newCanonical, error: canonicalError } = await supabase
         .from('link_canonicals')
