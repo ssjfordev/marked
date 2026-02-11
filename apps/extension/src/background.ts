@@ -583,8 +583,27 @@ async function getCurrentTab(): Promise<{
           return el?.getAttribute('content') || null;
         };
 
+        let description = getMeta('description') || getMeta('og:description') || '';
+
+        // YouTube SPA: meta tags are stale after client-side navigation.
+        // Read the actual rendered description from the page DOM instead.
+        if (
+          location.hostname.includes('youtube.com') &&
+          (location.pathname === '/watch' || location.pathname.startsWith('/shorts/'))
+        ) {
+          const domDesc =
+            document.querySelector('#description-inline-expander')?.textContent?.trim() ||
+            document
+              .querySelector('ytd-text-inline-expander #plain-snippet-text')
+              ?.textContent?.trim() ||
+            '';
+          if (domDesc.length > 10) {
+            description = domDesc.slice(0, 500);
+          }
+        }
+
         return {
-          description: getMeta('description') || getMeta('og:description') || '',
+          description,
           ogImage: getMeta('og:image') || '',
           favicon:
             document.querySelector<HTMLLinkElement>('link[rel="icon"], link[rel="shortcut icon"]')
