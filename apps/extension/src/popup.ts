@@ -13,6 +13,26 @@ import type { SaveLinkPayload, ExistingLinkInfo } from '@marked/shared';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
+/** Derive YouTube thumbnail URL from video ID in URL (immune to SPA stale meta tags) */
+function getYouTubeThumbnail(url: string): string | null {
+  try {
+    const u = new URL(url);
+    let videoId: string | null = null;
+    if (u.hostname.includes('youtube.com')) {
+      if (u.pathname === '/watch') videoId = u.searchParams.get('v');
+      else {
+        const m = u.pathname.match(/^\/(shorts|embed)\/([^/?]+)/);
+        if (m) videoId = m[2];
+      }
+    } else if (u.hostname === 'youtu.be') {
+      videoId = u.pathname.slice(1).split('/')[0] || null;
+    }
+    return videoId ? `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg` : null;
+  } catch {
+    return null;
+  }
+}
+
 // Folder with hierarchy support
 interface FolderNode {
   id: string;
@@ -107,6 +127,10 @@ async function init() {
   state.page.favicon = tabInfo.favicon || '';
   state.title = tabInfo.title || '';
   state.description = tabInfo.description || '';
+
+  // YouTube: always derive thumbnail from video ID in URL (DOM og:image can be stale on SPA nav)
+  const ytOgImage = getYouTubeThumbnail(state.page.url);
+  if (ytOgImage) state.page.ogImage = ytOgImage;
 
   // Render immediately with URL visible
   state.phase = 'loading';
