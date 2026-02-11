@@ -118,6 +118,7 @@ export interface SaveLinkPayload {
   memo?: string;
   ogImage?: string;
   pageTitle?: string;
+  pageDescription?: string;
 }
 
 export interface CreateMarkPayload {
