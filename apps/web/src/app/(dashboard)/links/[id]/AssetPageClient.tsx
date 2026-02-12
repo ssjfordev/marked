@@ -11,6 +11,8 @@ import { FolderSelectModal } from '@/components/FolderSelectModal';
 import { TEXT_LIMITS } from '@/lib/api/sanitize';
 import { useLocale } from '@/components/LanguageProvider';
 
+const OG_WORKER_URL = process.env.NEXT_PUBLIC_OG_WORKER_URL;
+
 interface LinkCanonical {
   id: string;
   url_key: string;
@@ -367,11 +369,14 @@ export function AssetPageClient({
           </div>
         </div>
 
-        {/* OG Image */}
-        {canonical.og_image && (
+        {/* OG Image (with OG worker fallback) */}
+        {(canonical.og_image || OG_WORKER_URL) && (
           <div className="mt-6 overflow-hidden rounded-xl border border-border">
             <Image
-              src={canonical.og_image}
+              src={
+                canonical.og_image ||
+                `${OG_WORKER_URL}/screenshot?url=${encodeURIComponent(canonical.original_url)}`
+              }
               alt=""
               width={800}
               height={400}

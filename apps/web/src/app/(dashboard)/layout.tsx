@@ -6,6 +6,7 @@ import { Header } from '@/components/Header';
 import Image from 'next/image';
 import Link from 'next/link';
 import { createT } from '@/i18n';
+import { ExtensionAuthSync } from '@/components/ExtensionAuthSync';
 
 type SubscriptionData = {
   plan: 'free' | 'pro' | 'ai_pro';
@@ -240,6 +241,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         {/* Main content */}
         <main className="flex-1 overflow-y-auto p-6">{children}</main>
       </div>
+      <ExtensionAuthSync />
     </div>
   );
 }

@@ -23,6 +23,7 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 // Create context menus on install
 chrome.runtime.onInstalled.addListener(() => {
+  // Page/link context menus (right-click on webpage)
   chrome.contextMenus.create({
     id: 'save-link',
     title: 'Save to Marked',
@@ -35,16 +36,48 @@ chrome.runtime.onInstalled.addListener(() => {
     contexts: ['selection'],
   });
 
+  // Extension icon context menus (right-click on toolbar icon)
+  chrome.contextMenus.create({
+    id: 'open-sidebar',
+    title: 'Open sidebar',
+    contexts: ['action'],
+  });
+
+  chrome.contextMenus.create({
+    id: 'save-current-page',
+    title: 'Save current page',
+    contexts: ['action'],
+  });
+
+  chrome.contextMenus.create({
+    id: 'save-all-tabs',
+    title: 'Save all open tabs',
+    contexts: ['action'],
+  });
+
+  chrome.contextMenus.create({
+    id: 'open-app',
+    title: 'Open Marked',
+    contexts: ['action'],
+  });
+
   // Enable side panel
   chrome.sidePanel.setOptions({ enabled: true });
 });
 
 // Handle keyboard shortcuts
 chrome.commands.onCommand.addListener(async (command) => {
+  console.log('[Marked] command received:', command);
   if (command === 'toggle_sidebar') {
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    if (tab?.windowId) {
-      await chrome.sidePanel.open({ windowId: tab.windowId });
+    try {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      console.log('[Marked] active tab:', tab?.id, tab?.windowId, tab?.url);
+      if (tab?.windowId) {
+        await chrome.sidePanel.open({ windowId: tab.windowId });
+        console.log('[Marked] sidePanel.open() success');
+      }
+    } catch (err) {
+      console.error('[Marked] sidePanel.open() error:', err);
     }
   }
 });
@@ -64,9 +97,29 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
 
   if (info.menuItemId === 'create-mark' && info.selectionText) {
     if (tab?.id) {
-      // Send message to content script to show mark popup
       chrome.tabs.sendMessage(tab.id, { type: 'SHOW_MARK_POPUP' });
     }
+  }
+
+  if (info.menuItemId === 'open-sidebar') {
+    if (tab?.windowId) {
+      await chrome.sidePanel.open({ windowId: tab.windowId });
+    }
+  }
+
+  if (info.menuItemId === 'save-current-page') {
+    if (tab?.url && tab?.id) {
+      await saveLink({ url: tab.url, title: tab.title });
+      showNotification('Link saved to Marked');
+    }
+  }
+
+  if (info.menuItemId === 'save-all-tabs') {
+    chrome.tabs.create({ url: chrome.runtime.getURL('bulk-save.html') });
+  }
+
+  if (info.menuItemId === 'open-app') {
+    chrome.tabs.create({ url: API_BASE_URL + '/dashboard' });
   }
 });
 
@@ -175,6 +228,9 @@ async function handleMessage(message: ExtensionMessage): Promise<unknown> {
     case 'GET_CURRENT_TAB':
       return getCurrentTab();
 
+    case 'GET_OPEN_TABS':
+      return getOpenTabs();
+
     case 'GET_FOLDERS':
       return getFolders();
 
@@ -232,6 +288,19 @@ async function saveLink(payload: SaveLinkPayload): Promise<{ success: boolean; e
   } catch (error) {
     return { success: false, error: `[catch] ${String(error)}` };
   }
+}
+
+async function getOpenTabs(): Promise<Array<{ url: string; title: string; favIconUrl: string }>> {
+  const tabs = await chrome.tabs.query({ currentWindow: true });
+  return tabs
+    .filter(
+      (t) => t.url && !t.url.startsWith('chrome://') && !t.url.startsWith('chrome-extension://')
+    )
+    .map((t) => ({
+      url: t.url!,
+      title: t.title || '',
+      favIconUrl: t.favIconUrl || '',
+    }));
 }
 
 async function createMark(
@@ -754,9 +823,61 @@ async function getAuthStatus(): Promise<{ authenticated: boolean; user?: { email
   return { authenticated: false };
 }
 
+let refreshPromise: Promise<string | null> | null = null;
+
 async function getAuthToken(): Promise<string | null> {
-  const result = await chrome.storage.local.get('authToken');
-  return result.authToken || null;
+  const result = await chrome.storage.local.get(['authToken', 'refreshToken']);
+  const token = result.authToken;
+  if (!token) return null;
+
+  // Check if token is expired or expiring within 5 minutes
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    const expiresAt = payload.exp * 1000; // Convert to ms
+    const fiveMinutes = 5 * 60 * 1000;
+
+    if (Date.now() < expiresAt - fiveMinutes) {
+      return token; // Token still valid
+    }
+  } catch {
+    return token; // Can't decode — let the server decide
+  }
+
+  // Token expired or expiring soon — try refresh
+  const refreshToken = result.refreshToken;
+  if (!refreshToken) return null;
+
+  // Prevent concurrent refresh calls
+  if (refreshPromise) return refreshPromise;
+
+  refreshPromise = (async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/v1/auth/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refreshToken }),
+      });
+
+      if (!response.ok) {
+        // Refresh failed — clear tokens
+        await chrome.storage.local.remove(['authToken', 'refreshToken']);
+        return null;
+      }
+
+      const data = await response.json();
+      await chrome.storage.local.set({
+        authToken: data.access_token,
+        refreshToken: data.refresh_token,
+      });
+      return data.access_token as string;
+    } catch {
+      return null;
+    } finally {
+      refreshPromise = null;
+    }
+  })();
+
+  return refreshPromise;
 }
 
 function showNotification(message: string) {
