@@ -103,7 +103,8 @@ export type ExtensionMessageType =
   | 'GET_FOLDERS'
   | 'GET_TAGS'
   | 'AUTH_STATUS'
-  | 'OPEN_POPUP';
+  | 'OPEN_POPUP'
+  | 'CLOSE_MY_TAB';
 
 export interface ExtensionMessage {
   type: ExtensionMessageType;

@@ -21,6 +21,7 @@ declare global {
 
 export default function ExtensionTokenTransferPage() {
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
+  const [tokenData, setTokenData] = useState<{ token: string; refreshToken: string } | null>(null);
 
   useEffect(() => {
     async function transferToken() {
@@ -37,6 +38,9 @@ export default function ExtensionTokenTransferPage() {
 
         const token = session.access_token;
         const refreshToken = session.refresh_token;
+
+        // Set token data for content script DOM detection
+        setTokenData({ token, refreshToken });
 
         // Get theme
         const stored = localStorage.getItem('theme');
@@ -64,13 +68,15 @@ export default function ExtensionTokenTransferPage() {
           }
         }
 
-        // Fallback: postMessage for content script
+        // Fallback: postMessage for content script with retries
         if (!sent) {
-          window.postMessage(
-            { type: 'MARKED_AUTH_TOKEN', token, refreshToken, theme },
-            window.location.origin
-          );
-          await new Promise((resolve) => setTimeout(resolve, 500));
+          for (let i = 0; i < 3; i++) {
+            window.postMessage(
+              { type: 'MARKED_AUTH_TOKEN', token, refreshToken, theme },
+              window.location.origin
+            );
+            await new Promise((resolve) => setTimeout(resolve, 800));
+          }
         }
 
         setStatus('success');
@@ -96,9 +102,16 @@ export default function ExtensionTokenTransferPage() {
           {status === 'error' && 'Could not connect. Please try again.'}
         </p>
         {status === 'success' && (
-          <button onClick={() => window.close()} className="text-primary-light hover:underline">
-            Close this tab
-          </button>
+          <p className="text-sm text-foreground-faint">This tab will close automatically...</p>
+        )}
+        {/* Hidden element for content script to detect token */}
+        {tokenData && (
+          <div
+            id="marked-extension-token"
+            data-token={tokenData.token}
+            data-refresh-token={tokenData.refreshToken}
+            style={{ display: 'none' }}
+          />
         )}
       </div>
     </div>

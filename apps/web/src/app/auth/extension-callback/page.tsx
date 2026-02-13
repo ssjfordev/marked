@@ -96,11 +96,13 @@ function ExtensionCallbackContent() {
         success = await sendViaExternallyConnectable(EXTENSION_ID);
       }
 
-      // Fallback to postMessage (content script)
+      // Fallback to postMessage (content script) with retries
       if (!success) {
-        sendViaPostMessage();
-        // Give content script time to process
-        await new Promise((resolve) => setTimeout(resolve, 500));
+        // Retry postMessage multiple times to handle content script timing
+        for (let i = 0; i < 3; i++) {
+          sendViaPostMessage();
+          await new Promise((resolve) => setTimeout(resolve, 800));
+        }
       }
 
       // We can't know for sure if postMessage worked, so assume success
@@ -157,9 +159,7 @@ function ExtensionCallbackContent() {
         </div>
 
         {status === 'success' && (
-          <button onClick={() => window.close()} className="text-primary-light hover:underline">
-            Close this window
-          </button>
+          <p className="text-sm text-foreground-faint">This tab will close automatically...</p>
         )}
 
         {status === 'error' && (
@@ -173,7 +173,12 @@ function ExtensionCallbackContent() {
 
         {/* Hidden element for content script to detect token */}
         {token && (
-          <div id="marked-extension-token" data-token={token} style={{ display: 'none' }} />
+          <div
+            id="marked-extension-token"
+            data-token={token}
+            data-refresh-token={refreshToken || ''}
+            style={{ display: 'none' }}
+          />
         )}
       </div>
     </div>

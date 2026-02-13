@@ -67,6 +67,9 @@ document.addEventListener('mousedown', handleMouseDown);
 // Listen for auth token messages from web app
 window.addEventListener('message', handleWindowMessage);
 
+// Check DOM for auth token (handles timing race with postMessage)
+checkDomForAuthToken();
+
 // Listen for messages from background script (context menu)
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message.type === 'SHOW_MARK_POPUP') {
@@ -114,12 +117,7 @@ async function handleWindowMessage(event: MessageEvent) {
   if (event.data?.type === 'MARKED_AUTH_TOKEN') {
     const { token, refreshToken, theme } = event.data;
     if (token) {
-      await chrome.storage.local.set({
-        authToken: token,
-        refreshToken: refreshToken || null,
-        theme: theme || 'dark',
-      });
-      showToast('Signed in to Marked!');
+      await saveAuthToken(token, refreshToken, theme);
     }
   }
 
@@ -128,6 +126,62 @@ async function handleWindowMessage(event: MessageEvent) {
     await chrome.storage.local.remove(['authToken', 'refreshToken']);
     showToast('Signed out from Marked');
   }
+}
+
+async function saveAuthToken(token: string, refreshToken?: string, theme?: string) {
+  await chrome.storage.local.set({
+    authToken: token,
+    refreshToken: refreshToken || null,
+    theme: theme || 'dark',
+  });
+  showToast('Signed in to Marked!');
+
+  // Auto-close the tab if this is an auth callback/transfer page
+  const path = window.location.pathname;
+  if (
+    path.includes('/auth/extension-callback') ||
+    path.includes('/auth/extension-token-transfer')
+  ) {
+    setTimeout(() => {
+      chrome.runtime.sendMessage({ type: 'CLOSE_MY_TAB' });
+    }, 1500);
+  }
+}
+
+/**
+ * Check DOM for auth token element (handles race condition where
+ * postMessage fires before content script is ready).
+ */
+function checkDomForAuthToken() {
+  const path = window.location.pathname;
+  if (
+    !path.includes('/auth/extension-callback') &&
+    !path.includes('/auth/extension-token-transfer')
+  ) {
+    return;
+  }
+
+  const el = document.getElementById('marked-extension-token');
+  if (el) {
+    const token = el.dataset.token;
+    const refreshToken = el.dataset.refreshToken;
+    if (token) {
+      saveAuthToken(token, refreshToken || undefined);
+      return;
+    }
+  }
+
+  // Retry with MutationObserver if element not found yet
+  const observer = new MutationObserver(() => {
+    const tokenEl = document.getElementById('marked-extension-token');
+    if (tokenEl?.dataset.token) {
+      observer.disconnect();
+      saveAuthToken(tokenEl.dataset.token, tokenEl.dataset.refreshToken || undefined);
+    }
+  });
+  observer.observe(document.body || document.documentElement, { childList: true, subtree: true });
+  // Stop observing after 10 seconds
+  setTimeout(() => observer.disconnect(), 10000);
 }
 
 // ============================================================================

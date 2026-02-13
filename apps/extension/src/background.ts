@@ -134,7 +134,16 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
 });
 
 // Handle messages from popup and content scripts
-chrome.runtime.onMessage.addListener((message: ExtensionMessage, _sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((message: ExtensionMessage, sender, sendResponse) => {
+  // Handle tab close request from content script (auth callback pages)
+  if (message.type === 'CLOSE_MY_TAB') {
+    if (sender.tab?.id) {
+      chrome.tabs.remove(sender.tab.id);
+    }
+    sendResponse({ success: true });
+    return true;
+  }
+
   handleMessage(message)
     .then(sendResponse)
     .catch((err) => sendResponse({ error: String(err) }));
@@ -171,6 +180,10 @@ chrome.runtime.onMessageExternal.addListener((message, sender, sendResponse) => 
         })
         .then(() => {
           sendResponse({ success: true });
+          // Auto-close the sender tab (auth callback page) after a short delay
+          if (sender.tab?.id) {
+            setTimeout(() => chrome.tabs.remove(sender.tab!.id!), 1000);
+          }
         });
     } else {
       sendResponse({ success: false, error: 'No token provided' });
