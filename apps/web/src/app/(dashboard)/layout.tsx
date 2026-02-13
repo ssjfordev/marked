@@ -140,7 +140,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       {/* Sidebar */}
       <aside className="w-64 flex-shrink-0 border-r border-border bg-bg flex flex-col overflow-hidden">
         {/* Logo */}
-        <div className="h-14 flex items-center px-3 border-b border-border">
+        <div className="h-14 flex items-center px-5 border-b border-border">
           <Link
             href="/dashboard"
             className="flex items-center gap-2.5 hover:opacity-80 transition-opacity"
@@ -148,18 +148,18 @@ export default async function DashboardLayout({ children }: { children: React.Re
             <Image
               src="/logos/marked-logo-full.png"
               alt="Marked"
-              width={108}
-              height={27}
+              width={116}
+              height={29}
               unoptimized
-              className="dark:hidden h-6 w-auto"
+              className="dark:hidden h-[26px] w-auto"
             />
             <Image
               src="/logos/marked-logo-full-white.png"
               alt="Marked"
-              width={108}
-              height={27}
+              width={116}
+              height={29}
               unoptimized
-              className="hidden dark:block h-6 w-auto"
+              className="hidden dark:block h-[26px] w-auto"
             />
             {process.env.ENV !== 'production' && (
               <span className="px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded bg-amber-500/15 text-amber-500 border border-amber-500/25">
