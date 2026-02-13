@@ -1,0 +1,155 @@
+{
+  "extName": {
+    "message": "Marked - \uc2a4\ub9c8\ud2b8 \ubd81\ub9c8\ud06c \ub9e4\ub2c8\uc800"
+  },
+  "extDesc": {
+    "message": "\ub9c1\ud06c\ub97c \uc800\uc7a5\ud558\uace0, \ub9c8\ud06c\ub97c \ub9cc\ub4e4\uace0, \ubd81\ub9c8\ud06c\ub97c \uc815\ub9ac\ud558\uc138\uc694"
+  },
+
+  "menuSaveLink": {
+    "message": "Marked\uc5d0 \uc800\uc7a5"
+  },
+  "menuMarkThis": {
+    "message": "\ub9c8\ud06c\ud558\uae30"
+  },
+  "menuOpenSidebar": {
+    "message": "\uc0ac\uc774\ub4dc\ubc14 \uc5f4\uae30"
+  },
+  "menuSaveCurrentPage": {
+    "message": "\ud604\uc7ac \ud398\uc774\uc9c0 \uc800\uc7a5"
+  },
+  "menuSaveAllTabs": {
+    "message": "\uc5f4\ub9b0 \ud0ed \ubaa8\ub450 \uc800\uc7a5"
+  },
+  "menuExportBookmarks": {
+    "message": "\ud06c\ub86c \ubd81\ub9c8\ud06c\ub85c \ub0b4\ubcf4\ub0b4\uae30"
+  },
+  "menuOpenApp": {
+    "message": "Marked \uc5f4\uae30"
+  },
+
+  "exportTitle": {
+    "message": "\ud06c\ub86c\uc73c\ub85c \ub0b4\ubcf4\ub0b4\uae30"
+  },
+  "exportClose": {
+    "message": "\ub2eb\uae30"
+  },
+  "exportLoading": {
+    "message": "\ub85c\ub529 \uc911..."
+  },
+  "exportScanning": {
+    "message": "\ubd81\ub9c8\ud06c \uc2a4\uce94 \uc911..."
+  },
+  "exportSignInPrompt": {
+    "message": "\uba3c\uc800 Marked\uc5d0 \ub85c\uadf8\uc778\ud574\uc8fc\uc138\uc694."
+  },
+  "exportSignIn": {
+    "message": "\ub85c\uadf8\uc778"
+  },
+  "exportAllSynced": {
+    "message": "\ubaa8\ub450 \ub3d9\uae30\ud654\ub428!"
+  },
+  "exportAllSyncedDesc": {
+    "message": "Marked\uc758 \ubaa8\ub4e0 \ub9c1\ud06c\uac00 \uc774\ubbf8 \ud06c\ub86c \ubd81\ub9c8\ud06c\uc5d0 \uc788\uc2b5\ub2c8\ub2e4."
+  },
+  "exportDone": {
+    "message": "\uc644\ub8cc"
+  },
+  "exportTotalLinks": {
+    "message": "Marked \ub9c1\ud06c \ucd1d \uac1c\uc218"
+  },
+  "exportNewLinks": {
+    "message": "\ud06c\ub86c \ubd81\ub9c8\ud06c\uc5d0 \uc5c6\ub294 \ub9c1\ud06c"
+  },
+  "exportInfoExport": {
+    "message": "Marked\uc758 \ub9c1\ud06c\ub97c \ud06c\ub86c \ubd81\ub9c8\ud06c\ub85c \ub0b4\ubcf4\ub0c5\ub2c8\ub2e4."
+  },
+  "exportInfoSkip": {
+    "message": "\uc774\ubbf8 \ud06c\ub86c\uc5d0 \uc788\ub294 URL\uc740 \uac74\ub108\ub701\ub2c8\ub2e4."
+  },
+  "exportInfoSafe": {
+    "message": "\uae30\uc874 \ud06c\ub86c \ubd81\ub9c8\ud06c\ub294 \ubcc0\uacbd\ub418\uc9c0 \uc54a\uc2b5\ub2c8\ub2e4."
+  },
+  "exportLocationLabel": {
+    "message": "\uc800\uc7a5 \uc704\uce58"
+  },
+  "exportLocationBar": {
+    "message": "\ubd81\ub9c8\ud06c \ubc14\uc5d0 \"Marked\" \ud3f4\ub354 \uc0dd\uc131"
+  },
+  "exportLocationBarDesc": {
+    "message": "\uae30\ubcf8\uac12 \u2014 \uc0c8 \"Marked\" \ud3f4\ub354\uac00 \uc0dd\uc131\ub429\ub2c8\ub2e4"
+  },
+  "exportLocationCustom": {
+    "message": "\uae30\uc874 \ud06c\ub86c \ud3f4\ub354 \uc120\ud0dd"
+  },
+  "exportLocationCustomDesc": {
+    "message": "\ud06c\ub86c \ubd81\ub9c8\ud06c\uc5d0\uc11c \ud3f4\ub354\ub97c \uc120\ud0dd\ud558\uc138\uc694"
+  },
+  "exportStructureLabel": {
+    "message": "\ud3f4\ub354 \uad6c\uc870"
+  },
+  "exportStructureKeep": {
+    "message": "Marked \ud3f4\ub354 \uad6c\uc870 \uc720\uc9c0"
+  },
+  "exportStructureKeepDesc": {
+    "message": "\uc608: Marked \u203a \uac1c\ubc1c \u203a React"
+  },
+  "exportStructureFlat": {
+    "message": "\ud3f4\ub354 \uc5c6\uc774 \ud55c \uacf3\uc5d0"
+  },
+  "exportStructureFlatDesc": {
+    "message": "\ud558\uc704 \ud3f4\ub354\ub97c \ub9cc\ub4e4\uc9c0 \uc54a\uc2b5\ub2c8\ub2e4"
+  },
+  "exportBackupTitle": {
+    "message": "\ud06c\ub86c \ubd81\ub9c8\ud06c \ubc31\uc5c5"
+  },
+  "exportBackupDesc": {
+    "message": "\ub0b4\ubcf4\ub0b4\uae30 \uc804\uc5d0 \ud604\uc7ac \ud06c\ub86c \ubd81\ub9c8\ud06c\ub97c \ubc31\uc5c5\ud574\ub450\uc138\uc694."
+  },
+  "exportBackupDownload": {
+    "message": "\ubc31\uc5c5 \ub2e4\uc6b4\ub85c\ub4dc"
+  },
+  "exportBackupInProgress": {
+    "message": "\ubc31\uc5c5 \uc911..."
+  },
+  "exportBackupDone": {
+    "message": "\ubc31\uc5c5 \ub2e4\uc6b4\ub85c\ub4dc \ubc0f \ud074\ub77c\uc6b0\ub4dc \uc800\uc7a5 \uc644\ub8cc"
+  },
+  "exportStartButton": {
+    "message": "$COUNT$\uac1c \ubd81\ub9c8\ud06c \ub0b4\ubcf4\ub0b4\uae30",
+    "placeholders": {
+      "count": { "content": "$1" }
+    }
+  },
+  "exportFooterInfo": {
+    "message": "$COUNT$\uac1c \ubd81\ub9c8\ud06c\uac00 \ucd94\uac00\ub429\ub2c8\ub2e4",
+    "placeholders": {
+      "count": { "content": "$1" }
+    }
+  },
+  "exportResultSuccess": {
+    "message": "$COUNT$\uac1c \ubd81\ub9c8\ud06c \ub0b4\ubcf4\ub0b4\uae30 \uc644\ub8cc!",
+    "placeholders": {
+      "count": { "content": "$1" }
+    }
+  },
+  "exportResultPartial": {
+    "message": "$SUCCESS$\uac1c \uc131\uacf5, $FAILED$\uac1c \uc2e4\ud328",
+    "placeholders": {
+      "success": { "content": "$1" },
+      "failed": { "content": "$2" }
+    }
+  },
+  "exportResultProcessed": {
+    "message": "$COUNT$\uac1c \ubd81\ub9c8\ud06c \ucc98\ub9ac\ub428",
+    "placeholders": {
+      "count": { "content": "$1" }
+    }
+  },
+  "exportBookmarksBar": {
+    "message": "\ubd81\ub9c8\ud06c \ubc14"
+  },
+  "exportOtherBookmarks": {
+    "message": "\uae30\ud0c0 \ubd81\ub9c8\ud06c"
+  }
+}

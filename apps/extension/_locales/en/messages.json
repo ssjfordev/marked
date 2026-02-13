@@ -1,0 +1,155 @@
+{
+  "extName": {
+    "message": "Marked - Smart Bookmark Manager"
+  },
+  "extDesc": {
+    "message": "Save links, create marks, and organize your bookmarks"
+  },
+
+  "menuSaveLink": {
+    "message": "Save to Marked"
+  },
+  "menuMarkThis": {
+    "message": "Mark this"
+  },
+  "menuOpenSidebar": {
+    "message": "Open sidebar"
+  },
+  "menuSaveCurrentPage": {
+    "message": "Save current page"
+  },
+  "menuSaveAllTabs": {
+    "message": "Save all open tabs"
+  },
+  "menuExportBookmarks": {
+    "message": "Export to Chrome bookmarks"
+  },
+  "menuOpenApp": {
+    "message": "Open Marked"
+  },
+
+  "exportTitle": {
+    "message": "Export to Chrome"
+  },
+  "exportClose": {
+    "message": "Close"
+  },
+  "exportLoading": {
+    "message": "Loading..."
+  },
+  "exportScanning": {
+    "message": "Scanning bookmarks..."
+  },
+  "exportSignInPrompt": {
+    "message": "Please sign in to Marked first."
+  },
+  "exportSignIn": {
+    "message": "Sign in"
+  },
+  "exportAllSynced": {
+    "message": "All synced!"
+  },
+  "exportAllSyncedDesc": {
+    "message": "All your Marked links are already in Chrome bookmarks."
+  },
+  "exportDone": {
+    "message": "Done"
+  },
+  "exportTotalLinks": {
+    "message": "Total Marked links"
+  },
+  "exportNewLinks": {
+    "message": "Not in Chrome bookmarks"
+  },
+  "exportInfoExport": {
+    "message": "Exports your Marked links to Chrome bookmarks."
+  },
+  "exportInfoSkip": {
+    "message": "URLs already in Chrome are skipped."
+  },
+  "exportInfoSafe": {
+    "message": "Your existing Chrome bookmarks are not modified."
+  },
+  "exportLocationLabel": {
+    "message": "Save location"
+  },
+  "exportLocationBar": {
+    "message": "Create \"Marked\" folder in Bookmarks Bar"
+  },
+  "exportLocationBarDesc": {
+    "message": "Default \u2014 a new \"Marked\" folder will be created"
+  },
+  "exportLocationCustom": {
+    "message": "Choose existing Chrome folder"
+  },
+  "exportLocationCustomDesc": {
+    "message": "Select a folder from your Chrome bookmarks"
+  },
+  "exportStructureLabel": {
+    "message": "Folder structure"
+  },
+  "exportStructureKeep": {
+    "message": "Keep Marked folder structure"
+  },
+  "exportStructureKeepDesc": {
+    "message": "e.g. Marked \u203a Dev \u203a React"
+  },
+  "exportStructureFlat": {
+    "message": "Flat \u2014 all links in one folder"
+  },
+  "exportStructureFlatDesc": {
+    "message": "No sub-folders created"
+  },
+  "exportBackupTitle": {
+    "message": "Backup your Chrome bookmarks"
+  },
+  "exportBackupDesc": {
+    "message": "Before exporting, back up your current Chrome bookmarks for safety."
+  },
+  "exportBackupDownload": {
+    "message": "Download backup"
+  },
+  "exportBackupInProgress": {
+    "message": "Backing up..."
+  },
+  "exportBackupDone": {
+    "message": "Backup downloaded & saved to cloud"
+  },
+  "exportStartButton": {
+    "message": "Export $COUNT$ bookmarks",
+    "placeholders": {
+      "count": { "content": "$1" }
+    }
+  },
+  "exportFooterInfo": {
+    "message": "$COUNT$ bookmarks will be added",
+    "placeholders": {
+      "count": { "content": "$1" }
+    }
+  },
+  "exportResultSuccess": {
+    "message": "$COUNT$ bookmarks exported!",
+    "placeholders": {
+      "count": { "content": "$1" }
+    }
+  },
+  "exportResultPartial": {
+    "message": "$SUCCESS$ exported, $FAILED$ failed",
+    "placeholders": {
+      "success": { "content": "$1" },
+      "failed": { "content": "$2" }
+    }
+  },
+  "exportResultProcessed": {
+    "message": "$COUNT$ bookmarks processed",
+    "placeholders": {
+      "count": { "content": "$1" }
+    }
+  },
+  "exportBookmarksBar": {
+    "message": "Bookmarks Bar"
+  },
+  "exportOtherBookmarks": {
+    "message": "Other Bookmarks"
+  }
+}

@@ -26,38 +26,44 @@ chrome.runtime.onInstalled.addListener(() => {
   // Page/link context menus (right-click on webpage)
   chrome.contextMenus.create({
     id: 'save-link',
-    title: 'Save to Marked',
+    title: chrome.i18n.getMessage('menuSaveLink'),
     contexts: ['link', 'page'],
   });
 
   chrome.contextMenus.create({
     id: 'create-mark',
-    title: 'Mark this',
+    title: chrome.i18n.getMessage('menuMarkThis'),
     contexts: ['selection'],
   });
 
   // Extension icon context menus (right-click on toolbar icon)
   chrome.contextMenus.create({
     id: 'open-sidebar',
-    title: 'Open sidebar',
+    title: chrome.i18n.getMessage('menuOpenSidebar'),
     contexts: ['action'],
   });
 
   chrome.contextMenus.create({
     id: 'save-current-page',
-    title: 'Save current page',
+    title: chrome.i18n.getMessage('menuSaveCurrentPage'),
     contexts: ['action'],
   });
 
   chrome.contextMenus.create({
     id: 'save-all-tabs',
-    title: 'Save all open tabs',
+    title: chrome.i18n.getMessage('menuSaveAllTabs'),
+    contexts: ['action'],
+  });
+
+  chrome.contextMenus.create({
+    id: 'export-bookmarks',
+    title: chrome.i18n.getMessage('menuExportBookmarks'),
     contexts: ['action'],
   });
 
   chrome.contextMenus.create({
     id: 'open-app',
-    title: 'Open Marked',
+    title: chrome.i18n.getMessage('menuOpenApp'),
     contexts: ['action'],
   });
 
@@ -116,6 +122,10 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
 
   if (info.menuItemId === 'save-all-tabs') {
     chrome.tabs.create({ url: chrome.runtime.getURL('bulk-save.html') });
+  }
+
+  if (info.menuItemId === 'export-bookmarks') {
+    chrome.tabs.create({ url: chrome.runtime.getURL('export-bookmarks.html') });
   }
 
   if (info.menuItemId === 'open-app') {

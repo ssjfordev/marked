@@ -1,15 +1,17 @@
 {
   "manifest_version": 3,
-  "name": "Marked - Smart Bookmark Manager",
+  "name": "__MSG_extName__",
   "version": "0.1.0",
-  "description": "Save links, create marks, and organize your bookmarks",
+  "description": "__MSG_extDesc__",
+  "default_locale": "en",
   "permissions": [
     "activeTab",
     "storage",
     "contextMenus",
     "sidePanel",
     "notifications",
-    "scripting"
+    "scripting",
+    "bookmarks"
   ],
   "host_permissions": ["<all_urls>"],
   "action": {
@@ -42,12 +44,12 @@
     }
   ],
   "commands": {
-    "toggle_sidebar": {
+    "_execute_side_panel": {
       "suggested_key": {
-        "default": "Ctrl+Shift+M",
-        "mac": "Command+Shift+M"
+        "default": "Ctrl+Shift+Y",
+        "mac": "Command+Shift+Y"
       },
-      "description": "Toggle Marked sidebar"
+      "description": "Open Marked sidebar"
     }
   },
   "externally_connectable": {

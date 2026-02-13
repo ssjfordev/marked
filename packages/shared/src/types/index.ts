@@ -99,6 +99,7 @@ export type ExtensionMessageType =
   | 'DELETE_MARK'
   | 'GET_MARKS'
   | 'GET_CURRENT_TAB'
+  | 'GET_OPEN_TABS'
   | 'GET_FOLDERS'
   | 'GET_TAGS'
   | 'AUTH_STATUS'

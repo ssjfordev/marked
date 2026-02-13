@@ -1,0 +1,715 @@
+/* =============================================================================
+   MARKED EXTENSION - Export Bookmarks Page
+   Reuses popup.css design tokens, adapted for full-page layout
+   ============================================================================= */
+
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap');
+
+/* =============================================================================
+   DARK THEME (Default)
+   ============================================================================= */
+
+:root {
+  --bg-base: #0a0f0d;
+  --bg-elevated: #0d1210;
+  --bg-subtle: #111815;
+  --bg-hover: #161d1a;
+
+  --accent: #10b981;
+  --accent-light: #34d399;
+  --accent-muted: rgba(16, 185, 129, 0.15);
+  --accent-glow: rgba(16, 185, 129, 0.4);
+
+  --text-primary: #f8faf9;
+  --text-secondary: #c4ccc8;
+  --text-muted: #8a9590;
+
+  --border: rgba(255, 255, 255, 0.08);
+  --border-hover: rgba(255, 255, 255, 0.15);
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+
+  --shadow-dropdown: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  --shadow-button: 0 2px 8px var(--accent-muted);
+  --shadow-button-hover: 0 4px 16px var(--accent-glow);
+}
+
+/* =============================================================================
+   LIGHT THEME
+   ============================================================================= */
+
+.light {
+  --bg-base: #f8faf9;
+  --bg-elevated: #ffffff;
+  --bg-subtle: #f0f4f2;
+  --bg-hover: #e8eeeb;
+
+  --accent: #059669;
+  --accent-light: #10b981;
+  --accent-muted: rgba(5, 150, 105, 0.12);
+  --accent-glow: rgba(5, 150, 105, 0.25);
+
+  --text-primary: #0f1512;
+  --text-secondary: #374743;
+  --text-muted: #5c6a66;
+
+  --border: rgba(0, 0, 0, 0.08);
+  --border-hover: rgba(0, 0, 0, 0.15);
+
+  --shadow-dropdown: 0 8px 32px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.05);
+  --shadow-button: 0 2px 8px rgba(5, 150, 105, 0.2);
+  --shadow-button-hover: 0 4px 16px rgba(5, 150, 105, 0.3);
+}
+
+/* =============================================================================
+   BASE RESET
+   ============================================================================= */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family:
+    'Outfit',
+    -apple-system,
+    BlinkMacSystemFont,
+    sans-serif;
+  font-size: 14px;
+  color: var(--text-primary);
+  background: var(--bg-base);
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+
+/* =============================================================================
+   LAYOUT
+   ============================================================================= */
+
+.export-page {
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 32px 24px 48px;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* =============================================================================
+   HEADER
+   ============================================================================= */
+
+.ep-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 28px;
+}
+
+.ep-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.ep-logo {
+  width: 28px;
+  height: 28px;
+}
+
+.ep-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.ep-title {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.ep-close {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.ep-close:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+  border-color: var(--border-hover);
+}
+
+/* =============================================================================
+   LOADING STATE
+   ============================================================================= */
+
+.ep-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 24px;
+  gap: 16px;
+}
+
+.loading-spinner {
+  width: 28px;
+  height: 28px;
+  border: 2px solid var(--bg-subtle);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.loading-text {
+  font-size: 13px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+/* =============================================================================
+   LOGIN STATE
+   ============================================================================= */
+
+.ep-login {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 24px;
+  gap: 16px;
+  text-align: center;
+}
+
+.ep-login-text {
+  font-size: 15px;
+  color: var(--text-secondary);
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+
+/* =============================================================================
+   SCAN RESULTS
+   ============================================================================= */
+
+.ep-scan-stats {
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 20px;
+  margin-bottom: 24px;
+}
+
+.ep-stat-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 0;
+}
+
+.ep-stat-row + .ep-stat-row {
+  border-top: 1px solid var(--border);
+  margin-top: 6px;
+  padding-top: 12px;
+}
+
+.ep-stat-label {
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.ep-stat-value {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.ep-stat-value.highlight {
+  color: var(--accent-light);
+}
+
+/* =============================================================================
+   DESCRIPTION / INFO BOX
+   ============================================================================= */
+
+.ep-info {
+  background: var(--accent-muted);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  margin-bottom: 24px;
+}
+
+.light .ep-info {
+  border-color: rgba(5, 150, 105, 0.2);
+}
+
+.ep-info-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.ep-info-item + .ep-info-item {
+  margin-top: 8px;
+}
+
+.ep-info-icon {
+  flex-shrink: 0;
+  color: var(--accent);
+  margin-top: 1px;
+}
+
+/* =============================================================================
+   OPTIONS SECTION
+   ============================================================================= */
+
+.ep-options {
+  margin-bottom: 24px;
+}
+
+.ep-section-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+}
+
+.ep-option-group {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+
+.ep-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  border-bottom: 1px solid var(--border);
+}
+
+.ep-option:last-child {
+  border-bottom: none;
+}
+
+.ep-option:hover {
+  background: var(--bg-hover);
+}
+
+.ep-option input[type='radio'] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.ep-option-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.ep-option-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.ep-option-desc {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+/* =============================================================================
+   FOLDER TREE (for custom location)
+   ============================================================================= */
+
+.ep-folder-tree {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  max-height: 200px;
+  overflow-y: auto;
+  margin-top: 8px;
+  margin-bottom: 16px;
+}
+
+.ep-folder-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+
+.ep-folder-item:last-child {
+  border-bottom: none;
+}
+
+.ep-folder-item:hover {
+  background: var(--bg-hover);
+}
+
+.ep-folder-item.selected {
+  background: var(--accent-muted);
+}
+
+.ep-folder-icon {
+  flex-shrink: 0;
+  font-size: 14px;
+}
+
+.ep-folder-name {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.ep-folder-check {
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+/* =============================================================================
+   BACKUP SECTION
+   ============================================================================= */
+
+.ep-backup {
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 20px;
+  margin-bottom: 24px;
+}
+
+.ep-backup-title {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.ep-backup-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 16px;
+  line-height: 1.5;
+}
+
+.ep-backup-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.ep-backup-status {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ep-backup-status.success {
+  color: var(--accent);
+}
+
+.ep-backup-status.error {
+  color: #f87171;
+}
+
+.light .ep-backup-status.error {
+  color: #dc2626;
+}
+
+/* =============================================================================
+   BUTTONS
+   ============================================================================= */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 24px;
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.1) 0%, transparent 50%);
+  pointer-events: none;
+}
+
+.btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--accent-light) 0%, var(--accent) 100%);
+  color: white;
+  box-shadow:
+    var(--shadow-button),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+.btn-primary:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow:
+    var(--shadow-button-hover),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.btn-primary:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.btn-secondary {
+  background: var(--bg-subtle);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: var(--bg-hover);
+  border-color: var(--border-hover);
+}
+
+.btn-sm {
+  padding: 8px 16px;
+  font-size: 13px;
+}
+
+.btn-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+/* =============================================================================
+   FOOTER
+   ============================================================================= */
+
+.ep-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.ep-footer-info {
+  font-size: 13px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+/* =============================================================================
+   PROGRESS
+   ============================================================================= */
+
+.ep-progress {
+  margin-bottom: 24px;
+}
+
+.ep-progress-bar {
+  width: 100%;
+  height: 6px;
+  background: var(--bg-subtle);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+
+.ep-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent) 0%, var(--accent-light) 100%);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.ep-progress-text {
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-weight: 500;
+  text-align: center;
+}
+
+/* =============================================================================
+   RESULT
+   ============================================================================= */
+
+.ep-result {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 32px 24px;
+  text-align: center;
+}
+
+.ep-result-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ep-result-icon.success {
+  background: var(--accent-muted);
+  color: var(--accent);
+}
+
+.ep-result-icon.partial {
+  background: rgba(251, 191, 36, 0.15);
+  color: #fbbf24;
+}
+
+.ep-result-title {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.ep-result-detail {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+/* =============================================================================
+   ERROR
+   ============================================================================= */
+
+.error-message {
+  background: rgba(239, 68, 68, 0.12);
+  color: #f87171;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 16px;
+  border: 1px solid rgba(239, 68, 68, 0.25);
+}
+
+.light .error-message {
+  background: rgba(239, 68, 68, 0.08);
+  color: #dc2626;
+}
+
+/* =============================================================================
+   NOTHING TO EXPORT
+   ============================================================================= */
+
+.ep-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 24px;
+  gap: 12px;
+  text-align: center;
+}
+
+.ep-empty-icon {
+  font-size: 32px;
+  margin-bottom: 4px;
+}
+
+.ep-empty-title {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.ep-empty-desc {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+/* =============================================================================
+   SCROLLBAR
+   ============================================================================= */
+
+.ep-folder-tree::-webkit-scrollbar {
+  width: 6px;
+}
+
+.ep-folder-tree::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.ep-folder-tree::-webkit-scrollbar-thumb {
+  background: var(--bg-hover);
+  border-radius: 3px;
+}
+
+.ep-folder-tree::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--bg-hover) transparent;
+}
+
+::selection {
+  background: var(--accent-muted);
+  color: var(--text-primary);
+}
