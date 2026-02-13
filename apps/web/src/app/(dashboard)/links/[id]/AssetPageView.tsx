@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import { AssetPageClient } from './AssetPageClient';
 
@@ -44,33 +44,55 @@ export function AssetPageView() {
   const [data, setData] = useState<AssetData | null>(null);
   const [notFound, setNotFound] = useState(false);
 
-  useEffect(() => {
-    let cancelled = false;
+  const [error, setError] = useState(false);
+
+  const fetchDetail = useCallback(() => {
     setData(null);
     setNotFound(false);
+    setError(false);
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 15000);
 
-    fetch(`/api/v1/links/detail/${shortId}`)
+    fetch(`/api/v1/links/detail/${shortId}`, { signal: controller.signal })
       .then((res) => {
         if (res.status === 404) {
-          if (!cancelled) setNotFound(true);
+          setNotFound(true);
           return null;
         }
         return res.json();
       })
       .then((json) => {
-        if (!cancelled && json?.data) {
-          setData(json.data);
-        }
+        if (json?.data) setData(json.data);
       })
       .catch((err) => {
-        console.error('Failed to fetch link detail:', err);
-        if (!cancelled) setNotFound(true);
-      });
+        if (err.name !== 'AbortError') {
+          if (err.message === 'not-found') setNotFound(true);
+          else setError(true);
+        }
+      })
+      .finally(() => clearTimeout(timer));
 
-    return () => {
-      cancelled = true;
-    };
+    return controller;
   }, [shortId]);
+
+  useEffect(() => {
+    const controller = fetchDetail();
+    return () => controller.abort();
+  }, [fetchDetail]);
+
+  if (error) {
+    return (
+      <div className="max-w-4xl mx-auto flex flex-col items-center justify-center py-20 gap-3">
+        <p className="text-foreground-muted text-sm">Failed to load data</p>
+        <button
+          onClick={fetchDetail}
+          className="px-4 py-2 text-sm rounded-lg bg-primary text-white hover:bg-primary-dark transition-colors"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
 
   if (notFound) {
     return (

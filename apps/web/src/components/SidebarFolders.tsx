@@ -46,10 +46,11 @@ export function SidebarFolders({ folders, linkCounts = {} }: SidebarFoldersProps
 
     return (
       <div key={folder.id}>
-        <div
+        <Link
+          href={`/folders/${folder.id}`}
           className={`
             group flex items-center gap-1
-            rounded-md px-1.5 py-1
+            rounded-md px-1.5 py-1.5
             text-[13px] transition-colors duration-150
             ${
               isSelected
@@ -114,10 +115,8 @@ export function SidebarFolders({ folders, linkCounts = {} }: SidebarFoldersProps
             </svg>
           )}
 
-          {/* Folder name as link */}
-          <Link href={`/folders/${folder.id}`} className="flex-1 truncate">
-            {folder.name}
-          </Link>
+          {/* Folder name */}
+          <span className="flex-1 truncate">{folder.name}</span>
 
           {/* Link count badge */}
           {(linkCounts[folder.id] ?? 0) > 0 && (
@@ -125,7 +124,7 @@ export function SidebarFolders({ folders, linkCounts = {} }: SidebarFoldersProps
               {linkCounts[folder.id]}
             </span>
           )}
-        </div>
+        </Link>
 
         {/* Children */}
         {hasChildren && isExpanded && (

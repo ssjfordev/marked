@@ -12,6 +12,8 @@ const ko = {
   'common.search': '검색',
   'common.settings': '설정',
   'common.optional': '(선택)',
+  'common.loadFailed': '데이터를 불러오지 못했습니다',
+  'common.retry': '다시 시도',
 
   // Plan labels
   'plan.free': 'Free',

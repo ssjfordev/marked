@@ -13,6 +13,8 @@ const en: Record<MessageKeys, string | string[]> = {
   'common.undo': 'Undo',
   'common.search': 'Search',
   'common.settings': 'Settings',
+  'common.loadFailed': 'Failed to load data',
+  'common.retry': 'Retry',
   'common.optional': '(optional)',
 
   // Plan labels

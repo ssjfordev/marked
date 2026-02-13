@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { FolderManager } from './FolderManager';
 import { useLocale } from '@/components/LanguageProvider';
@@ -17,23 +17,30 @@ interface Folder {
 export function FolderManageView() {
   const { t } = useLocale();
   const [folders, setFolders] = useState<Folder[] | null>(null);
+  const [error, setError] = useState(false);
 
-  useEffect(() => {
-    let cancelled = false;
+  const fetchFolders = useCallback(() => {
+    setError(false);
+    setFolders(null);
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 15000);
 
-    fetch('/api/v1/folders')
+    fetch('/api/v1/folders', { signal: controller.signal })
       .then((res) => res.json())
       .then((json) => {
-        if (!cancelled && json?.data) {
-          setFolders(json.data);
-        }
+        if (json?.data) setFolders(json.data);
+        else setError(true);
       })
-      .catch((err) => console.error('Failed to fetch folders:', err));
+      .catch(() => setError(true))
+      .finally(() => clearTimeout(timer));
 
-    return () => {
-      cancelled = true;
-    };
+    return controller;
   }, []);
+
+  useEffect(() => {
+    const controller = fetchFolders();
+    return () => controller.abort();
+  }, [fetchFolders]);
 
   return (
     <div className="max-w-3xl mx-auto">
@@ -57,7 +64,17 @@ export function FolderManageView() {
         <p className="text-foreground-muted">{t('folderManager.desc')}</p>
       </div>
 
-      {folders === null ? (
+      {error ? (
+        <div className="flex flex-col items-center justify-center py-16 gap-3">
+          <p className="text-foreground-muted text-sm">{t('common.loadFailed')}</p>
+          <button
+            onClick={fetchFolders}
+            className="px-4 py-2 text-sm rounded-lg bg-primary text-white hover:bg-primary-dark transition-colors"
+          >
+            {t('common.retry')}
+          </button>
+        </div>
+      ) : folders === null ? (
         <div className="flex items-center justify-center py-16">
           <div className="h-6 w-6 border-2 border-foreground-muted border-t-transparent rounded-full animate-spin" />
         </div>

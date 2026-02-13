@@ -65,6 +65,7 @@ export default async function RootLayout({
   return (
     <html lang={locale} suppressHydrationWarning>
       <head>
+        <meta httpEquiv="Content-Security-Policy" content="upgrade-insecure-requests" />
         <script dangerouslySetInnerHTML={{ __html: localeScript }} />
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
         {buildInfoScript && <script dangerouslySetInnerHTML={{ __html: buildInfoScript }} />}

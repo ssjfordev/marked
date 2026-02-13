@@ -45,15 +45,21 @@ export function FolderView() {
   const [links, setLinks] = useState<LinkInstance[] | null>(null);
   const [notFound, setNotFound] = useState(false);
 
+  const [error, setError] = useState(false);
+
   const fetchData = useCallback(
     (showLoading = true) => {
       if (showLoading) {
         setFolder(null);
         setLinks(null);
         setNotFound(false);
+        setError(false);
       }
 
-      fetch(`/api/v1/folders/${folderId}`)
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 15000);
+
+      fetch(`/api/v1/folders/${folderId}`, { signal: controller.signal })
         .then((res) => {
           if (res.status === 404) throw new Error('not-found');
           return res.json();
@@ -63,24 +69,29 @@ export function FolderView() {
         })
         .catch((err) => {
           if (err.message === 'not-found') setNotFound(true);
-          else {
-            console.error('Failed to fetch folder:', err);
-            setNotFound(true);
-          }
+          else if (err.name !== 'AbortError') setError(true);
         });
 
-      fetch(`/api/v1/folders/${folderId}/links`)
+      fetch(`/api/v1/folders/${folderId}/links`, { signal: controller.signal })
         .then((res) => res.json())
         .then((json) => {
           if (json?.data) setLinks(json.data);
         })
-        .catch((err) => console.error('Failed to fetch links:', err));
+        .catch((err) => {
+          if (err.name !== 'AbortError') console.error('Failed to fetch links:', err);
+        });
+
+      return { controller, timer };
     },
     [folderId]
   );
 
   useEffect(() => {
-    fetchData(true);
+    const { controller, timer } = fetchData(true);
+    return () => {
+      controller.abort();
+      clearTimeout(timer);
+    };
   }, [fetchData]);
 
   // Refetch when tab becomes visible (e.g., after saving from extension)
@@ -91,6 +102,20 @@ export function FolderView() {
     document.addEventListener('visibilitychange', onVisible);
     return () => document.removeEventListener('visibilitychange', onVisible);
   }, [fetchData]);
+
+  if (error) {
+    return (
+      <div className="max-w-5xl mx-auto flex flex-col items-center justify-center py-20 gap-3">
+        <p className="text-foreground-muted text-sm">{t('common.loadFailed')}</p>
+        <button
+          onClick={() => fetchData(true)}
+          className="px-4 py-2 text-sm rounded-lg bg-primary text-white hover:bg-primary-dark transition-colors"
+        >
+          {t('common.retry')}
+        </button>
+      </div>
+    );
+  }
 
   if (notFound) {
     return (

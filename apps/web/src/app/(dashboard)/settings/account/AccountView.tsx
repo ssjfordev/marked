@@ -1,27 +1,48 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { AccountClient } from './AccountClient';
 
 export function AccountView() {
   const [data, setData] = useState<{ email: string; created_at: string } | null>(null);
+  const [error, setError] = useState(false);
 
-  useEffect(() => {
-    let cancelled = false;
+  const fetchUser = useCallback(() => {
+    setError(false);
+    setData(null);
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 15000);
 
-    fetch('/api/v1/user')
+    fetch('/api/v1/user', { signal: controller.signal })
       .then((res) => res.json())
       .then((json) => {
-        if (!cancelled && json?.data) {
-          setData(json.data);
-        }
+        if (json?.data) setData(json.data);
+        else setError(true);
       })
-      .catch((err) => console.error('Failed to fetch user:', err));
+      .catch(() => setError(true))
+      .finally(() => clearTimeout(timer));
 
-    return () => {
-      cancelled = true;
-    };
+    return controller;
   }, []);
+
+  useEffect(() => {
+    const controller = fetchUser();
+    return () => controller.abort();
+  }, [fetchUser]);
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 gap-3">
+        <p className="text-foreground-muted text-sm">Failed to load data</p>
+        <button
+          onClick={fetchUser}
+          className="px-4 py-2 text-sm rounded-lg bg-primary text-white hover:bg-primary-dark transition-colors"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
 
   if (!data) {
     return (

@@ -14,6 +14,19 @@ const nextConfig: NextConfig = {
     NEXT_PUBLIC_COMMIT_HASH: commitHash,
     NEXT_PUBLIC_BUILD_TIME: new Date().toISOString(),
   },
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: [
+          {
+            key: 'Content-Security-Policy',
+            value: 'upgrade-insecure-requests',
+          },
+        ],
+      },
+    ];
+  },
 };
 
 export default nextConfig;

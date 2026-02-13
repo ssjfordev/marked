@@ -29,18 +29,29 @@ interface LinkInstance {
 export function AllLinksView() {
   const { t } = useLocale();
   const [links, setLinks] = useState<LinkInstance[] | null>(null);
+  const [error, setError] = useState(false);
 
   const fetchLinks = useCallback(() => {
-    fetch('/api/v1/links')
+    setError(false);
+    setLinks(null);
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 15000);
+
+    fetch('/api/v1/links', { signal: controller.signal })
       .then((res) => res.json())
       .then((json) => {
         if (json.data) setLinks(json.data);
+        else setError(true);
       })
-      .catch((err) => console.error('Failed to fetch links:', err));
+      .catch(() => setError(true))
+      .finally(() => clearTimeout(timer));
+
+    return controller;
   }, []);
 
   useEffect(() => {
-    fetchLinks();
+    const controller = fetchLinks();
+    return () => controller.abort();
   }, [fetchLinks]);
 
   // Refetch when tab becomes visible (e.g., after saving from extension)
@@ -51,6 +62,20 @@ export function AllLinksView() {
     document.addEventListener('visibilitychange', onVisible);
     return () => document.removeEventListener('visibilitychange', onVisible);
   }, [fetchLinks]);
+
+  if (error) {
+    return (
+      <div className="max-w-5xl mx-auto flex flex-col items-center justify-center py-20 gap-3">
+        <p className="text-foreground-muted text-sm">{t('common.loadFailed')}</p>
+        <button
+          onClick={fetchLinks}
+          className="px-4 py-2 text-sm rounded-lg bg-primary text-white hover:bg-primary-dark transition-colors"
+        >
+          {t('common.retry')}
+        </button>
+      </div>
+    );
+  }
 
   if (links === null) {
     return (

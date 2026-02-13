@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { DashboardContent } from './DashboardContent';
 import { useLocale } from '@/components/LanguageProvider';
@@ -40,22 +40,44 @@ export function DashboardView() {
   const { t } = useLocale();
   const [data, setData] = useState<DashboardData | null>(null);
 
-  useEffect(() => {
-    let cancelled = false;
+  const [error, setError] = useState(false);
 
-    fetch('/api/v1/dashboard')
+  const fetchData = useCallback(() => {
+    setError(false);
+    setData(null);
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 15000);
+
+    fetch('/api/v1/dashboard', { signal: controller.signal })
       .then((res) => res.json())
       .then((json) => {
-        if (!cancelled && json?.data) {
-          setData(json.data);
-        }
+        if (json?.data) setData(json.data);
+        else setError(true);
       })
-      .catch((err) => console.error('Failed to fetch dashboard:', err));
+      .catch(() => setError(true))
+      .finally(() => clearTimeout(timer));
 
-    return () => {
-      cancelled = true;
-    };
+    return controller;
   }, []);
+
+  useEffect(() => {
+    const controller = fetchData();
+    return () => controller.abort();
+  }, [fetchData]);
+
+  if (error) {
+    return (
+      <div className="max-w-5xl mx-auto flex flex-col items-center justify-center py-20 gap-3">
+        <p className="text-foreground-muted text-sm">{t('common.loadFailed')}</p>
+        <button
+          onClick={fetchData}
+          className="px-4 py-2 text-sm rounded-lg bg-primary text-white hover:bg-primary-dark transition-colors"
+        >
+          {t('common.retry')}
+        </button>
+      </div>
+    );
+  }
 
   if (!data) {
     return (
